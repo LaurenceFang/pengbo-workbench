@@ -1,0 +1,141 @@
+# Windows 本地桌面版“穷人版 Bloomberg”执行计划
+
+## 摘要
+- 目标是做一个 **Windows 优先、单机本地部署、封装成桌面软件** 的金融工作台，尽量减少用户端操作，同时保留尽可能多的 Bloomberg 外围能力。
+- v1 以 **只读终端** 为主：行情、图表、基本面、SEC 财报、筛选器、组合监控、观察列表、统一搜索、Binance 只读接口。交易执行不作为主功能，但要预留统一 adapter。
+- 实现路线采用 **桌面壳 + 本地服务 + 内嵌存储 + 前端工作台**，不直接把 Ghostfolio/Wealthfolio 这类整站原样塞进桌面壳；它们作为产品和交互参考，不作为运行时主依赖。
+- 默认技术决策：
+  - 桌面壳：`Tauri 2`
+  - 前端：`React + TypeScript + Vite + TanStack Router + TanStack Query + Zustand + Tailwind + shadcn/ui + Lightweight Charts`
+  - 本地服务：`Python 3.12 + FastAPI`
+  - 数据/分析依赖：`OpenBB + FinanceToolkit + EdgarTools + CCXT`
+  - 本地存储：`SQLite` 保存应用状态，`DuckDB` 保存分析缓存和历史快照
+- 原方案里的 `QuestDB` 不进入 v1 主路径。原因是桌面打包和“尽量少用户端操作”优先级更高。v1 通过 `MarketDataStore` 抽象预留 QuestDB 二期接入点。
+
+## 关键实现与接口
+- 应用形态：
+  - 单安装包启动桌面应用。
+  - Tauri 负责窗口、系统托盘、设置页、密钥存储、子进程管理。
+  - FastAPI 作为本地 sidecar，由桌面壳自动拉起和关闭，用户不直接操作命令行。
+- 前端模块：
+  - `首页 Dashboard`：观察列表、市场快照、组合摘要、最近查看资产。
+  - `资产详情页`：价格、区间表现、K 线/线图、基本面指标、财报摘要、SEC filings。
+  - `筛选器页`：股票和加密两套预设筛选器，支持保存条件。
+  - `组合页`：持仓、交易记录、收益、分配、基准对比。
+  - `连接器页`：OpenBB 数据设置、Binance 只读接口、未来 adapter 占位。
+  - `设置页`：缓存策略、默认市场、主题、路径、日志开关。
+- 本地 API 统一定义为只通过 `http://127.0.0.1:<port>/api/v1/...` 提供：
+  - `GET /search/assets`
+  - `GET /quotes/latest`
+  - `GET /prices/history`
+  - `GET /fundamentals/overview`
+  - `GET /fundamentals/ratios`
+  - `GET /filings/list`
+  - `POST /screeners/run`
+  - `GET/POST /portfolio/*`
+  - `GET/POST /connections/*`
+  - `GET /health`
+- Provider 抽象必须固定为三类接口，避免后续重构：
+  - `MarketDataProvider`：搜索、最新价、历史行情、资产元数据
+  - `FundamentalProvider`：公司概览、比率、报表、filings
+  - `ExecutionAdapter`：账户、持仓、订单接口；v1 只实现 Binance 只读，写操作默认关闭
+- 数据源分工：
+  - `OpenBB`：股票、ETF、指数、宏观、部分加密、统一搜索
+  - `FinanceToolkit`：比率和分析计算
+  - `EdgarTools`：美股 SEC / XBRL / 10-K / 10-Q
+  - `CCXT`：Binance 行情、账户、只读持仓与交易历史
+- 本地数据层：
+  - `SQLite`：用户设置、观察列表、已保存筛选器、组合交易记录、连接配置元数据
+  - `DuckDB`：行情缓存、基础面快照、筛选结果缓存、已拉取 filings 索引
+  - 密钥和敏感配置不进 SQLite，统一走 Tauri secure storage
+- v1 资产范围：
+  - 股票、ETF、指数、宏观：主支持
+  - 加密：主支持，且有 Binance 只读连接
+  - 期货、外汇、期权：只做搜索/行情/占位接口，不做深度交易与专业 analytics
+- 明确不做：
+  - Bloomberg News 替代
+  - 机构级实时付费 feed
+  - 多 broker 实盘交易
+  - Ghostfolio 全站嵌入
+  - QuestDB 默认安装
+  - 团队协作、云同步、权限系统
+
+## 实施阶段
+- 阶段 1：桌面壳与本地服务骨架
+  - 建立 Tauri monorepo 和 FastAPI sidecar。
+  - 实现桌面壳自动拉起后端、健康检查、端口占用回退、日志收集、崩溃恢复。
+  - 完成基础布局、导航、全局状态、设置页、错误页、空状态页。
+- 阶段 2：本地存储与缓存
+  - 建立 SQLite 和 DuckDB 双存储。
+  - 定义本地 schema：assets cache、quotes cache、history cache、saved screeners、watchlists、portfolio transactions、connection profiles。
+  - 实现缓存 TTL、手动刷新、失败回退到缓存、首次启动初始化。
+- 阶段 3：市场数据与搜索
+  - 接入 OpenBB，完成股票/ETF/指数/宏观/加密的统一搜索与行情拉取。
+  - 做资产规范化模型，统一 ticker、交易所、资产类别、货币、provider 标识。
+  - 完成资产详情页的最新价、历史区间、基础元数据。
+- 阶段 4：图表系统
+  - 用 Lightweight Charts 实现日/周/月/年与自定义区间切换。
+  - 支持价格线、成交量、对比叠加、基础技术指标占位。
+  - 图表必须支持股票和加密统一渲染，数据缺口要有可视提示。
+- 阶段 5：基本面与财报
+  - 用 FinanceToolkit 输出公司概览、估值、盈利、成长、风险收益指标。
+  - 用 EdgarTools 输出 SEC filings 列表、最近 10-K/10-Q、关键报表摘要。
+  - 限定 v1 的深度基本面只对美股可用，其他市场在 UI 明确标注“暂无深度数据”。
+- 阶段 6：筛选器
+  - 股票筛选器：市值、PE、PB、营收增长、ROE、负债率、52 周区间等。
+  - 加密筛选器：交易对、成交量、波动率、涨跌幅、交易所、是否可在 Binance 获取。
+  - 保存筛选器模板，支持一键复跑和导出 CSV。
+- 阶段 7：组合模块
+  - 自建本地 portfolio 模块，不嵌入 Ghostfolio。
+  - 支持手工录入交易、CSV 导入、账户分组、持仓汇总、已实现/未实现盈亏、资产配置。
+  - 提供组合摘要卡片、收益曲线、行业/资产类别分配、基准对比。
+  - 基准默认支持 `SPY` 和 `BTC` 两类参考。
+- 阶段 8：Binance 与 adapter 预留
+  - 用 CCXT 实现 Binance 只读连接：账户余额、持仓、历史成交、可交易对元数据。
+  - `ExecutionAdapter` 统一定义必须包含股票/期货/指数/加密的占位接口，但除 Binance 只读外全部返回未实现。
+  - 写操作接口保留但默认 feature flag 关闭，不在 UI 默认开放。
+- 阶段 9：产品化封装
+  - 做首启向导：数据目录、缓存目录、Binance API 可选配置、默认市场。
+  - 打包 Windows 安装器，支持桌面快捷方式、开机不自启、应用内检查更新占位。
+  - 补齐日志查看、诊断导出、缓存清理、重建索引。
+- 阶段 10：二期扩展点预留
+  - `MarketDataStore` 保留 QuestDB 接口。
+  - `ExecutionAdapter` 保留股票/期货 broker 实现位置。
+  - UI 预留新闻卡片和策略页，但 v1 不接真实源。
+
+## 测试与验收
+- 安装与启动：
+  - 全新 Windows 环境双击安装后可直接启动，无需用户手工启动 Python 服务。
+  - 后端 sidecar 端口冲突时能自动换端口并正常工作。
+- 数据与搜索：
+  - 能搜索并打开 `AAPL`、`SPY`、`BTC/USDT`。
+  - 能展示最新价和至少 1 年历史行情。
+  - OpenBB 暂时不可用时，应用能显示缓存数据和错误提示。
+- 图表：
+  - 价格图正常缩放、切换区间、显示缺失数据提示。
+  - 股票与加密共用一套图表组件，不出现渲染分叉。
+- 基本面与财报：
+  - `AAPL` 这类美股能看到关键比率和最近 filings。
+  - 非美股标的在基本面页明确显示能力边界，而不是报错白屏。
+- 筛选器：
+  - 至少 3 个股票预设和 3 个加密预设可直接运行。
+  - 保存后的筛选器重启后仍然存在。
+- 组合：
+  - 手工录入 3 笔交易后能正确计算持仓和收益。
+  - CSV 导入失败时能指出行号和字段错误。
+- Binance 只读：
+  - API Key/Secret 可安全保存。
+  - 只读连接成功后可拉到账户余额与持仓；无交易权限时不报异常。
+- 产品质量：
+  - 断网、OpenBB 限流、文件损坏、密钥缺失、历史数据为空时都必须有可恢复提示。
+  - 启动到首页时间、资产页首次打开时间、图表切换时间要有基础性能基线并记录。
+
+## 假设与默认值
+- 默认按 **Windows-first** 实施，不追求首版跨平台。
+- 默认采用 **Tauri + React + FastAPI**，不再评估 Electron。
+- 默认做 **统一软件**，而不是把多个现成 Web 应用并排启动。
+- 默认以 **本地只读使用** 为主，Binance 仅保留只读接口；其他交易接口只留抽象层。
+- 默认不把 Ghostfolio 当运行时依赖；它只作为组合模块的产品参考。
+- 默认使用 `SQLite + DuckDB` 替代 QuestDB 进入 v1，以减少用户端安装与运维动作。
+- 默认深度基本面以 **美股** 为主；多资产覆盖优先于每个资产都做深。
+- 默认不做账号系统、云同步、多人协作、机构实时新闻和付费数据整合。

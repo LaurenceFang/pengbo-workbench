@@ -1,0 +1,545 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from pathlib import Path
+from types import SimpleNamespace
+from typing import TYPE_CHECKING
+from uuid import uuid4
+
+from ..analysis import AnalysisModuleContext, build_default_analysis_registry
+from ..models import (
+    AssetWorkspaceResponse,
+    CreateResearchBriefRequest,
+    ResearchBrief,
+    ResearchBriefExportResponse,
+    ResearchBriefListItem,
+    ResearchFactorContext,
+    ResearchBriefSourceContext,
+    ResearchPortfolioContext,
+    ResearchPortfolioHandoffDraft,
+    ResearchScreenerContext,
+    ResearchScreenerSummary,
+    UpdateResearchBriefNotesRequest,
+)
+from ..providers.catalog import get_asset
+from ..runtime import RuntimeSettings
+from ..storage.sqlite_store import SqliteStore
+from .asset_service import AssetService
+from .portfolio_service import PortfolioService
+from .screener_service import ScreenerService
+from .watchlist_service import WatchlistService
+
+if TYPE_CHECKING:
+    from .evidence_service import EvidenceService
+    from .factor_service import FactorService
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(UTC).isoformat()
+
+
+class ResearchService:
+    def __init__(
+        self,
+        settings: RuntimeSettings,
+        sqlite_store: SqliteStore,
+        asset_service: AssetService,
+        screener_service: ScreenerService,
+        portfolio_service: PortfolioService,
+        watchlist_service: WatchlistService,
+        factor_service: FactorService | None = None,
+        evidence_service: EvidenceService | None = None,
+    ) -> None:
+        self.settings = settings
+        self.sqlite_store = sqlite_store
+        self.asset_service = asset_service
+        self.screener_service = screener_service
+        self.portfolio_service = portfolio_service
+        self.watchlist_service = watchlist_service
+        self.factor_service = factor_service
+        self.evidence_service = evidence_service
+        self.analysis_registry = build_default_analysis_registry()
+
+    def _asset_type_for_symbol(self, symbol: str) -> str:
+        entry = get_asset(symbol)
+        if entry is None:
+            raise ValueError(f"Asset not found: {symbol}")
+        if entry.asset_class in {"equity", "etf"}:
+            return "equity"
+        return entry.asset_class
+
+    def _build_source_context(self, payload: CreateResearchBriefRequest) -> ResearchBriefSourceContext | None:
+        if (
+            payload.source_preset_key is None
+            and payload.source_variant_key is None
+            and payload.source_universe_source is None
+            and getattr(payload, "data_source_provider", None) is None
+            and getattr(payload, "data_source_kind", None) is None
+            and getattr(payload, "data_source_query", None) is None
+            and getattr(payload, "factor_run_id", None) is None
+            and getattr(payload, "backtest_run_id", None) is None
+            and getattr(payload, "paper_session_id", None) is None
+            and getattr(payload, "intent_id", None) is None
+        ):
+            return None
+
+        label_parts = [
+            part
+            for part in [
+                payload.source_preset_key,
+                payload.source_variant_key,
+                payload.source_universe_source,
+                getattr(payload, "data_source_provider", None),
+                getattr(payload, "data_source_kind", None),
+                getattr(payload, "data_source_query", None),
+                getattr(payload, "factor_run_id", None),
+                getattr(payload, "backtest_run_id", None),
+                getattr(payload, "paper_session_id", None),
+                getattr(payload, "intent_id", None),
+            ]
+            if part
+        ]
+        return ResearchBriefSourceContext(
+            source_preset_key=payload.source_preset_key,
+            source_variant_key=payload.source_variant_key,
+            source_universe_source=payload.source_universe_source,
+            data_source_provider=getattr(payload, "data_source_provider", None),
+            data_source_kind=getattr(payload, "data_source_kind", None),
+            data_source_query=getattr(payload, "data_source_query", None),
+            factor_run_id=getattr(payload, "factor_run_id", None),
+            backtest_run_id=getattr(payload, "backtest_run_id", None),
+            paper_session_id=getattr(payload, "paper_session_id", None),
+            intent_id=getattr(payload, "intent_id", None),
+            source_label=" / ".join(label_parts) if label_parts else None,
+        )
+
+    def _build_factor_context(
+        self,
+        symbol: str,
+        source_context: ResearchBriefSourceContext | None,
+    ) -> ResearchFactorContext | None:
+        if source_context is None or source_context.factor_run_id is None or self.factor_service is None:
+            return None
+        return self.factor_service.get_research_context(source_context.factor_run_id, symbol)
+
+    def _build_screener_context(
+        self,
+        symbol: str,
+        source_context: ResearchBriefSourceContext | None,
+    ) -> ResearchScreenerContext:
+        asset_type = self._asset_type_for_symbol(symbol)
+        preset_runs: list[tuple[str, str | None, str]] = []
+        preset_titles = {preset.key: preset.title for preset in self.screener_service.get_presets() if preset.asset_type == asset_type}
+
+        if source_context and source_context.source_preset_key:
+            preset_key = source_context.source_preset_key
+            if preset_key in preset_titles:
+                preset_runs.append(
+                    (
+                        preset_key,
+                        source_context.source_variant_key,
+                        source_context.source_universe_source or "expanded",
+                    )
+                )
+        else:
+            for preset in self.screener_service.get_presets():
+                if preset.asset_type == asset_type:
+                    preset_runs.append((preset.key, preset.active_variant_key, "expanded"))
+
+        summaries: list[ResearchScreenerSummary] = []
+        for preset_key, variant_key, universe_source in preset_runs:
+            try:
+                run = self.screener_service.run(
+                    SimpleNamespace(
+                        preset=preset_key,
+                        asset_type=asset_type,
+                        universe_source=universe_source,
+                        variant_key=variant_key,
+                    )
+                )
+                result = next((item for item in run.results if item.symbol == symbol), None)
+                if result is None:
+                    summaries.append(
+                        ResearchScreenerSummary(
+                            preset_key=preset_key,
+                            preset_title=preset_titles.get(preset_key, preset_key),
+                            variant_key=run.variant_key,
+                            variant_name=run.variant_name,
+                            universe_source=run.universe_source,
+                            matched=False,
+                            explanations=["This symbol is outside the current controlled screener universe."],
+                        )
+                    )
+                    continue
+
+                summaries.append(
+                    ResearchScreenerSummary(
+                        preset_key=preset_key,
+                        preset_title=preset_titles.get(preset_key, preset_key),
+                        variant_key=run.variant_key,
+                        variant_name=run.variant_name,
+                        universe_source=run.universe_source,
+                        matched=result.score_label != "watch",
+                        score=result.score,
+                        score_label=result.score_label,
+                        explanations=list(result.explanations),
+                        matched_rules=list(result.matched_rules),
+                        notes=list(result.notes),
+                        stale=result.stale,
+                    )
+                )
+            except Exception as error:
+                summaries.append(
+                    ResearchScreenerSummary(
+                        preset_key=preset_key,
+                        preset_title=preset_titles.get(preset_key, preset_key),
+                        variant_key=variant_key,
+                        variant_name=None,
+                        universe_source=universe_source,
+                        matched=False,
+                        explanations=[f"Screener context unavailable: {error}"],
+                    )
+                )
+
+        return ResearchScreenerContext(source=source_context, summaries=summaries)
+
+    def _build_portfolio_context(self, symbol: str, asset_snapshot: AssetWorkspaceResponse) -> ResearchPortfolioContext:
+        holdings = self.portfolio_service.get_holdings()
+        transactions = self.portfolio_service.get_transactions()
+        holding = next((item for item in holdings if item.symbol == symbol), None)
+        transaction_count = sum(1 for item in transactions if item.symbol == symbol)
+        notes = list(holding.notes) if holding else []
+        handoff_price = holding.current_price if holding and holding.current_price is not None else asset_snapshot.quote.price
+
+        if holding is None and transaction_count == 0:
+            notes.append("This symbol is not currently held in the portfolio.")
+
+        return ResearchPortfolioContext(
+            in_portfolio=holding is not None,
+            quantity=holding.quantity if holding else None,
+            average_cost=holding.average_cost if holding else None,
+            valuation_status=holding.valuation_status if holding else None,
+            market_value=holding.market_value if holding else None,
+            cost_basis=holding.cost_basis if holding else None,
+            transaction_count=transaction_count,
+            notes=notes,
+            handoff_draft=ResearchPortfolioHandoffDraft(
+                symbol=symbol,
+                side="buy",
+                quantity=1,
+                price=round(handoff_price, 2),
+                fees=0,
+                traded_at=datetime.now(UTC).date().isoformat(),
+                notes=f"Created from research brief {symbol}",
+            ),
+        )
+
+    def _build_snapshot(
+        self,
+        *,
+        brief_id: str,
+        symbol: str,
+        source_context: ResearchBriefSourceContext | None,
+    ) -> dict:
+        asset_snapshot = self.asset_service.get_asset_workspace(symbol)
+        title = f"{symbol} Research Brief"
+        generated_at = _utc_now_iso()
+        screener_context = self._build_screener_context(symbol, source_context)
+        factor_context = self._build_factor_context(symbol, source_context)
+        evidence_context = (
+            self.evidence_service.build_snapshot(
+                symbol,
+                source_context=source_context,
+                screener_context=screener_context,
+                factor_context=factor_context,
+            )
+            if self.evidence_service
+            else None
+        )
+        portfolio_context = self._build_portfolio_context(symbol, asset_snapshot)
+        analysis_context = AnalysisModuleContext(
+            brief_id=brief_id,
+            symbol=symbol,
+            generated_at=generated_at,
+            stale=asset_snapshot.stale or any(item.stale for item in screener_context.summaries),
+            asset_snapshot=asset_snapshot,
+            screener_context=screener_context,
+            portfolio_context=portfolio_context,
+        )
+        analysis_modules = self.analysis_registry.render_all(analysis_context)
+        return {
+            "brief_id": brief_id,
+            "symbol": symbol,
+            "title": title,
+            "generated_at": generated_at,
+            "stale": analysis_context.stale,
+            "asset_snapshot": asset_snapshot.model_dump(mode="json"),
+            "screener_context": screener_context.model_dump(mode="json"),
+            "factor_context": factor_context.model_dump(mode="json") if factor_context else None,
+            "evidence_context": evidence_context.model_dump(mode="json") if evidence_context else None,
+            "portfolio_context": portfolio_context.model_dump(mode="json"),
+            "analysis_modules": [item.model_dump(mode="json") for item in analysis_modules],
+        }
+
+    def _to_brief(self, row: dict) -> ResearchBrief:
+        snapshot = row["snapshot"]
+        return ResearchBrief.model_validate(
+            {
+                "brief_id": row["brief_id"],
+                "symbol": row["symbol"],
+                "title": row["title"],
+                "generated_at": snapshot["generated_at"],
+                "updated_at": row["updated_at"],
+                "stale": snapshot["stale"],
+                "asset_snapshot": snapshot["asset_snapshot"],
+                "screener_context": snapshot["screener_context"],
+                "factor_context": snapshot.get("factor_context"),
+                "evidence_context": snapshot.get("evidence_context"),
+                "portfolio_context": snapshot["portfolio_context"],
+                "analysis_modules": snapshot.get("analysis_modules", []),
+                "notes": {
+                    "markdown": row["notes_markdown"],
+                    "updated_at": row["updated_at"],
+                },
+                "export_info": {
+                    "last_export_path": row["last_export_path"],
+                },
+            }
+        )
+
+    def list_recent_briefs(self, limit: int = 20) -> list[ResearchBriefListItem]:
+        rows = self.sqlite_store.list_recent_research_briefs(limit)
+        items: list[ResearchBriefListItem] = []
+        for row in rows:
+            snapshot = row["snapshot"]
+            items.append(
+                ResearchBriefListItem.model_validate(
+                    {
+                        "brief_id": row["brief_id"],
+                        "symbol": row["symbol"],
+                        "title": row["title"],
+                        "generated_at": snapshot["generated_at"],
+                        "updated_at": row["updated_at"],
+                        "stale": snapshot["stale"],
+                        "source": row["source_context"],
+                    }
+                )
+            )
+        return items
+
+    def create_brief(self, payload: CreateResearchBriefRequest) -> ResearchBrief:
+        symbol = payload.symbol.strip().upper()
+        if not symbol:
+            raise ValueError("Research symbol is required")
+        if get_asset(symbol) is None:
+            raise ValueError(f"Asset not found: {symbol}")
+
+        brief_id = f"brief-{uuid4().hex[:12]}"
+        source_context = self._build_source_context(payload)
+        snapshot = self._build_snapshot(brief_id=brief_id, symbol=symbol, source_context=source_context)
+        row = self.sqlite_store.create_research_brief(
+            brief_id=brief_id,
+            symbol=symbol,
+            title=snapshot["title"],
+            snapshot=snapshot,
+            notes_markdown="",
+            source_context=(source_context.model_dump(mode="json") if source_context else {}),
+        )
+        return self._to_brief(row)
+
+    def get_brief(self, brief_id: str) -> ResearchBrief:
+        row = self.sqlite_store.get_research_brief(brief_id)
+        if row is None:
+            raise ValueError(f"Research brief not found: {brief_id}")
+        if self._needs_provider_refresh(row):
+            row = self._refresh_row(row)
+        return self._to_brief(row)
+
+    def refresh_brief(self, brief_id: str) -> ResearchBrief:
+        row = self.sqlite_store.get_research_brief(brief_id)
+        if row is None:
+            raise ValueError(f"Research brief not found: {brief_id}")
+        return self._to_brief(self._refresh_row(row))
+
+    def _needs_provider_refresh(self, row: dict) -> bool:
+        capabilities = (
+            row.get("snapshot", {})
+            .get("asset_snapshot", {})
+            .get("capabilities", {})
+        )
+        return (
+            capabilities.get("filings_status") == "credential_required"
+            and self.asset_service.filings_provider.is_configured
+        )
+
+    def _refresh_row(self, row: dict) -> dict:
+        source_context = (
+            ResearchBriefSourceContext.model_validate(row["source_context"])
+            if row.get("source_context")
+            else None
+        )
+        snapshot = self._build_snapshot(
+            brief_id=row["brief_id"],
+            symbol=row["symbol"],
+            source_context=source_context,
+        )
+        refreshed = self.sqlite_store.update_research_brief_snapshot(
+            row["brief_id"],
+            title=snapshot["title"],
+            snapshot=snapshot,
+            source_context=source_context.model_dump(mode="json") if source_context else {},
+        )
+        if refreshed is None:
+            raise ValueError(f"Research brief not found: {row['brief_id']}")
+        return refreshed
+
+    def update_notes(self, brief_id: str, payload: UpdateResearchBriefNotesRequest) -> ResearchBrief:
+        row = self.sqlite_store.update_research_brief_notes(brief_id, payload.markdown)
+        if row is None:
+            raise ValueError(f"Research brief not found: {brief_id}")
+        return self._to_brief(row)
+
+    def get_evidence(
+        self,
+        symbol: str,
+        *,
+        factor_run_id: str | None = None,
+        backtest_run_id: str | None = None,
+        paper_session_id: str | None = None,
+        intent_id: str | None = None,
+    ):
+        if self.evidence_service is None:
+            raise ValueError("Evidence service is not configured")
+        source_context = ResearchBriefSourceContext(
+            factor_run_id=factor_run_id,
+            backtest_run_id=backtest_run_id,
+            paper_session_id=paper_session_id,
+            intent_id=intent_id,
+            source_label=" / ".join(
+                item
+                for item in [factor_run_id, backtest_run_id, paper_session_id, intent_id]
+                if item
+            )
+            or None,
+        )
+        return self.evidence_service.build_snapshot(symbol.strip().upper(), source_context=source_context)
+
+    def _render_markdown(self, brief: ResearchBrief) -> str:
+        lines: list[str] = [
+            f"# {brief.title}",
+            "",
+            f"- Symbol: `{brief.symbol}`",
+            f"- Generated: `{brief.generated_at}`",
+            f"- Updated: `{brief.updated_at}`",
+            f"- Stale: `{'yes' if brief.stale else 'no'}`",
+            "",
+            "## Asset Snapshot",
+            "",
+            f"- Name: {brief.asset_snapshot.asset.name}",
+            f"- Market: {brief.asset_snapshot.asset.market}",
+            f"- Provider: {brief.asset_snapshot.asset.provider}",
+            f"- Price: {brief.asset_snapshot.quote.price:.2f} {brief.asset_snapshot.quote.currency}",
+            f"- Change: {brief.asset_snapshot.quote.change_pct:.2f}%",
+            "",
+        ]
+
+        lines.extend(["## Analysis Modules", ""])
+        for module in brief.analysis_modules:
+            lines.append(f"### {module.title}")
+            lines.append("")
+            lines.append(module.summary)
+            lines.append("")
+            for item in module.highlights:
+                lines.append(f"- {item.label}: {item.value}")
+            if module.highlights:
+                lines.append("")
+            for section in module.sections:
+                lines.append(f"#### {section.title}")
+                lines.append("")
+                if section.kind == "bullets":
+                    for bullet in section.items:
+                        lines.append(f"- {bullet}")
+                else:
+                    lines.append(section.body)
+                lines.append("")
+
+        if brief.factor_context is not None:
+            lines.extend(
+                [
+                    "## Factor Context",
+                    "",
+                    f"- Factor run: `{brief.factor_context.run_id}`",
+                    f"- Family: `{brief.factor_context.family}`",
+                    f"- Universe: `{brief.factor_context.universe_source}` / `{brief.factor_context.asset_type}`",
+                    f"- Rank: `{brief.factor_context.rank if brief.factor_context.rank is not None else 'n/a'}`",
+                    f"- Percentile: `{brief.factor_context.percentile if brief.factor_context.percentile is not None else 'n/a'}`",
+                    f"- Composite score: `{brief.factor_context.composite_score if brief.factor_context.composite_score is not None else 'n/a'}`",
+                    f"- Bucket: `{brief.factor_context.bucket}`",
+                    "- Scope: `research-only; no orders, broker calls, or strategy deployment`",
+                    "",
+                ]
+            )
+            if brief.factor_context.missing_data:
+                lines.append(f"- Missing inputs: {', '.join(brief.factor_context.missing_data)}")
+                lines.append("")
+            for contribution in brief.factor_context.contributions:
+                lines.append(f"### {contribution.label}")
+                lines.append("")
+                lines.append(f"- Score: `{contribution.score if contribution.score is not None else 'n/a'}`")
+                lines.append(f"- Weight: `{contribution.weight}`")
+                for item in contribution.evidence:
+                    lines.append(f"- Evidence: {item}")
+                for item in contribution.missing_metrics:
+                    lines.append(f"- Missing: `{item}`")
+                lines.append("")
+
+        if brief.evidence_context is not None:
+            lines.extend(["## Evidence Chain", ""])
+            evidence = brief.evidence_context
+            if evidence.factor is not None:
+                lines.append(
+                    f"- Factor: `{evidence.factor.run_id}` rank `{evidence.factor.rank if evidence.factor.rank is not None else 'n/a'}` "
+                    f"score `{evidence.factor.composite_score if evidence.factor.composite_score is not None else 'n/a'}`."
+                )
+            if evidence.screener is not None:
+                matched = [item for item in evidence.screener.summaries if item.matched]
+                lines.append(f"- Screener: `{len(matched)}` matched profile(s), `{len(evidence.screener.summaries)}` checked.")
+            if evidence.backtest is not None:
+                lines.append(
+                    f"- Backtest: `{evidence.backtest.run_id}` return `{evidence.backtest.total_return_pct if evidence.backtest.total_return_pct is not None else 'n/a'}` "
+                    f"max drawdown `{evidence.backtest.max_drawdown_pct if evidence.backtest.max_drawdown_pct is not None else 'n/a'}`; live orders `{not evidence.backtest.no_live_orders}`."
+                )
+            if evidence.paper_session is not None:
+                lines.append(
+                    f"- Paper session: `{evidence.paper_session.session_id}` orders `{evidence.paper_session.order_count}`, "
+                    f"fills `{evidence.paper_session.fill_count}`, ledger entries `{evidence.paper_session.ledger_count}`."
+                )
+            if evidence.execution is not None:
+                lines.append(
+                    f"- Binance intent: `{evidence.execution.intent_id}` status `{evidence.execution.status}` "
+                    f"blocked `{', '.join(evidence.execution.blocked_checks) or 'none'}` live order recorded `{evidence.execution.live_order_recorded}`."
+                )
+            if evidence.audit is not None:
+                lines.append(f"- Audit: `{evidence.audit.event_count}` event(s), latest `{evidence.audit.latest_event_at}`.")
+            for note in evidence.data_quality_notes:
+                lines.append(f"- Data quality: {note}")
+            lines.append("")
+
+        lines.extend(["## Notes", ""])
+        if brief.notes.markdown.strip():
+            lines.append(brief.notes.markdown.rstrip())
+        else:
+            lines.append("_No notes yet._")
+        lines.append("")
+        return "\n".join(lines)
+
+    def export_brief(self, brief_id: str) -> ResearchBriefExportResponse:
+        brief = self.get_brief(brief_id)
+        reports_dir = self.settings.diagnostics_dir / "reports"
+        reports_dir.mkdir(parents=True, exist_ok=True)
+        export_path = reports_dir / f"research-{brief.symbol.lower()}-{brief.brief_id[-6:]}.md"
+        export_path.write_text(self._render_markdown(brief), encoding="utf-8")
+        row = self.sqlite_store.update_research_brief_export_path(brief_id, str(export_path))
+        if row is None:
+            raise ValueError(f"Research brief not found: {brief_id}")
+        return ResearchBriefExportResponse(brief_id=brief_id, export_path=str(export_path))

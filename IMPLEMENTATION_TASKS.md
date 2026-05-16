@@ -1,0 +1,1828 @@
+# Pengbo Workbench Task Board
+
+Updated: 2026-05-16
+
+## Current Assessment
+
+- The packaged desktop runtime and sidecar now rebuild successfully with refreshed release artifacts.
+- `T13 - Packaging Noise Reduction` is now implemented and package-validated, with the latest packaged sidecar at `117,868,930 bytes` and the latest sidecar build duration at `60.03s`.
+- `T15 - Provider Live Signoff` remains functionally complete at the packaged runtime/provider layer for both EDGAR and Binance.
+- `T16 - Desktop Runtime Status Reconciliation` is now implemented and package-validated, including the 2026-04-18 packaged startup hotfix: desktop startup no longer self-thrashes while health is still settling, PyInstaller onefile sidecar bootstrap exit is reconciled against live `/health`, the Tauri fallback path no longer drops to relative `/api/v1`, and packaged WebView requests now accept the Tauri 2 `http://tauri.localhost` origin.
+- `T12 - Offline-First Portfolio Hardening` is now implemented and package-smoke validated across online, offline-with-cache, and offline-cold-cache scenarios.
+- `T17 - Packaged Startup Regression Automation` is now implemented and smoke-validated, with a repeatable packaged startup script, log-backed single-instance coverage, and adopt-existing verification recorded in `logs/packaged-startup-smoke-latest.json`.
+- `T19 - Portfolio Offline Regression Automation` is now implemented and smoke-validated, with a repeatable packaged portfolio script recording `live`, `cached`, and `unavailable` semantics in `logs/portfolio-offline-smoke-latest.json`.
+- `T21 - Installed Bundle Startup Automation` is now implemented and smoke-validated for the MSI-installed desktop lifecycle, with a repeatable installed-app startup result recorded in `logs/installed-bundle-startup-smoke-latest.json`.
+- `T23 - NSIS Installed Startup Automation` is now implemented and smoke-validated for the NSIS-installed desktop lifecycle, with a repeatable installed-app startup result recorded in `logs/installed-bundle-startup-smoke-nsis-latest.json`.
+- `T22 - Portfolio Packaged UI State Signoff` is now implemented and smoke-validated, with a repeatable packaged-shell UI signoff result recorded in `logs/portfolio-ui-signoff-latest.json`.
+- `T18 - Localization Hardening` is now implemented and web-build validated, with source-level mojibake cleanup and Chinese-first desktop copy restored across the shared shell, portfolio workflows, connections, settings, dashboard, asset, and runtime/API fallback messaging.
+- `T20 - Residual Packaging Warning Trim` is now implemented and build-validated, with residual SciPy warning lines moved out of `warning_categories.actionable` into an auditable `accepted_packaging_noise` bucket plus reasoned notes in `logs/sidecar-build-latest.json`.
+- `T14 - Screener Quality Expansion` is now implemented and validated, with a controlled expanded screener universe, score-ranked results, explanations, missing-metric reporting, and dedicated backend/API coverage in `backend/tests/test_screener_service.py`.
+- `T24 - Screener Configurable Profiles` is now implemented and build-validated, with preset-scoped screener variants, SQLite-backed tuning persistence, activation-aware `/api/v1/screeners/*` compatibility, and a three-column desktop workflow for variant management plus controlled tuning.
+- `T25 - Screener Variant Packaged Signoff` is now implemented and smoke-validated, with a repeatable packaged lifecycle result recorded in `logs/screener-variant-signoff-latest.json` plus stable ASCII screener automation anchors for preset, variant, summary, and run-attribution evidence.
+- `T26 - Research Workspace` is now implemented and smoke-validated, with a dedicated `research` desktop workspace, persisted brief snapshots and notes, local Markdown export, screener-to-research handoff, portfolio handoff, and a repeatable packaged result recorded in `logs/research-workspace-smoke-latest.json`.
+- `T27 - Analysis Module Registry` is now implemented and package-smoke validated, with a reusable backend analysis registry, four structured research modules, shared frontend analysis cards, and packaged evidence recorded in `logs/research-workspace-smoke-latest.json`.
+- `T28 - Provider Capability Catalog` is now implemented and build-validated, with a shared backend capability layer, additive `/api/v1/connections/catalog` coverage, unified asset/research applicability semantics, and a provider capability matrix in the desktop connections surface.
+- `T29 - Command Palette And Report Export` is now implemented and build-validated, with a global keyboard-first command palette, shared screener context in the app store, cross-workspace asset/research/portfolio/provider/export actions, and command feedback surfaced in the shared shell.
+- `T30 - Provider Capability Packaged Signoff` is now implemented and smoke-validated, with a repeatable packaged capability signoff result recorded in `logs/provider-capability-signoff-latest.json`, stable ASCII automation anchors across Connections plus additive asset/research anchors, and packaged runtime verification of `credential_required -> available -> credential_required` capability transitions.
+- `T31 - Credential Workflow And Crypto Capability Smoke Hardening` is now implemented and smoke-validated, including desktop-UI EDGAR save/clear through the real Stronghold-backed form plus the `BTC/USDT` unsupported crypto sample.
+- `T32 - Desktop WebView Credential Input Automation Adapter` is now implemented and smoke-validated, with deterministic EDGAR identity input automation, Stronghold persistence readback, post-restart `available` evidence, and clear-back-to-`credential_required` coverage in `logs/provider-capability-signoff-latest.json`.
+- `T33 - Portfolio Analytics And Professional Charting` is now implemented and package-smoke validated, with additive `/api/v1/portfolio/summary.analytics`, average-cost PnL, time-window analytics, allocation breakdowns, and packaged evidence recorded in `logs/portfolio-offline-smoke-latest.json` plus `logs/portfolio-ui-signoff-latest.json`.
+- `T34 - Local Factor Research Lab` is now implemented and package-smoke validated, with additive `/api/v1/factors/*`, persisted DuckDB factor snapshots, a dedicated Factor Lab workspace, research handoff, and packaged evidence recorded in `logs/factor-lab-smoke-latest.json`.
+- `T35 - Strategy Backtesting And Paper Trading` is now implemented and package-smoke validated, with additive `/api/v1/strategies/*`, persisted strategy backtest snapshots, local paper-trading ledgers, a dedicated Strategy Lab workspace, report export, and packaged evidence recorded in `logs/strategy-lab-smoke-latest.json`.
+- `T36 - Automated Binance Execution And Risk Controls` is now implemented and package-smoke validated, with additive `/api/v1/execution/binance/*`, default-off live mode, Binance-only execution intents, risk gates, kill switch state, audit trail, mock-covered submit flow, and packaged evidence recorded in `logs/binance-execution-smoke-latest.json`.
+- `T37 - Factor-Aware Research, Screening, And Execution Reports` is now implemented and package-smoke validated, with additive evidence snapshots across factor, screener, backtest, paper session, Binance intent/risk/audit, and packaged evidence recorded in `logs/evidence-report-smoke-latest.json`.
+- `T38 - Desktop UI Information Architecture` is now completed as a structural specification, with the target shell, workspace map, global context rules, responsive rules, and T39/T40/T41 implementation checklist recorded in `docs/desktop-ui-information-architecture.md`.
+- `T39 - Desktop Visual Design System Refresh` is now implemented and validated, with additive design-system tokens, standard/compact density rules, a restrained multi-hue terminal visual layer, and repeatable screenshots recorded in `logs/visual-design-screenshots/visual-design-smoke-latest.json`.
+- `T40 - Chinese/English Localization Foundation` is now implemented and validated, with additive persisted `language` and `density` preferences, a typed frontend dictionary, localized shell/Settings/Command Palette copy, readable runtime API error copy, and focused evidence recorded in `logs/localization-smoke-latest.json`.
+- `T41 - Core Page UI Polish Pass` is now implemented and validated, with a denser terminal-style surface across Dashboard, Asset, Research, Strategy Lab, Portfolio, Connections, and Settings, expanded high-traffic i18n copy, shared panel/chart/status primitives, restrained page-level layout styling, and bilingual screenshot evidence recorded in `logs/page-polish-screenshots/page-polish-smoke-latest.json`.
+- `T42 - Workflow Engine Backend` is now implemented and validated, with additive `/api/v1/workflows/*` endpoints, SQLite-backed workflow run history, six safe template-driven workflows, explicit step/audit/provenance records, and Binance intent flows stopped at `manual_required` before any submit.
+- `T43 - Workflow Studio UI` is now implemented and validated, with a dedicated Workflow Studio workspace, template catalog/input/timeline/artifact/manual-boundary UI, workflow-aware command entry, artifact navigation into existing workspaces, focused smoke evidence in `logs/workflow-studio-smoke/workflow-studio-smoke-latest.json`, and expanded bilingual page screenshots in `logs/page-polish-screenshots/page-polish-smoke-latest.json`.
+- `T44 - Workflow Packaged Signoff` is now implemented and validated against the real release desktop EXE, with refreshed `pengbo-workbench.exe`, `pengbo-sidecar.exe`, MSI, and NSIS artifacts plus packaged Workflow Studio UIAutomation evidence in `logs/workflow-studio-packaged-smoke-latest.json`.
+- `T45 - Data Source Expansion Foundation` is now implemented and build-validated, with an additive provider source metadata registry, catalog-level freshness/provenance/testability/read-only fields, unified read-only provider test health, and lightweight Connections source-contract rendering.
+- `T46 - Initial Data Source Connector Pack` is now implemented and build-validated, with read-only World Bank, DBnomics, RSS Events, FRED, and CoinGecko data-source paths, cache-aware fallback semantics, optional-key handling for FRED/CoinGecko, and focused connector regression coverage in `backend/tests/test_data_source_service.py`.
+- `T47 - Data Sources UI And Signoff` is now implemented and package-smoke validated, with first-class Data Sources workspace status/provenance/report export UI, additive `/api/v1/data-sources/reports/export`, bilingual page-polish evidence, and packaged EXE signoff recorded in `logs/data-sources-packaged-smoke-latest.json`.
+- `T48 - Data Source Credential And Research Workflow Repair` is now implemented and package-smoke validated, closing the visible follow-up list: Research refreshes EDGAR-gated briefs after credential save, FRED/CoinGecko have desktop Stronghold-backed credential panels and sidecar env injection, and Workflow Studio now includes a read-only `data_sources_to_research` template that creates a Research brief artifact.
+- `T49 - Terminal Experience Repair And Product Manual` is now implemented and validated, closing the user-reported chart-period, screener-variant, research-layout, manual, Factor Lab asset-type/factor, and translation-tooling gaps with fresh web, backend, and packaged evidence.
+- `T50 - Security Architecture And Global Audit Foundation` is now implemented as the first security-hardening pass: `docs/SECURITY_ARCHITECTURE.md` defines the local-first threat boundary, data classification, secret handling rules, execution gates, and public-exposure prerequisites; the backend now stores redacted `security_audit_events` and exposes `/api/v1/security/audit` for cross-module credential/execution security events.
+- `T51 - Startup Time Reduction` is now implemented and package-smoke validated. The packaged launch path no longer blocks Tauri setup on sidecar health, the Tauri-mode sidecar keeps health/settings startup light before full service initialization, cold-start adopt-existing probes use a short timeout, bundled sidecar shutdown avoids visible console windows, and the latest packaged startup smoke records `health_ready_seconds=2.88s`, `failures=[]`, `single_instance_ok=true`, `adopt_existing_ok=true`, and `shutdown_sidecar_exited_ok=true` in `logs/packaged-startup-smoke-latest.json`.
+- `T52 - Git Upload Readiness And Repository Normalization` is now implemented, security-remediated after independent Claude Code review, and selected for first public GitHub upload. The public-upload boundary is documented in `README.md` and `docs/REPOSITORY_UPLOAD_READINESS.md`, root and Tauri ignore rules exclude generated/runtime/secret artifacts, CORS methods are explicit, generated sidecar build logs are documented as local ignored resources, and no API/runtime contract was changed.
+- `T53 - Local Unlock PIN And Idle Lock` is planned/deferred only. Do not implement until selected; this should add a local unlock factor, lockout behavior, idle auto-lock, and audit events before broader account-sensitive workflows.
+- `T54 - Account-Scoped Provider Credential Model` is planned/deferred only. Do not implement until selected; this should separate account metadata from credential material and prepare provider credentials for future per-account ownership.
+- `T55 - Future Public Auth And Session Layer` is planned/deferred only. Do not implement until selected; this should introduce authenticated users, sessions, permission checks, and account-level audit context before any public deployment.
+- `T56 - Public Exposure Gateway And Sidecar Hardening` is planned/deferred only. Do not implement until selected; this should review CORS, bind addresses, API gateway rules, rate limits, CSRF posture, request logging, and deployment topology before any internet-facing mode.
+- Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
+- Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
+- The T38-T47 roadmap sequence is now closed through packaged Data Sources signoff. All live trading remains restricted to Binance, while non-Binance assets stay research, analysis, backtest, paper-trading, report, or alert only.
+
+## Latest Planning Update
+
+- Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
+- Treated `FinceptTerminal` as a product-pattern reference rather than a migration target; the local `Pengbo Workbench` stack remains the implementation baseline.
+- Closed `T26 - Research Workspace` as the first product-expansion sprint after the packaging-signoff lane.
+- Closed `T27 - Analysis Module Registry` as the reusable composition layer that now sits between the research workspace and later capability/command surfaces.
+- Closed `T28 - Provider Capability Catalog` as the shared provider-awareness layer across connections, asset, and research surfaces.
+- Closed `T29 - Command Palette And Report Export` as the shared action layer that now sits above asset, research, screener, portfolio, and provider workflows without adding a second API surface.
+- Closed `T30 - Provider Capability Packaged Signoff` as the packaged regression layer for the newer capability-driven desktop behavior.
+- Closed `T31 - Credential Workflow And Crypto Capability Smoke Hardening` and `T32 - Desktop WebView Credential Input Automation Adapter` as the final provider-capability automation hardening pass.
+- No new blocker task was added in the T33 execution pass; the next engineering sprint is now selected from the product roadmap gap exposed after portfolio analytics rather than another provider-capability unblocker.
+- Added the next product roadmap sequence, `T33 -> T34 -> T35 -> T36 -> T37`, based on the latest GitHub/open-source review of OpenBB, FinceptTerminal, Ghostfolio, Wealthfolio, rotki, Qlib, Lean, Alphalens, FinSight, and TradingView Lightweight Charts.
+- The next roadmap stage should move Pengbo toward a local Bloomberg-like research and execution terminal: deeper portfolio analytics first, then local factor research, strategy backtesting, paper trading, Binance-only automated crypto execution, and evidence-backed reports.
+- Quant exploration is intended to reach automated order placement only for Binance trading, and only after local research, backtesting, paper trading, risk controls, audit logs, kill switches, and explicit user-owned Binance credential setup are in place. The assistant must not place live trades for the user during development or validation.
+- Equity, ETF, macro, and non-Binance assets remain research/backtest/paper-trading or read-only analysis surfaces unless a later task explicitly changes scope; the current live trading target is Binance only.
+- First-release factors must be limited to well-studied factor families such as momentum, value, quality/profitability, investment/conservative growth, and low-volatility/risk; any execution workflow must label these as research signals, not guaranteed profit sources.
+- The planning path still preserves the current `/api/v1/assets/*`, `/api/v1/screeners/*`, and `/api/v1/portfolio/*` contracts by composing new work through additive analytics, research, chart, factor, strategy, paper-trading, and Binance-execution surfaces instead of rewriting stable payload shapes.
+- Closed `T34 - Local Factor Research Lab` as the validated local factor evidence layer that now feeds Research without enabling any order placement or broker request path.
+- Closed `T35 - Strategy Backtesting And Paper Trading` as the local simulation layer that converts factor snapshots into explicit backtests, paper ledgers, and reports while still prohibiting live order paths.
+- Closed `T36 - Automated Binance Execution And Risk Controls` as the default-off Binance-only execution layer with intent creation, pre-trade risk gates, kill switch state, mock-covered adapter submit, comparable live ledger payloads, and durable audit events.
+- Closed `T37 - Factor-Aware Research, Screening, And Execution Reports` as the evidence-chain reporting layer that now links factor signals, screener rationale, backtest assumptions, paper ledgers, Binance execution intents, risk blocks, and audit references without expanding live trading scope.
+- Closed `T38 - Desktop UI Information Architecture` as the structural desktop-shell blueprint before visual styling, localization, page polish, workflow, or data-source work begins.
+- Closed `T39 - Desktop Visual Design System Refresh` as the shared visual foundation for the shell, panels, controls, tables, charts, badges, and density rules before localization and page-by-page polish.
+- Replaced the broad Fincept follow-up plan with smaller tasks: UI information architecture, visual design refresh, localization, workflow backend, workflow UI, workflow packaged signoff, data-source foundation, concrete data-source connectors, and data-source UI/signoff.
+- Reaffirmed the trading boundary for the new sequence: workflow automation may create Binance preset live-order intents and reports, then surface a confirmation modal; only an explicit user click may submit the prepared Binance order, and no non-Binance live submit path should be added.
+- Re-read the full local `E:\Fincept Terminal` checkout after the user pointed out the product gap. Fincept's reusable ideas for Pengbo are now ranked as: first, a denser terminal-style page and workspace system; second, Workflow Studio / node-like automation with audit and confirmation boundaries; third, a Data Sources Center with connector catalog, freshness, provenance, credential state, and source testing. Fincept remains a product benchmark rather than a migration target; Pengbo keeps the current `Tauri + React + FastAPI + SQLite/DuckDB` baseline.
+
+## Latest Execution Update
+
+- Executed the first public GitHub upload path for `T52 - Git Upload Readiness And Repository Normalization`.
+- Created the public repository `LaurenceFang/pengbo-workbench` for the safe source upload target.
+- Initialized local Git on `main`, preserved the generated/runtime/log/secret ignore boundary, and added extra ignore coverage for local Claude state, Claude probe logs, local shortcut/link artifacts, and generated smoke screenshots.
+- Kept generated sidecar binaries, Tauri release bundles, runtime databases, Stronghold data, smoke JSON logs, Python/Rust/TypeScript caches, local automation state, and machine-local credential files out of the public upload candidate set.
+- The initial upload preserves the existing `/api/v1/...` runtime contract and does not promote `T53`, `T54`, `T55`, or `T56`.
+
+- Completed the Claude Code follow-up remediation for `T52 - Git Upload Readiness And Repository Normalization`.
+- Reviewed the independent Claude Code security findings and fixed the upload-readiness gaps without changing public API routes, response contracts, database schemas, live-trading behavior, remote repository state, commits, or pushes.
+- Tightened FastAPI CORS method policy in `backend/app/api/factory.py` from wildcard methods to explicit `GET`, `POST`, `PUT`, `DELETE`, and `OPTIONS`, while preserving the existing local-only origins.
+- Extended `README.md` and `docs/REPOSITORY_UPLOAD_READINESS.md` so the public-upload boundary now explicitly distinguishes API source code from API keys/tokens/secrets, lists `PENGBO_TRANSLATION_API_KEY` as a non-committable secret, and explains Stronghold as local single-user secret storage rather than a multi-user permission system.
+- Documented the Tauri package resource edge: `src-tauri/tauri.conf.json` references `../logs/sidecar-build-latest.json`, which is generated by `npm run sidecar:build`, may contain machine-local build paths, and must be regenerated locally rather than committed as source.
+- Strengthened diagnostic evidence rules: public uploads must keep `logs/` and `logs/*-latest.json` ignored; private review branches may use selected redacted smoke JSON only after confirming no real secrets, account identifiers, real email addresses, or machine-local data beyond acceptable build paths.
+- Validation passed:
+  - Static search for `PENGBO_TRANSLATION_API_KEY`, `allow_methods`, and `sidecar-build-latest.json`
+  - Temporary Git ignore smoke confirming generated/runtime/log paths stay ignored while source/docs/config stay trackable
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run sidecar:build`
+  - `npm run tauri:build`
+- `T53`, `T54`, `T55`, and `T56` remain deferred and were not promoted.
+
+- Completed `T52 - Git Upload Readiness And Repository Normalization`.
+- Repaired the task-board drift where the top-level assessment had already selected T52 but the `Recommended Next Task` section still pointed at the older roadmap-completion review.
+- Added `README.md` with the local-first Tauri + React + FastAPI + SQLite/DuckDB architecture summary, workspace map, safety boundaries, local setup/build commands, and packaged-smoke guidance.
+- Added `docs/REPOSITORY_UPLOAD_READINESS.md` with public-upload commit categories, do-not-commit boundaries, optional diagnostic evidence rules, pre-upload checklist, and rebuild notes for generated sidecar and Tauri artifacts.
+- Expanded the root `.gitignore` and `src-tauri/.gitignore` so public Git candidates exclude dependency folders, build outputs, TypeScript build info, Python/Rust caches, generated Tauri targets, generated sidecar binaries, logs, local runtime data, diagnostics, Stronghold/secret material, installers, EXEs, DLLs, PDBs, and machine-local credential state.
+- Preserved the current product/runtime boundary: no new backend route, frontend workflow, database migration, live-trading path, remote repository, commit, or push was added. `T53` through `T56` remain deferred until explicitly selected.
+- Validation passed:
+  - README/package-script consistency review
+  - ignore-boundary review for `node_modules/`, `dist/`, `.pengbo-runtime/`, `.playwright-mcp/`, `.pyinstaller/`, `logs/`, `src-tauri/target/`, and `src-tauri/binaries/`
+  - temporary Git ignore smoke outside the project tree: generated/runtime paths ignored while `README.md`, `docs/REPOSITORY_UPLOAD_READINESS.md`, `package.json`, `backend/app/main.py`, `src/App.tsx`, and `src-tauri/Cargo.toml` stayed trackable
+  - sensitive-term documentation scan for public-upload guidance
+  - `npm run typecheck`
+  - `npm run build`
+
+- Completed `T49 - Terminal Experience Repair And Product Manual`.
+- Reworked asset charting into a real multi-period K-line surface. The default chart interval is now `30m`; common switches expose `15m`, `1h`, `1d`, and `1wk`, while the aligned more-period selector covers `30m`, `2h`, `4h`, `8h`, `1mo`, and `1y` plus daily/weekly choices. The chart now refetches interval-aware history and keeps current price, last update, and live/cache state visible.
+- Extended `/api/v1/prices/history` with compatible `symbol`, `interval`, and `range` parameters covering `15m|30m|1h|2h|4h|8h|1d|1wk|1mo|1y`; unsupported yearly bars are generated through local aggregation when needed, and invalid intervals return `422`.
+- Fixed screener variant tuning so system defaults remain read-only, but clicking liquidity preference, trend requirement, or overheat guardrail automatically copies the preset into a custom variant, applies the selected tuning, saves/activates through the existing variant flow, and refreshes the run summary.
+- Repaired the Research workspace layout with bounded three-column height. The middle analysis module list and right notes/export rail now scroll internally instead of stretching the whole page indefinitely.
+- Added a first-class `manual` workspace and navigation item for the product manual. The manual explains workflows, analysis, screening, factors, backtesting, paper trading, Binance real-order initiation, confirmation gates, and translation status without adding any silent live-trading path.
+- Expanded Factor Lab beyond an inert equity-only selector. Asset type is now selectable across stock, ETF/index proxy, index, and crypto; new research-only factor families cover crypto momentum, crypto volume confirmation, crypto overheat guardrails, index trend breadth, index defensive quality, and short-term reversal. Every factor family now carries a one-line `simple_description` for the UI.
+- Added the local translation tooling layer: typed translation status/suggestion API endpoints, env-driven optional online adapter settings, a local glossary fallback, and `npm run check:i18n` for dictionary parity, mojibake, and fixed-English candidate scanning.
+- Validation passed:
+  - `py -m unittest backend.tests.test_asset_history backend.tests.test_factor_service backend.tests.test_translation_service backend.tests.test_settings_service`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run check:i18n`
+  - `npm run build`
+  - `npm run smoke:page-polish`
+  - `npm run tauri:build`
+  - `npm run smoke:screener-variant-signoff`
+  - `npm run smoke:factor-lab`
+- `npm run smoke:page-polish` covered 12 pages and 48 screenshots, including Asset, Research, Screeners, Factor Lab, and Manual in both supported languages with `failures=[]`. The first `npm run tauri:build` attempt hit Windows `PermissionDenied` because an old release EXE and sidecar still held the release directory and port `8765`; after stopping those Pengbo processes, the release EXE, sidecar, MSI, and NSIS artifacts rebuilt successfully. No live Binance submission path was added.
+
+- Completed `T48 - Data Source Credential And Research Workflow Repair`.
+- Fixed the EDGAR credential handoff gap where existing Research briefs could stay on `credential_required` after EDGAR was saved and verified. Research briefs now have a refresh endpoint and auto-refresh provider-sensitive snapshots when the filings provider becomes configured; AAPL filings reuse the recent packaged cache to avoid a second slow EDGAR live request during signoff.
+- Added desktop Stronghold support for `fred` and `coingecko` secrets in `src-tauri/src/lib.rs`, including restart-safe sidecar environment injection for `PENGBO_FRED_API_KEY`, `PENGBO_COINGECKO_DEMO_API_KEY`, and optional `PENGBO_COINGECKO_PRO_API_KEY`.
+- Added keyed-source credential controls to `src/views/data-sources-view.tsx`: FRED and CoinGecko now expose visible save/verify and clear actions from the Data Sources workspace, while preserving read-only and no-live-trading catalog contracts.
+- Added the additive Workflow Studio template `data_sources_to_research`; it samples read-only macro/news/crypto sources, carries source provenance into the Research source context, and returns a navigable `research_brief` artifact.
+- Strengthened packaged smoke coverage:
+  - `scripts/packaged_data_sources_smoke.ps1` now checks the FRED and CoinGecko credential panels.
+  - `scripts/packaged_workflow_studio_smoke.ps1` now verifies `data_sources_to_research` completes with a Research brief artifact.
+- Validation passed:
+  - `py -m unittest backend.tests.test_research_service backend.tests.test_data_source_service backend.tests.test_workflow_service`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run tauri:build`
+  - `npm run smoke:data-sources:packaged`
+  - `npm run smoke:workflow-studio:packaged`
+  - `npm run smoke:provider-capability-signoff`
+  - `npm run smoke:page-polish`
+- Note: packaged smoke scripts must be run serially because they intentionally start/stop the same release EXE and backup/restore the same AppData directory; parallel packaged smoke runs can interrupt each other.
+
+- Completed `T47 - Data Sources UI And Signoff`.
+- Promoted the Data Sources workspace into a first-class signoff surface: `src/views/data-sources-view.tsx` now exposes provider coverage, domains, credentials, freshness, cache/testability/rate-limit notes, provenance, stale/unavailable state, and explicit `read_only` / `live_trading` contract markers.
+- Added stable ASCII automation anchors for packaged validation, including `data-sources-view providers=...`, `data-source-provider provider=... health=...`, `data-source-preview kind=... state=...`, and `data-source-provenance provider=... stale=...`.
+- Localized the high-traffic Data Sources copy in `src/i18n/index.ts` while preserving the existing Chinese/English shell preference flow.
+- Added the additive report export route `POST /api/v1/data-sources/reports/export`; it writes a read-only Markdown source report with catalog provenance, credential/cache/unavailable summaries, and sampled macro/news/crypto status even when live fetches are missing credentials or unavailable.
+- Added `scripts/packaged_data_sources_smoke.ps1` plus `npm run smoke:data-sources:packaged`. The latest packaged result in `logs/data-sources-packaged-smoke-latest.json` started `src-tauri/target/release/pengbo-workbench.exe`, verified `provider_count=5`, confirmed `worldbank/dbnomics/rss_events=ok`, confirmed `fred/coingecko=missing_credentials`, verified Data Sources UIAutomation anchors, checked all five connector catalog entries remain `read_only=true` and `live_trading=false`, and exported `C:\Users\Laurence\AppData\Roaming\com.pengbo.workbench\diagnostics\reports\data-sources-2026-05-13T183350.513682z0000.md`.
+- Expanded `scripts/page_polish_smoke.mjs` so Data Sources is included in the bilingual page-polish pass; the latest result records `page_count=8`, `screenshot_count=32`, and `failures=[]`.
+- Revalidated EDGAR/Binance provider workflow non-regression with `npm run smoke:provider-capability-signoff`; the latest `logs/provider-capability-signoff-latest.json` records `failures=[]` after the baseline, identity-save, post-restart, and identity-clear stages.
+- Validation passed:
+  - PowerShell parser check for `scripts/packaged_data_sources_smoke.ps1`
+  - `py -m unittest backend.tests.test_data_source_service`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run smoke:page-polish`
+  - `npm run tauri:build`
+  - `npm run smoke:data-sources:packaged`
+  - `npm run smoke:provider-capability-signoff`
+- `npm run build` and `npm run tauri:build` passed with the existing Vite large-chunk warning only. No new blocker task was discovered. The current T38-T47 roadmap is closed; the next step should be a fresh product-priority review rather than an automatic blocker follow-up.
+
+- Completed `T46 - Initial Data Source Connector Pack`.
+- Registered and validated the first read-only connector pack for `worldbank`, `dbnomics`, `rss_events`, `fred`, and `coingecko`, preserving the existing `/api/v1/connections/catalog` compatibility and additive `/api/v1/data-sources/*` route shape.
+- Confirmed the data-source runtime keeps optional-key sources explicit: FRED reports `missing_credentials` without `PENGBO_FRED_API_KEY` or `FRED_API_KEY`, and CoinGecko reports `missing_credentials` without `PENGBO_COINGECKO_DEMO_API_KEY` or `PENGBO_COINGECKO_PRO_API_KEY`.
+- Strengthened `backend/tests/test_data_source_service.py` so T46 now covers source status listing, World Bank macro fetch plus cached fallback, DBnomics macro fetch plus cached fallback, FRED keyed fetch with API-key masking plus cached fallback, CoinGecko demo-key market fetch plus cached fallback, RSS event fetch plus cached fallback, and public-provider unavailable handling with no cache.
+- Safety scan for the T46 data-source files found no submit/risk/kill-switch path; provider registry metadata continues to mark all catalog providers as `read_only=true` and `live_trading=false`.
+- Validation passed:
+  - `py -m unittest backend.tests.test_data_source_service backend.tests.test_capability_service`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run typecheck`
+  - `npm run build`
+- `npm run build` passed with the existing Vite large-chunk warning only. No new blocker task was discovered. The next planned task is `T47 - Data Sources UI And Signoff`.
+
+- Completed `T45 - Data Source Expansion Foundation`.
+- Added additive source metadata fields to `/api/v1/connections/catalog` while preserving the existing provider/capability fields and route names: asset coverage, data domains, region/locale, credential notes, rate-limit notes, cache policy, freshness, provenance, testability, `read_only`, and `live_trading=false`.
+- Refactored the current `market`, `fundamentals`, `edgar`, and `binance` catalog definitions into a provider source registry in `backend/app/services/capability_service.py`, so later read-only connectors can be registered without page-specific capability hacks.
+- Unified read-only provider test health in `ConnectionsService`: public sources such as `market` now return and persist a `planned` test result instead of looking like missing credentials, while unknown providers return explicit `unsupported`.
+- Updated frontend API types and the Connections provider cards with lightweight source-contract rendering for domains, coverage, freshness, testability, cache policy, and read-only status without adding the dedicated Data Sources workspace reserved for `T47`.
+- Validation passed:
+  - `py -m unittest backend.tests.test_capability_service`
+  - `npm run typecheck`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run build`
+- `npm run build` passed with the existing Vite large-chunk warning only. No new blocker task was discovered. `T46 - Initial Data Source Connector Pack` is now also completed; the current next planned task is `T47 - Data Sources UI And Signoff`.
+
+- Completed `T44 - Workflow Packaged Signoff`.
+- Added `scripts/packaged_workflow_studio_smoke.ps1` plus `npm run smoke:workflow-studio:packaged` so Workflow Studio is now validated through the real release desktop EXE, not only the Vite web surface.
+- Rebuilt the packaged desktop artifacts with `npm run tauri:build`; refreshed artifacts include `src-tauri/target/release/pengbo-workbench.exe` at `16,386,560 bytes`, `src-tauri/target/release/pengbo-sidecar.exe` at `117,919,125 bytes`, `bundle/msi/Pengbo Workbench_0.1.0_x64_en-US.msi` at `123,420,672 bytes`, and `bundle/nsis/Pengbo Workbench_0.1.0_x64-setup.exe` at `120,943,112 bytes`.
+- The packaged smoke starts `Pengbo Terminal`, waits for the sidecar, sets `workflowStudio` as the default view in an AppData backup/restore sandbox, clicks the `paper_to_binance_intent` template in the desktop WebView, invokes the run button, verifies `status=blocked`, verifies `await_user_confirmation status=manual_required policy=user_confirmed_binance_submit`, verifies a `binance_intent` artifact, exports an evidence report from the generated paper-session artifact, restarts the desktop, and verifies the recent workflow run restores.
+- Latest packaged result in `logs/workflow-studio-packaged-smoke-latest.json`: `template_count=6`, `run_id=workflow-76da6f749444`, `run_status=blocked`, `manual_required=true`, `manual_policy=user_confirmed_binance_submit`, `binance_intent_artifact_count=1`, `evidence_export_status=completed`, `evidence_export_exists=true`, `recent_restored_after_restart=true`, and `failures=[]`.
+- Safety scan still found no Workflow Studio path calling submit/live-mode/kill-switch/risk-acknowledgement mutation; the only hit was the existing command-palette read of `config.live_enabled` for display status.
+- Revalidated `T44` with:
+  - PowerShell parser check for `scripts/packaged_workflow_studio_smoke.ps1`
+  - `npm run typecheck`
+  - `npm run tauri:build`
+  - `npm run smoke:workflow-studio:packaged`
+- No new blocker task was discovered. `T46 - Initial Data Source Connector Pack` is now completed; the current next planned task is `T47 - Data Sources UI And Signoff`.
+
+- Completed `T43 - Workflow Studio UI`.
+- Added a first-class `workflowStudio` desktop workspace after Strategy Lab, including persisted default-view compatibility, localized navigation/title copy, command-palette entries, and a template-driven Workflow Studio page.
+- Added frontend Workflow API types/client calls for `/api/v1/workflows/templates`, `/api/v1/workflows/runs/recent`, `/api/v1/workflows/runs`, and `/api/v1/workflows/runs/{run_id}`.
+- Built the Workflow Studio surface around template catalog, fixed input forms, step timeline, blocked/manual-required state panels, artifact/evidence rail, recent run restore, and artifact navigation into Research, Factor Lab, Strategy Lab, and execution-evidence context.
+- Preserved the T42 Binance safety boundary: the T43 UI can show `manual_required` and `binance_intent` artifacts, but does not call Binance submit, change live mode, clear kill switches, or acknowledge risk.
+- Added `scripts/workflow_studio_smoke.mjs` plus `npm run smoke:workflow-studio`; the latest result recorded `template_count=6`, `run_label="workflow-studio-view template=paper_to_binance_intent run=workflow-b7a7675c7090 status=blocked"`, `binance_intent_artifact_count=1`, `recent_run_count_after_reload=2`, `console_issue_count=0`, and `failures=[]`.
+- Expanded `scripts/page_polish_smoke.mjs` so `npm run smoke:page-polish` now covers Workflow Studio in `zh-CN` and `en-US` at `desktop-min` and `desktop-wide`; the latest result records `page_count=7`, `screenshot_count=28`, and `failures=[]`.
+- Revalidated `T43` with:
+  - `py -m compileall backend`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run smoke:workflow-studio`
+  - `npm run smoke:page-polish`
+- `npm run build` passed with the existing Vite large-chunk warning only; no new blocker task was discovered.
+- The T43 pass originally advanced the workflow lane to `T44 - Workflow Packaged Signoff`, and `T44`, `T45`, and `T46` are now completed; the current next planned task is `T47 - Data Sources UI And Signoff`.
+
+- Completed `T42 - Workflow Engine Backend`.
+- Added `backend/app/services/workflow_service.py` as the template-driven workflow engine that composes existing screener, research, factor, strategy, paper-trading, Binance execution-intent, and report-export services instead of duplicating domain logic.
+- Added workflow Pydantic models in `backend/app/models.py`, SQLite persistence in `backend/app/storage/sqlite_store.py`, container wiring in `backend/app/api/factory.py`, and additive `/api/v1/workflows/templates`, `/api/v1/workflows/runs/recent`, `/api/v1/workflows/runs`, and `/api/v1/workflows/runs/{run_id}` routes in `backend/app/api/routes.py`.
+- Seeded six safe templates: `screener_to_research`, `research_to_factor`, `factor_to_backtest`, `backtest_to_paper`, `paper_to_binance_intent`, and `evidence_report_export`.
+- Enforced explicit action policy categories: `read_only`, `local_analysis`, `local_simulation`, `binance_intent`, and `user_confirmed_binance_submit`.
+- Preserved the Binance live-trading boundary: workflow automation can create a Binance intent and expose a `manual_required` confirmation step, but it does not call submit, change live mode, clear kill switches, or silently acknowledge risk.
+- Added `backend/tests/test_workflow_service.py` covering template policy categories, service/API run creation, restart-safe history restore, blocked-step inspection, evidence artifacts, and the Binance manual-confirmation boundary.
+- Revalidated `T42` with:
+  - `py -m compileall backend`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run typecheck`
+  - `npm run build`
+- `npm run build` passed with the existing Vite large-chunk warning only; no new blocker task was discovered.
+- The T42 pass originally advanced the workflow lane to `T43 - Workflow Studio UI`, and `T43`, `T44`, `T45`, plus `T46 - Initial Data Source Connector Pack` are now completed; the current next planned task is `T47 - Data Sources UI And Signoff`.
+
+- Completed `T41 - Core Page UI Polish Pass`.
+- Reworked Dashboard into a denser terminal overview with market pulse, focused asset context, runtime/provider readiness, and clearer Research/Asset/Settings handoff copy while keeping the existing dashboard data contract.
+- Tightened Asset capability presentation so quote, chart, fundamentals, filings, and provider-coverage states share clearer available / credential-required / temporarily-unavailable / unsupported copy.
+- Promoted shared frontend primitives in `src/components/shared.tsx` for localized empty/chart/status states and widened action callback typing so shared panels can safely host async retry handlers.
+- Expanded `src/i18n/index.ts` for high-traffic Dashboard, Asset, Settings, shell, command, shared panel, chart, empty/error, table/action, and status copy used by the polished pages.
+- Standardized the page-level terminal surface in `src/styles.css`: restrained the decorative backdrop, reduced panel/control radius, tightened density spacing, added Dashboard/Asset page layout helpers, and kept T39 density tokens as the source of truth.
+- Added `scripts/page_polish_smoke.mjs` and `npm run smoke:page-polish`; the smoke captures Dashboard, Research, Strategy Lab, Portfolio, Connections, and Settings in both `zh-CN` and `en-US` at `desktop-min` and `desktop-wide`, checks visible mojibake markers, checks clipped controls, and restores the original language/density preferences after capture.
+- Captured the latest T41 screenshot evidence in `logs/page-polish-screenshots/page-polish-smoke-latest.json` with `language_count=2`, `viewport_count=2`, `page_count=6`, `screenshot_count=24`, and `failures=[]`.
+- Existing visual smoke remains compatible: `logs/visual-design-screenshots/visual-design-smoke-latest.json` still records `viewport_count=2`, `page_count=6`, `screenshot_count=12`, and `failures=[]`.
+- Revalidated `T41` with:
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run smoke:localization`
+  - `npm run smoke:visual-design`
+  - `npm run smoke:page-polish`
+  - `npm run smoke:portfolio-ui-signoff`
+- The conditional packaged portfolio UI regression also passed after the Portfolio page copy/layout touch, with `logs/portfolio-ui-signoff-latest.json` recording `health_ready=true` and `failures=[]`.
+- No backend schema, provider, workflow, trading, or data-source behavior changed in T41. No new blocker task was discovered; Fincept-like breadth gaps remained intentionally assigned to the existing `T42-T44` Workflow lane and `T45-T47` Data Sources lane instead of being folded into page polish.
+- T41 handed off to `T42 - Workflow Engine Backend`, which is now complete.
+
+- Completed `T40 - Chinese/English Localization Foundation`.
+- Added additive backend preference fields `language: zh-CN | en-US` and `density: standard | compact` on the existing `/api/v1/settings/preferences` contract without adding a migration table or changing the route shape.
+- Added `src/i18n/index.ts` as a typed lightweight localization layer with shared view labels/titles, shell copy, Settings copy, Command Palette copy, and locale-aware number/currency/percent helpers.
+- Wired persisted language and density into `src/store/app-store.ts`, `src/App.tsx`, and `src/views/settings-view.tsx`; Settings can switch language/density immediately and save the preference for restart restore.
+- Localized the main shell navigation/topbar/setup banners, shared status badge labels, Settings normal flow, and Command Palette common frame while preserving stable ASCII automation anchors such as `nav-*`, `search-asset`, `open-command-palette`, and command-palette labels.
+- Restored readable runtime network error text in `src/lib/api.ts` and kept existing backend/API tests compatible.
+- Added `backend/tests/test_settings_service.py`, `scripts/localization_smoke.mjs`, and `npm run smoke:localization`; the latest smoke result is recorded at `logs/localization-smoke-latest.json` with `failures=[]`.
+- Revalidated `T40` with:
+  - `py -m compileall backend`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run smoke:localization`
+- No new blocker was discovered during `T40`; the next planned task is `T41 - Core Page UI Polish Pass`, including deeper page-level copy/table/spacing polish across both languages.
+
+- Completed `T39 - Desktop Visual Design System Refresh`.
+- Added additive design-system tokens and density rules in `src/styles.css` while preserving existing class names, view behavior, and automation-safe `aria-label` anchors.
+- Replaced the old decorative gradient/orb look with a restrained multi-hue financial-terminal surface system covering sidebar/navigation, topbar/status area, command entry, shared panels, tables, metric cards, status badges, risk/cache states, buttons, focus states, chart panels, and responsive shell rules.
+- Added the `density-standard` shell class plus `.density-compact` CSS rules so T40 can persist a density preference without redesigning the visual system.
+- Added `scripts/visual_design_smoke.mjs`, `npm run smoke:visual-design`, and the Playwright dev dependency for repeatable browser screenshot capture.
+- Captured 12 visual screenshots across Dashboard, Asset, Research, Strategy Lab, Portfolio, and Connections at `desktop-min` and `desktop-wide` sizes under `logs/visual-design-screenshots/`.
+- Captured the latest T39 result in `logs/visual-design-screenshots/visual-design-smoke-latest.json` with `viewport_count=2`, `page_count=6`, `screenshot_count=12`, and `failures=[]`.
+- Revalidated `T39` with:
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run smoke:visual-design`
+  - `npm run smoke:portfolio-ui-signoff`
+- No new blocker was discovered during `T39`; the next planned task is `T40 - Chinese/English Localization Foundation`.
+
+- Completed `T38 - Desktop UI Information Architecture`.
+- Added `docs/desktop-ui-information-architecture.md` as the T38 delivery artifact.
+- The spec maps the current desktop shell across left navigation, top status/command area, one active main workspace, and a reserved right context area.
+- The spec covers current workspaces `Dashboard`, `Asset`, `Research`, `Factor Lab`, `Strategy Lab`, `Screeners`, `Portfolio`, `Connections`, and `Settings`, plus future `Workflow Studio` and `Data Sources` surfaces.
+- The spec assigns global context ownership to `src/store/app-store.ts` and follow-up shell/layout ownership to `src/App.tsx`, `src/styles.css`, `src/components/shared.tsx`, `src/components/command-palette.tsx`, and `src/views/*.tsx`.
+- The spec explicitly keeps T38 structural only: no runtime behavior, provider behavior, API shape, localization dictionary, visual theme, or live trading behavior changed.
+- Static validation for T38:
+  - Reviewed `src/App.tsx`, `src/store/app-store.ts`, and `src/views/*.tsx` against the documented shell/workspace map.
+  - Reviewed the existing T38/T39/T40/T41/T42-T47 task-board sequence before syncing completion.
+  - No build or smoke run was required because T38 changed documentation and task-board state only.
+- No new blocker was discovered during `T38`; the next planned task is `T39 - Desktop Visual Design System Refresh`.
+
+- Completed `T37 - Factor-Aware Research, Screening, And Execution Reports`.
+- Added a read-only backend `EvidenceService` in `backend/app/services/evidence_service.py` and wired it through `backend/app/api/factory.py`, `backend/app/api/routes.py`, and `backend/app/services/research_service.py`.
+- Added additive model/API fields without changing existing routes: `ScreenerResult.factor_context`, `ResearchBrief.evidence_context`, extra source IDs on research creation, and `GET /api/v1/research/evidence/{symbol}` with optional `factorRunId`, `backtestRunId`, `paperSessionId`, and `intentId`.
+- Research briefs now persist and export an evidence chain covering factor context, screener matches, backtest metrics/assumptions, paper orders/fills/ledger summary, Binance execution status/risk blocks, audit references, and data-quality notes.
+- Screener runs now surface recent factor rank/score/bucket/contribution context per result when a matching factor snapshot is available, while preserving all existing screener result fields.
+- Strategy report export now includes factor definitions, factor source timestamps, strategy assumptions, paper/live execution ledger references, risk blocks, and audit ids where linked.
+- Desktop Research now renders an evidence-chain panel; Screeners show factor evidence on rows; Command Palette adds evidence-chain and evidence-backed report export actions, with no live-order submit command added.
+- Added `scripts/packaged_evidence_report_smoke.ps1` plus `npm run smoke:evidence-report`; the packaged smoke creates a factor run, backtest, paper session, blocked Binance intent, evidence-backed research brief, export, and restart restore.
+- Captured the latest packaged T37 result in `logs/evidence-report-smoke-latest.json` with `health_ready=true`, `failures=[]`, `factor_run_id=factor-3eb1522eafd5`, `backtest_run_id=strategy-d8b427ea2ae8`, `paper_session_id=paper-324eed9be3be`, `intent_id=intent-5dd776443dc8`, `brief_id=brief-7a735dbb15ba`, all evidence links true, `evidence_audit_count=2`, `export_exists=true`, and `restored_after_restart=true`.
+- Revalidated `T37` with:
+  - `py -m compileall backend`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - PowerShell parser check for `scripts/packaged_evidence_report_smoke.ps1`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run sidecar:build`
+  - `npm run tauri:build`
+  - `npm run smoke:evidence-report`
+- No new blocker was discovered during `T37`; optional next work is a visual walkthrough/report-polish pass, not a required unblocker.
+
+- Completed `T36 - Automated Binance Execution And Risk Controls`.
+- Added additive backend execution contracts in `backend/app/models.py`, `backend/app/services/execution_service.py`, `backend/app/storage/sqlite_store.py`, `backend/app/providers/binance.py`, and `backend/app/api/routes.py` without changing existing `/api/v1/assets/*`, `/api/v1/factors/*`, `/api/v1/strategies/backtests/*`, or `/api/v1/strategies/paper/*` response shapes.
+- `ExecutionService` now supports `GET /api/v1/execution/binance/config`, `PUT /api/v1/execution/binance/config`, `GET /api/v1/execution/binance/intents/recent`, `POST /api/v1/execution/binance/intents`, `POST /api/v1/execution/binance/intents/{intent_id}/submit`, `POST /api/v1/execution/binance/kill-switch`, and `GET /api/v1/execution/binance/audit`.
+- Binance live mode remains default-off; submit is blocked unless live mode is explicitly enabled, risk acknowledgement is recorded, Binance credentials are configured, kill switches are clear, paper evidence is linked when required, and all risk checks pass.
+- Risk gates now run before any Binance order request and can block missing credentials, provider unavailable, non-allowlisted symbols, stale data, max order notional, max daily turnover, max position weight, insufficient balance/cash, duplicate client order ids, global kill switch, and per-strategy kill switch.
+- Extended `BinanceProvider` with a protected private order adapter method, but tests and packaged smoke do not place real Binance orders; successful submit coverage uses a mock provider and records sanitized broker response fields only.
+- SQLite now persists Binance execution config, execution intents, kill-switch state, and audit events, with live order/fill/ledger payloads embedded in intent records for comparison with T35 paper sessions.
+- Added Strategy Lab "Live Execution" desktop controls for execution config status, intent creation, risk-submit evidence, blocked checks, kill switch controls, recent intents, and audit trail while preserving the existing backtest and paper-only workflow.
+- Added command palette entries for opening Binance execution status and audit context; no command palette action submits a live order.
+- Added `backend/tests/test_execution_service.py` for default-off blocking before adapter calls, credentials/provider/stale/notional/daily-turnover/position-weight/balance/duplicate/allowlist/kill-switch risk blocks, eligible mock submit order/fill/ledger/audit persistence, paper-session linkage, and API config/intents/submit/audit/kill-switch flow.
+- Added `scripts/packaged_binance_execution_smoke.ps1` plus `npm run smoke:binance-execution`; the packaged smoke verifies default-off config, blocked submit, no live order record, audit persistence, and restart restore.
+- Captured the latest packaged Binance execution result in `logs/binance-execution-smoke-latest.json` with `health_ready=true`, `failures=[]`, `config_live_enabled=false`, `intent_id=intent-e78276e996f0`, `submit_status=blocked`, `blocked_checks=["live_mode","risk_acknowledgement"]`, `no_live_order_until_submit=true`, `live_order_recorded=false`, `audit_count_before_restart=2`, `audit_count_after_restart=2`, and `audit_restored_after_restart=true`.
+- Revalidated `T36` with:
+  - `py -m compileall backend`
+  - `py -m unittest backend.tests.test_execution_service`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - PowerShell parser check for `scripts/packaged_binance_execution_smoke.ps1`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run tauri:build`
+  - `npm run smoke:binance-execution`
+- No new blocker was discovered during `T36`; the next planned task is `T37 - Evidence-Backed Research And Execution Reports`, using the persisted T36 audit/ledger/report evidence while keeping live execution Binance-only and explicitly gated.
+
+- Completed `T35 - Strategy Backtesting And Paper Trading`.
+- Added additive backend strategy contracts in `backend/app/models.py`, `backend/app/services/strategy_service.py`, `backend/app/storage/duckdb_store.py`, `backend/app/storage/sqlite_store.py`, and `backend/app/api/routes.py` without changing the existing `/api/v1/assets/*`, `/api/v1/factors/*`, `/api/v1/research/*`, or `/api/v1/portfolio/*` response shapes.
+- `StrategyService` now supports `GET /api/v1/strategies/templates`, `POST /api/v1/strategies/backtests`, `GET /api/v1/strategies/backtests/recent`, `GET /api/v1/strategies/backtests/{run_id}`, `POST /api/v1/strategies/paper/sessions`, `GET /api/v1/strategies/paper/sessions/recent`, `GET /api/v1/strategies/paper/sessions/{session_id}`, and `POST /api/v1/strategies/reports/{artifact_id}/export`.
+- Implemented the first strategy template, `top_n_factor_rotation`, with `factorRunId`, `topN`, `rebalanceInterval`, `initialCapital`, `maxPositionWeight`, `cashReservePct`, `benchmarkSymbol`, `transactionCostBps`, and `slippageBps`.
+- Backtest v1 uses saved Factor Lab rankings as snapshot-ranked historical simulation evidence, records survivorship/snapshot/stale-history warnings, and stores full run payloads in DuckDB `strategy_backtest_snapshots`.
+- Paper trading is local-only and records simulated orders, fills, positions, cash ledger entries, PnL, drawdown, and rule decisions in SQLite strategy paper tables; all execution artifacts carry `paper` / simulated / no-live-order evidence.
+- Added `src/views/strategy-lab-view.tsx`, Strategy Lab navigation/settings support, API typings, app-store state, and a Factor Lab handoff button so the desktop can move from factor snapshot to backtest to paper session to Markdown report.
+- Added `backend/tests/test_strategy_service.py` for strategy template/API flow, backtest persistence, report export, paper orders/fills/ledger, and no-live-order assertions.
+- Added `scripts/packaged_strategy_lab_smoke.ps1` plus `npm run smoke:strategy-lab`; the packaged smoke starts the release EXE, creates a factor run, creates a strategy backtest, restarts the desktop, reloads the backtest, starts a paper session, verifies ledger evidence, and exports a paper report.
+- Captured the latest packaged Strategy Lab result in `logs/strategy-lab-smoke-latest.json` with `health_ready=true`, `failures=[]`, `factor_run_id=factor-d567dc44ae18`, `backtest_run_id=strategy-c87ff2ff1b09`, `backtest_restored_after_restart=true`, `equity_curve_count=64`, `trade_count=5`, `position_count=5`, `warning_count=3`, `no_live_orders=true`, `paper_session_id=paper-27aa50c9b0ac`, `paper_order_count=5`, `paper_fill_count=5`, `paper_ledger_count=6`, `paper_no_live_orders=true`, and `export_exists=true`.
+- Revalidated `T35` with:
+  - `py -m compileall backend`
+  - `py -m unittest backend.tests.test_strategy_service`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - PowerShell parser check for `scripts/packaged_strategy_lab_smoke.ps1`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run tauri:build`
+  - `npm run smoke:strategy-lab`
+  - `npm run smoke:factor-lab`
+  - `npm run smoke:portfolio-offline`
+- No new blocker was discovered during `T35`; no extra follow-up task was added from this pass.
+- Advanced the recommended next task to `T36 - Automated Binance Execution And Risk Controls`, because strategy backtesting and paper trading are now package-smoke validated and live execution must remain Binance-only, risk-gated, and explicit-user-configured.
+
+- Completed `T34 - Local Factor Research Lab`.
+- Added additive backend factor contracts in `backend/app/models.py`, `backend/app/services/factor_service.py`, `backend/app/storage/duckdb_store.py`, and `backend/app/api/routes.py` without changing the existing `/api/v1/assets/*`, `/api/v1/screeners/*`, `/api/v1/research/*`, or `/api/v1/portfolio/*` response shapes.
+- `FactorService` now supports `GET /api/v1/factors/families`, `POST /api/v1/factors/runs`, `GET /api/v1/factors/runs/recent`, and `GET /api/v1/factors/runs/{run_id}` for controlled local equity research across `catalog` or `expanded` universes; this research scope does not imply equity live trading.
+- First-release factor families are implemented as research-only signals: `momentum_12_1`, `value`, `quality_profitability`, `conservative_growth`, `low_volatility_risk`, and `composite`, with contribution-level evidence and missing-data reasons rather than silent scores.
+- Added DuckDB-backed `factor_snapshots` persistence so factor run payloads, source timestamps, diagnostics, ranked rows, score history, and missing-data notes survive packaged desktop restarts.
+- Added `src/views/factor-lab-view.tsx`, Factor Lab navigation/settings support, API typings, and app-store state so the desktop can run factor research, open recent snapshots, inspect contributions, view chart context, and hand off a ranked row into Research.
+- Extended research brief creation with optional `factorRunId`; saved briefs and Markdown exports now include factor context, contribution evidence, missing inputs, and an explicit research-only/no-order-placement statement.
+- Added `backend/tests/test_factor_service.py` for factor ranking, persistence, API coverage, research handoff, and Markdown export coverage.
+- Added `scripts/packaged_factor_lab_smoke.ps1` plus `npm run smoke:factor-lab`; the packaged smoke starts the real release EXE, runs a composite factor snapshot, restarts the desktop, reloads the run, creates a factor-backed research brief, and verifies Markdown export.
+- Captured the latest packaged Factor Lab result in `logs/factor-lab-smoke-latest.json` with `health_ready=true`, `failures=[]`, `evaluated_count=10`, `result_count=10`, `ranked_count=10`, `selected_symbol=AAPL`, `selected_rank=3`, `selected_percentile=80.0`, `selected_bucket=leader`, `selected_score=84.5`, `selected_contribution_count=5`, `restored_after_restart=true`, `research_factor_context=true`, and `export_exists=true`.
+- Revalidated `T34` with:
+  - `py -m compileall backend`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - PowerShell parser check for `scripts/packaged_factor_lab_smoke.ps1`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run tauri:build`
+  - `npm run smoke:factor-lab`
+- No new blocker was discovered during `T34`; no extra follow-up task was added from this pass.
+- Advanced the recommended next task to `T35 - Strategy Backtesting And Paper Trading`, because local factor evidence is now package-smoke validated and the next roadmap gap is converting factor outputs into explicit simulated strategy rules before any Binance live execution work.
+
+- Completed `T33 - Portfolio Analytics And Professional Charting`.
+- Added additive backend analytics models to `backend/app/models.py` and `backend/app/services/portfolio_service.py` without breaking the existing `/api/v1/portfolio/summary` fields: `performance`, `benchmarks`, holdings, transactions, and offline/cached/unavailable semantics remain compatible.
+- `PortfolioService` now returns `analytics.windows` for `Today`, `MTD`, `YTD`, `1Y`, and `Max`, including total return, maximum drawdown, annualized volatility, Sharpe-style risk-adjusted return, benchmark return, and benchmark-relative return when enough data exists.
+- Added average-cost realized/unrealized PnL plus allocation breakdowns by asset, asset class, currency, market, and sector/`Unknown`, with unavailable valuations excluded explicitly rather than hidden.
+- Reworked `src/views/portfolio-view.tsx` into a denser professional portfolio workspace with a window segmented control, risk metric strip, allocation tabs, PnL strip, preserved transaction CRUD, preserved `portfolio-*` automation anchors, and repaired Portfolio visible mojibake.
+- Added `lightweight-charts` and a reusable `ProfessionalChartPanel` in `src/components/shared.tsx`; the existing SVG `ChartPanel` remains available as the fallback for empty/degraded chart data.
+- Extended `scripts/packaged_portfolio_offline_smoke.ps1` so the packaged online, offline-with-cache, and offline-cold-cache scenarios assert that `analytics` exists and uses the `average_cost` PnL method.
+- Hardened `scripts/packaged_portfolio_ui_signoff.ps1` to wait on stable ASCII `portfolio-view state=*` and `portfolio-status-pill state=*` markers instead of the old visible heading copy, so future copy edits do not break the signoff loop.
+- Captured the latest packaged portfolio offline result in `logs/portfolio-offline-smoke-latest.json` with `health_ready=true`, `failures=[]`, `analytics_windows_count=5`, `analytics_pnl_method=average_cost`, online `AAPL` valuation `live`, offline-with-cache valuation `cached`, and offline-cold-cache valuation `unavailable` with `missing_symbols=["AAPL"]`.
+- Captured the latest packaged portfolio UI result in `logs/portfolio-ui-signoff-latest.json` with `health_ready=true`, `failures=[]`, ready `portfolio-view state=ready`, cached/unavailable `portfolio-view state=degraded`, stable holding markers, and enabled transaction-submit markers across all three scenarios.
+- Revalidated `T33` with:
+  - `py -m compileall backend`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run tauri:build`
+  - `npm run smoke:portfolio-offline`
+  - `npm run smoke:portfolio-ui-signoff`
+- No new blocker was discovered during `T33`; no extra follow-up task was added from this pass.
+- Advanced the recommended next task to `T34 - Local Factor Research Lab`, because portfolio analytics and charting are now package-smoke validated and the next roadmap gap is local factor evidence rather than Binance live execution.
+
+- Completed `T32 - Desktop WebView Credential Input Automation Adapter` and closed the remaining `T31 - Credential Workflow And Crypto Capability Smoke Hardening` acceptance gap.
+- Updated `src/views/connections-view.tsx` so the EDGAR identity field is ref-first and automation-safe: packaged WebView input can populate the real field, and the existing `connection-save provider=edgar` button still routes through the normal Tauri Stronghold save path.
+- Fixed `src-tauri/src/lib.rs` Stronghold snapshot handling by loading the persisted client state before creating a new client, so saved EDGAR identities are immediately readable and are injected into the restarted sidecar without environment-variable fallback.
+- Hardened `scripts/packaged_provider_capability_signoff.ps1` with credential-env isolation, clipboard-backed WebView input, keyboard/mouse activation fallback, typed staged JSON capture, and additive `credential_input_adapter` evidence without logging credential values.
+- Captured the latest packaged provider-capability result in `logs/provider-capability-signoff-latest.json` with `health_ready=true`, `failures=[]`, `credential_input_adapter.value_verified=true`, baseline EDGAR filings `credential_required`, after-save and post-restart EDGAR filings `available`, after-clear EDGAR filings `credential_required`, and `BTC/USDT` fundamentals/filings `unsupported`.
+- Revalidated T31/T32 with:
+  - PowerShell parser check for `scripts/packaged_provider_capability_signoff.ps1`
+  - `npm run typecheck`
+  - `npm run build`
+  - `cargo check --manifest-path src-tauri/Cargo.toml`
+  - `npm run tauri:build`
+  - `npm run smoke:provider-capability-signoff`
+- No new blocker was discovered during T32; no new follow-up task was added from this pass.
+
+- Started `T31 - Credential Workflow And Crypto Capability Smoke Hardening`.
+- Reworked `scripts/packaged_provider_capability_signoff.ps1` so the packaged capability smoke now records richer per-stage detail, attempts the EDGAR save/clear flow through the real desktop credential controls, captures post-restart persistence evidence in the same JSON artifact, and switches the unsupported sample from `SPY` back to `BTC/USDT` with `quote_state=temporarily_unavailable` tolerance when packaged Binance quote fetches flap.
+- Preserved `logs/provider-capability-signoff-latest.json` as the single artifact path and extended the staged payload shape instead of introducing a second provider smoke format.
+- Revalidated the updated smoke entrypoint with:
+  - PowerShell parser check for `scripts/packaged_provider_capability_signoff.ps1`
+  - `npm run smoke:provider-capability-signoff`
+- The full `T31` smoke is still red today because the packaged Tauri WebView does not reliably propagate the current UIAutomation value-writing path into the React-controlled EDGAR identity input, so the `connection-save provider=edgar` action never reaches a persisted `available` state during the fully automated desktop-only pass.
+- Added a new follow-up task, `T32 - Desktop WebView Credential Input Automation Adapter`, because the remaining gap is no longer provider semantics or crypto unsupported-state coverage; it is a desktop automation bridge for WebView text input so the real Stronghold-backed credential form can be driven deterministically.
+- Advanced the recommended next task to `T32 - Desktop WebView Credential Input Automation Adapter`, then return to finish and close `T31`.
+
+- Completed `T30 - Provider Capability Packaged Signoff`.
+- Added stable ASCII automation anchors in `src/views/connections-view.tsx` for provider cards, capability rows, and credential actions, plus additive watchlist and asset/research capability anchors in `src/App.tsx`, `src/views/asset-view.tsx`, and `src/views/research-view.tsx`.
+- Added `scripts/packaged_provider_capability_signoff.ps1` plus `npm run smoke:provider-capability-signoff` so packaged provider-capability behavior now has a repeatable release-signoff entry point alongside the earlier startup, portfolio, screener, and research smoke paths.
+- Captured the latest packaged provider-capability result in `logs/provider-capability-signoff-latest.json` with `health_ready=true`, no failures, and staged packaged-runtime evidence for `baseline`, `after_identity_save`, and `after_identity_clear`.
+- Revalidated `T30` with:
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run tauri:build`
+  - `npm run smoke:provider-capability-signoff`
+- Added a new follow-up task, `T31 - Credential Workflow And Crypto Capability Smoke Hardening`, because the packaged signoff is now stable for connections plus AAPL/SPY capability transitions, but two harder edges remain: fully automating Stronghold-backed credential entry/clear flows through desktop UI controls, and restoring a stable crypto unsupported sample to the packaged smoke once the current Binance public-quote SSL failures stop making `BTC/USDT` regressions noisy.
+- Advanced the recommended next task to `T31 - Credential Workflow And Crypto Capability Smoke Hardening`, because the provider-capability packaged regression loop now exists and the remaining gap is hardening the most fragile automation edges rather than adding another capability surface.
+
+- Completed `T29 - Command Palette And Report Export`.
+- Added `src/components/command-palette.tsx` as a global, keyboard-first command surface with `Ctrl/Cmd + K`, shared result filtering, arrow-key execution, and one reusable entry point for asset, research, screener, portfolio, provider-test, and export actions.
+- Extended `src/store/app-store.ts` so the shared shell now owns command-palette visibility, latest command feedback, shared screener context (`selected preset / variant / universe`), and the latest screener run result instead of keeping those command-relevant selections trapped inside the screeners page.
+- Reworked `src/views/screeners-view.tsx` to read and write the shared screener preset, variant, universe, and run-result state so command-triggered screener executions land in the same visible workspace state as in-page actions.
+- Updated `src\App.tsx` and `src\styles.css` so the top bar now exposes a first-class command-palette launcher plus recent command feedback, while the shared shell renders the palette overlay without disturbing the existing one-active-workspace layout.
+- Reused the existing runtime actions rather than adding new backend routes: asset open still flows through the asset workspace, research open/export still flows through `/api/v1/research/*`, provider tests still flow through the shared connection test path, and portfolio draft handoff still flows through the existing form-prefill store contract.
+- Revalidated `T29` with:
+  - `npm run typecheck`
+  - `npm run build`
+- No new blocker was discovered during `T29`, so no extra follow-up task was added from this pass.
+- Advanced the recommended next task to `T30 - Provider Capability Packaged Signoff`, because the shared command layer is now build-valid and the remaining open gap on the roadmap is packaged-shell confirmation of the newer capability-driven desktop behavior.
+
+- Completed `T28 - Provider Capability Catalog`.
+- Added a shared `backend/app/services/capability_service.py` layer that now owns provider capability declarations for `quotes`, `history`, `fundamentals`, `filings`, `account`, `screeners`, and `research` across `market`, `fundamentals`, `edgar`, and `binance`.
+- Added additive backend contracts in `backend/app/models.py` and `backend/app/api/routes.py`, including `ProviderCapability`, `ProviderCapabilityProviderItem`, `ConnectionsCatalogResponse`, and `GET /api/v1/connections/catalog`, without changing the existing `/api/v1/connections/status` or `/api/v1/assets/*` route set.
+- Reworked `backend/app/services/asset_service.py` so fundamentals and filings availability is now derived from shared applicability rules instead of ad hoc `is_us_equity` / `is_configured` checks, while preserving the existing `AssetWorkspaceResponse.capabilities` shape through additive status/message fields.
+- Updated `backend/app/analysis/modules.py` and `src/views/research-view.tsx` so research summaries and module fallbacks now reuse the same capability-derived unsupported, credential-required, and temporarily-unavailable explanations that the asset view consumes.
+- Rebuilt `src/views/connections-view.tsx` to show provider health plus a capability matrix on the same cards, and rebuilt `src/views/asset-view.tsx` so fundamentals and filings sections render explicit `available / credential_required / unsupported / temporarily_unavailable` states instead of collapsing everything into generic missing-data copy.
+- Added `backend/tests/test_capability_service.py` and extended `backend/tests/test_research_service.py` so the new catalog mapping, asset applicability states, API response shape, and additive research snapshot fields are now covered by backend tests.
+- Revalidated `T28` with:
+  - `py -m compileall backend`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run typecheck`
+  - `npm run build`
+- Added a new follow-up task, `T30 - Provider Capability Packaged Signoff`, because `T28` now changes visible connections, asset, and research-shell behavior but this pass only revalidated the shared backend and web-build contract rather than the packaged desktop lifecycle.
+- Advanced the recommended next task to `T29 - Command Palette And Report Export`, because the new capability catalog is now reusable and the next highest-value gap is cross-workspace execution rather than more provider semantics work.
+
+- Completed `T27 - Analysis Module Registry`.
+- Added a new `backend/app/analysis/` layer with `AnalysisModuleRegistry`, a shared analysis result envelope, and four built-in modules: `asset_quality_snapshot`, `filings_brief`, `screener_match_explainer`, and `portfolio_risk_snapshot`.
+- Reworked `backend/app/services/research_service.py` so research briefs now assemble `analysis_modules` through the registry instead of keeping richer analysis composition hard-coded in the service and view.
+- Extended the `ResearchBrief` contract with additive `analysis_modules` output while keeping `/api/v1/assets/*`, `/api/v1/screeners/*`, and `/api/v1/portfolio/*` payload shapes unchanged.
+- Added `src/components/analysis-cards.tsx` plus shared styles so `src/views/research-view.tsx` now renders structured analysis cards through one deterministic frontend path instead of per-module ad hoc TSX.
+- Expanded backend coverage with `backend/tests/test_analysis_registry.py` and extended `backend/tests/test_research_service.py` so registry resolution, module envelopes, API responses, and Markdown export all cover the new analysis contract.
+- Enhanced `scripts/packaged_research_workspace_smoke.ps1` so the packaged research signoff now asserts `analysis_module_count=4`, validates the expected module keys, and checks that exported Markdown includes the `## Analysis Modules` section.
+- Captured the latest packaged research result in `logs/research-workspace-smoke-latest.json` with:
+  - `health_ready=true` against the packaged desktop runtime
+  - created `brief-6e2d9c8aac4c` for `AAPL`
+  - `analysis_module_count=4`
+  - `analysis_module_keys=["asset_quality_snapshot","filings_brief","screener_match_explainer","portfolio_risk_snapshot"]`
+  - notes saved before restart and restored after relaunch
+  - Markdown export written to `C:\Users\Laurence\AppData\Roaming\com.pengbo.workbench\diagnostics\reports\research-aapl-8aac4c.md`
+- Revalidated `T27` with:
+  - `py -m compileall backend`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run tauri:build`
+  - `npm run smoke:research-workspace`
+- No new blocker was discovered during `T27`, so no extra follow-up task was added from this pass.
+- Advanced the recommended next task to `T28 - Provider Capability Catalog`, because research analysis composition is now reusable and the next highest-value gap is surfacing provider support and unsupported-state semantics across research, asset, and connections surfaces.
+
+- Completed `T26 - Research Workspace`.
+- Added a first-class `research` workspace to the desktop shell, app store, and settings preferences so research is no longer split across dashboard, asset, screener, and portfolio surfaces.
+- Added `/api/v1/research/*` endpoints plus a new `research_service` that composes asset context, screener matches, portfolio state, saved notes, and local Markdown export into durable research briefs.
+- Added SQLite-backed `research_briefs` persistence so brief snapshots, user-authored notes, and export metadata survive desktop relaunches.
+- Built a three-column research workflow in `src/views/research-view.tsx` for asset search and recent briefs, brief context, and notes plus watchlist plus portfolio handoff plus export actions.
+- Wired screener-to-research and research-to-portfolio handoff flows so a screener result can open a source-tagged research brief and a research brief can prefill the portfolio transaction form.
+- Added `scripts/packaged_research_workspace_smoke.ps1` plus `npm run smoke:research-workspace` so the packaged research lifecycle now has a repeatable release-signoff entry point.
+- Captured the latest packaged research result in `logs/research-workspace-smoke-latest.json` with:
+  - `health_ready=true` against the packaged desktop runtime
+  - created `brief-a735821c40c8` for `AAPL`
+  - notes saved before restart and restored after relaunch
+  - Markdown export written to `C:\Users\Laurence\AppData\Roaming\com.pengbo.workbench\diagnostics\reports\research-aapl-1c40c8.md`
+- Revalidated `T26` with:
+  - `py -m compileall backend`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run tauri:build`
+  - `npm run smoke:research-workspace`
+- No new blocker was discovered during `T26`, so no extra follow-up task was added from this pass.
+- Advanced the recommended next task to `T27 - Analysis Module Registry`, because the durable research workspace now exists and the next highest-value gap is reusable structured analysis composition instead of more shell scaffolding.
+
+- Completed `T25 - Screener Variant Packaged Signoff`.
+- Added `scripts/packaged_screener_variant_signoff.ps1` plus `npm run smoke:screener-variant-signoff` so the packaged screener-variant lifecycle now has a repeatable release-signoff entry point.
+- Added minimal ASCII automation anchors in `src/views/screeners-view.tsx` for preset state, variant state, summary-list evidence, and run attribution, without widening the current `/api/v1/screeners/*` contract.
+- Captured the latest packaged screener signoff result in `logs/screener-variant-signoff-latest.json` with:
+  - `initial_run` showing `custom-b61133ad` active/selected, summary markers present, and `screener-run-attribution preset=quality-equities variant=custom-b61133ad universe=expanded`
+  - `after_restart` restoring the same custom variant, summary markers, and packaged run attribution after a full desktop relaunch
+  - `after_delete` falling back to `default`, restoring system-default summary markers, and API run attribution returning `variant_key=default`
+- Revalidated `T25` with:
+  - `py -m compileall backend`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run tauri:build`
+  - `npm run smoke:screener-variant-signoff`
+- No new blocker was discovered during `T25`, so no extra follow-up task was added from this pass.
+- Advanced the recommended next task to `T26 - Research Workspace`, because packaged screener persistence, relaunch restore, and system-default fallback are now release-signed off.
+
+- Completed `T24 - Screener Configurable Profiles`.
+- Added SQLite-backed `screener_preset_variants` persistence so every preset now seeds a read-only system default variant and supports additional user-defined variants with activation state, per-variant last-hit tracking, and preset-local unique names.
+- Reworked `backend/app/services/screener_service.py` into a `baseline scorer + controlled tuning mapping` flow for all four presets, keeping the existing `/api/v1/screeners/*` contract stable while adding optional `variantKey`, active-variant fallback, variant-aware hit-count tracking, and generated filter summaries instead of free-form rule text.
+- Added variant management endpoints without breaking the existing preset/run routes:
+  - `GET /api/v1/screeners/presets/{preset_key}/variants`
+  - `POST /api/v1/screeners/presets/{preset_key}/variants`
+  - `PUT /api/v1/screeners/presets/{preset_key}/variants/{variant_key}`
+  - `POST /api/v1/screeners/presets/{preset_key}/variants/{variant_key}/activate`
+  - `DELETE /api/v1/screeners/presets/{preset_key}/variants/{variant_key}`
+- Rebuilt `src/views/screeners-view.tsx` into a `preset -> variant -> tuning/result` workflow:
+  - left column preset selection
+  - middle column variant switching plus `save as custom` creation
+  - right column controlled tuning controls, generated summary copy, activation, delete, and run actions
+- Removed the old free-form preset filter editing workflow from the desktop screener surface so user changes now stay inside the bounded variant/tuning model rather than drifting into a fragile DSL.
+- Expanded `backend/tests/test_screener_service.py` to cover default variant seeding, variant CRUD and activation rules, system-default delete protection, variant-key run behavior, and API coverage for the new variant endpoints.
+- Revalidated `T24` with:
+  - `py -m compileall backend`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run typecheck`
+  - `npm run build`
+- Added a new follow-up task, `T25 - Screener Variant Packaged Signoff`, because `T24` now locks the local persistence and web-build contract, but the packaged desktop still lacks a repeatable signoff flow for custom variant persistence, relaunch restore, and visible active-variant state.
+- Advanced the recommended next task to `T25 - Screener Variant Packaged Signoff`, because the next highest-value gap is packaged-shell confirmation that user-created screener variants survive real desktop relaunches and remain clearly attributable in the UI.
+
+- Completed `T14 - Screener Quality Expansion`.
+- Expanded the screener contract without changing `/api/v1/screeners/*` routes:
+  - added `catalog | expanded` universe selection
+  - added result-level `score`, `score_label`, and `explanations`
+  - added run-level `evaluated_count` and `universe_label`
+- Added a repo-managed controlled expansion universe in `backend/app/data_seed.py` for:
+  - large-cap equities and ETFs such as `MSFT`, `GOOGL`, `META`, `AMZN`, `COST`, `LLY`, `SPY`, and `QQQ`
+  - major Binance pairs such as `ETH/USDT`, `BNB/USDT`, `SOL/USDT`, `XRP/USDT`, `LINK/USDT`, and `DOGE/USDT`
+- Reworked `backend/app/services/screener_service.py` from boolean preset hits into score-based preset profiles, while keeping preset copy in SQLite as display text instead of introducing a DSL.
+- Upgraded `src/views/screeners-view.tsx` so the desktop UI now defaults to the expanded universe, surfaces run summary metrics, and renders ranked results with score bands, explanations, missing metrics, and metric highlights.
+- Added `backend/tests/test_screener_service.py` to cover expanded-universe selection, score ordering, provider-failure fallback, and API validation for invalid `universeSource`.
+- Revalidated the screener upgrade with:
+  - `py -m compileall backend`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run typecheck`
+  - `npm run build`
+- Added a new follow-up task, `T24 - Screener Configurable Profiles`, because `T14` intentionally keeps preset `filters` as display-only copy; the next product step is to let users tune supported profile emphasis without opening a free-form DSL surface.
+- Advanced the recommended next task to `T24 - Screener Configurable Profiles`, because the screener surface is now materially more useful and the next highest-value gap is constrained user-level profile tuning.
+
+- Completed `T23 - NSIS Installed Startup Automation`.
+- Refactored `scripts/installed_bundle_startup_smoke.ps1` into an installer-selectable installed-startup smoke entry point with `InstallerType=msi|nsis`, a dedicated NSIS bundle path, and per-installer default result files.
+- Preserved `npm run smoke:installed-startup` for the existing MSI flow and added `npm run smoke:installed-startup:nsis` so the NSIS-installed path can be exercised without changing the established `T21` command.
+- Re-ran the MSI-installed startup smoke after the refactor and confirmed `logs/installed-bundle-startup-smoke-latest.json` still records:
+  - `install_exit_code=0`
+  - `health_ready=true` in `12.84s`
+  - `single_instance_ok=true`
+  - `adopt_existing_ok=true`
+  - `appdata_log_dir_ok=true`
+  - `appdata_data_dir_ok=true`
+- Captured the new NSIS-installed startup result in `logs/installed-bundle-startup-smoke-nsis-latest.json` with:
+  - `install_exit_code=0`
+  - `installed_exe_path=C:\Program Files\Pengbo Workbench\pengbo-workbench.exe`
+  - `health_ready=true` in `12.31s`
+  - `single_instance_ok=true`
+  - `adopt_existing_ok=true`
+  - `appdata_log_dir_ok=true` for `C:\Users\Laurence\AppData\Local\com.pengbo.workbench\logs`
+  - `appdata_data_dir_ok=true` for `C:\Users\Laurence\AppData\Roaming\com.pengbo.workbench`
+- No new NSIS-specific blocker was discovered during validation, so no extra follow-up task was added from this pass.
+- Advanced the recommended next task to `T14 - Screener Quality Expansion`, because installer-level release-readiness automation is now closed across both bundle types.
+
+- Completed `T20 - Residual Packaging Warning Trim`.
+- Updated `scripts/build_sidecar.py` so the remaining `scipy.stats`, `scipy`, and `scipy.sparse` lines are classified as `accepted_packaging_noise` with explicit reasons instead of being left in `warning_categories.actionable`.
+- Added `backend/tests/test_sidecar_build_report.py` so the packaged-warning classifier keeps treating the residual SciPy trio as documented accepted noise while still surfacing truly new runtime-affecting warnings as actionable.
+- Rebuilt the sidecar through `npm run sidecar:build` and captured a new `logs/sidecar-build-latest.json` report with:
+  - `warning_counts.actionable=0`
+  - `warning_counts.accepted_packaging_noise=3`
+  - the legacy `warning_summary` field preserved for compatibility, now pointing at the accepted SciPy residue because no actionable lines remain
+- Revalidated the asset workspace contract with `AAPL` still returning overview data plus 6 ratios after the warning reclassification pass.
+- Advanced the recommended next task to `T23 - NSIS Installed Startup Automation`, because the warning-cleanup acceptance is now closed and NSIS installer parity is the next remaining release-readiness gap.
+
+- Completed `T18 - Localization Hardening`.
+- Rewrote the remaining garbled checked-in desktop shell copy in `src/App.tsx`, `src/components/shared.tsx`, and the main user-facing views so navigation, onboarding, setup reminders, shared status chrome, and page-level headings no longer show mojibake.
+- Localized the remaining portfolio-shell English in `src/views/portfolio-view.tsx`, preserving the existing ASCII automation anchors while converting visible status pills, empty/degraded guidance, transaction forms, holdings summaries, and history rows to Chinese-first copy.
+- Normalized user-visible runtime/provider fallback messages in `src/lib/api.ts` and `src/lib/runtime.ts` so startup, offline, diagnostics, and credential-edit errors no longer surface garbled text.
+- Revalidated the localized shell through `npm run typecheck` and `npm run build`.
+- Advanced the recommended next task to `T20 - Residual Packaging Warning Trim`, because the most visible copy/encoding gap is now closed and the next remaining release-readiness item is the residual packaged-warning cleanup left after `T13`.
+
+- Completed `T22 - Portfolio Packaged UI State Signoff`.
+- Added `scripts/packaged_portfolio_ui_signoff.ps1` as the packaged portfolio UI signoff entry point and wired `npm run smoke:portfolio-ui-signoff` for repeatable local execution.
+- The scripted T22 signoff now reuses the seeded packaged portfolio flow from `T19`, opens the packaged desktop shell, navigates to the portfolio workspace through stable UI automation anchors, and records visible portfolio-shell state for `ready`, `cached`, and `unavailable` scenarios.
+- Added minimal automation-only UI anchors to the desktop shell:
+  - a stable ASCII navigation label for the portfolio sidebar item
+  - packaged portfolio status-pill markers
+  - per-holding valuation markers
+  - summary note markers
+  - transaction-submit availability markers
+- Captured the latest packaged UI signoff result in `logs/portfolio-ui-signoff-latest.json` with:
+  - `ready` scenario showing `portfolio-status-pill state=live`, `AAPL` at `valuation_status=live`, and transaction submit remaining enabled
+  - `cached` scenario showing `portfolio-status-pill state=degraded`, `AAPL` at `valuation_status=cached`, cache-degraded summary notes, and transaction submit remaining enabled
+  - `unavailable` scenario showing `portfolio-status-pill state=degraded`, `AAPL` at `valuation_status=unavailable`, missing-valuation plus unavailable-benchmark notes, and transaction submit remaining enabled
+- Advanced the recommended next task to `T18 - Localization Hardening`, because the packaged portfolio shell now has repeatable state signoff coverage and the highest remaining release-quality gap is source-level copy/encoding cleanup.
+
+- Completed `T21 - Installed Bundle Startup Automation`.
+- Added `scripts/installed_bundle_startup_smoke.ps1` as the MSI-installed startup smoke entry point and wired `npm run smoke:installed-startup` for repeatable local execution.
+- The scripted T21 smoke now stages the MSI into an ASCII temp path, silently installs `src-tauri/target/release/bundle/msi/Pengbo Workbench_0.1.0_x64_en-US.msi`, resolves the installed `pengbo-workbench.exe` and `pengbo-sidecar.exe`, and reuses the T17 startup assertions against the installed app lifecycle.
+- Captured the latest installed startup result in `logs/installed-bundle-startup-smoke-latest.json` with:
+  - `install_exit_code=0`
+  - `installed_exe_path=C:\Program Files\Pengbo Workbench\pengbo-workbench.exe`
+  - `health_ready=true` in `11.51s`
+  - `single_instance_ok=true`
+  - `adopt_existing_ok=true`
+  - `appdata_log_dir_ok=true` for `C:\Users\Laurence\AppData\Local\com.pengbo.workbench\logs`
+  - `appdata_data_dir_ok=true` for `C:\Users\Laurence\AppData\Roaming\com.pengbo.workbench`
+- Added a new follow-up task, `T23 - NSIS Installed Startup Automation`, because `T21` now closes the MSI-installed lifecycle gap, but the NSIS-installed startup path is still not covered by a repeatable smoke script.
+- Completed `T19 - Portfolio Offline Regression Automation`.
+- Added `scripts/packaged_portfolio_offline_smoke.ps1` as the packaged portfolio offline smoke entry point and wired `npm run smoke:portfolio-offline` for repeatable local execution.
+- The scripted T19 smoke now covers three seeded packaged portfolio contracts against `src-tauri/target/release/pengbo-workbench.exe` while backing up and restoring the live AppData-backed runtime data dir:
+  - `online` seeds one `AAPL` transaction, warms quote/history cache, and verifies holdings plus summary stay live
+  - `offline_with_cache` relaunches the packaged EXE behind an invalid proxy env, verifies holdings downgrade to `cached`, benchmarks downgrade to `cached`, and transaction updates still succeed
+  - `offline_cold_cache` preserves the seeded SQLite transactions, clears the DuckDB cache, relaunches behind the invalid proxy env, and verifies `missing_symbols=["AAPL"]` plus benchmark `unavailable` semantics while transaction updates still succeed
+- Captured the latest packaged portfolio result in `logs/portfolio-offline-smoke-latest.json` with:
+  - `health_ready=true`
+  - `online` holding `AAPL` at `valuation_status=live`
+  - `offline_with_cache` holding `AAPL` at `valuation_status=cached`
+  - `offline_cold_cache` holding `AAPL` at `valuation_status=unavailable`
+  - `offline_cold_cache.missing_symbols=["AAPL"]`
+- Added a new follow-up task, `T22 - Portfolio Packaged UI State Signoff`, because the new T19 smoke locks the API/runtime contract, but packaged-shell rendering of `ready` / `cached` / `unavailable` portfolio states is still only manually validated.
+- Completed `T17 - Packaged Startup Regression Automation`.
+- Added `scripts/packaged_startup_smoke.ps1` as the packaged startup smoke entry point and wired `npm run smoke:packaged-startup` for repeatable local execution.
+- The scripted T17 smoke now covers three packaged startup contracts against `src-tauri/target/release/pengbo-workbench.exe`:
+  - cold launch waits for `/health`, then verifies `/settings/runtime` and `/connections/status`
+  - second launch keeps a single `pengbo-workbench` instance alive while the original runtime stays healthy
+  - standalone-sidecar adoption confirms `adopted_existing=true` is appended to `sidecar-bootstrap.log` when `127.0.0.1:8765` is already healthy
+- Captured the latest packaged startup result in `logs/packaged-startup-smoke-latest.json` with:
+  - `health_ready=true` in `11.51s`
+  - `single_instance_ok=true`
+  - `adopt_existing_ok=true`
+  - `bootstrap_log_path=C:\Users\Laurence\AppData\Local\com.pengbo.workbench\logs\sidecar-bootstrap.log`
+- Added a new follow-up task, `T21 - Installed Bundle Startup Automation`, because the new T17 smoke currently validates the release EXE plus bundled sidecar path, but not a full MSI/NSIS-installed app lifecycle yet.
+- Completed `T13 - Packaging Noise Reduction`.
+- Replaced the asset fundamentals path that previously depended on `FinanceToolkit` with a lighter Yahoo-backed snapshot path while preserving the current overview/ratio response shape.
+- Updated the desktop/provider labeling so fundamentals now surface as `Yahoo Fundamentals` instead of stale `FinanceToolkit` copy.
+- Tightened the sidecar build whitelist by dropping explicit `financetoolkit` / `curl_cffi` hidden imports and excluding unused Qt bindings from the packaged desktop sidecar.
+- Extended `logs/sidecar-build-latest.json` so warning output is now split into actionable warnings versus optional dependency noise while keeping the legacy `warning_summary` field intact.
+- Rebuilt the packaged desktop app successfully after the T13 changes and verified the latest EXE/MSI/NSIS outputs.
+- Compared against the previous packaged baseline:
+  - sidecar size improved from `160,652,673 bytes` to `117,766,856 bytes`
+  - sidecar build time improved from `74.84s` to `59.25s`
+  - actionable warning summary dropped from a mixed 12-line noise-heavy list to 3 residual `pandas` / `SciPy` lines
+- Completed a packaged cold-launch smoke against `src-tauri/target/release/pengbo-workbench.exe` after the T13 rebuild:
+  - `/health` returned `ok` in `tauri` mode
+  - `/connections/status` reported `Yahoo Fundamentals` with the expected ready message
+  - `/api/v1/assets/AAPL/workspace` returned a live overview with `market_cap="$3.97T"` and 6 ratios
+  - `/api/v1/portfolio/summary` still returned successfully after the packaging trim
+- Added a new follow-up task, `T20 - Residual Packaging Warning Trim`, to track the remaining `pandas` / `SciPy` warning residue without reopening the now-complete T13 size target.
+- Completed `T16 - Desktop Runtime Status Reconciliation`.
+- Added `enabled` gating to shared async resources so desktop first-batch requests now wait until runtime/health are reconciled instead of firing against a half-booted sidecar.
+- Added a unified desktop connection-state model (`connecting | online | offline`) so the top badge, setup reminder, and first-run messaging no longer treat a single startup miss as hard offline.
+- Hardened desktop runtime discovery:
+  - `get_runtime_config` now retries with a bounded budget before surfacing offline
+  - Tauri fallback no longer regresses to relative `/api/v1`
+  - the last resolved desktop base URL is preserved for retry/recovery flows
+- Hardened `apiFetch` for desktop runtime recovery:
+  - network failures are separated from HTTP errors
+  - desktop mode refreshes runtime config and retries once before surfacing an error
+  - raw `Failed to fetch` is replaced with sidecar-specific startup/offline messaging
+- Gated the packaged `Connections` view so provider status and Binance balance fetches do not race the sidecar during startup.
+- Extended Tauri bootstrap logging with runtime status transitions, resolved base URL, and `/health` probe outcomes to make packaged-only startup issues easier to diagnose.
+- Rebuilt the packaged desktop app successfully with refreshed EXE plus MSI/NSIS bundles after the `T16` changes.
+- Reproduced the remaining packaged `Connecting` incident and traced it to duplicate desktop launches racing the same DuckDB-backed sidecar.
+- Added Tauri single-instance enforcement so a second launch focuses the existing window instead of spawning a competing desktop shell and bootstrap attempt.
+- Reproduced a second packaged `offline` path caused by an already-running `8765` sidecar being left behind from an earlier desktop session.
+- Updated startup/stop behavior so the desktop shell now adopts a healthy default-port sidecar on launch and uses process-tree termination when it owns the spawned sidecar, reducing orphan-process fallout.
+- Re-ran the packaged EXE launch flow after the fix and verified the regression no longer reproduces at the process/log/API level.
+- Localized the current user-facing desktop shell to Simplified Chinese across navigation, setup banners, shared status states, and the main dashboard / asset / connections / portfolio / screeners / settings surfaces.
+- Switched visible number and timestamp formatting to `zh-CN` where the shell already formats values locally, and rebuilt the packaged desktop app with the Chinese UI copy.
+- Added a new follow-up task, `T17 - Packaged Startup Regression Automation`, to turn this startup-health path into a repeatable smoke check.
+- Reproduced a fresh packaged "program will not open" report and confirmed the EXE window existed while the shell stayed stuck in `connecting/loading`.
+- Traced the new packaged startup regression to three issues acting together:
+  - desktop startup retry logic in `App.tsx` kept reloading runtime/health too aggressively while first-boot health was still settling
+  - the PyInstaller onefile launcher exited before the real FastAPI child, and Tauri treated that launcher exit as sidecar offline
+  - FastAPI CORS still missed the Tauri 2 `http://tauri.localhost` / `https://tauri.localhost` origins, so WebView fetches could hit `/health` and still surface as inaccessible
+- Tightened desktop startup retry behavior so runtime reloads only continue while the sidecar is not yet online, and otherwise health probes are allowed to settle normally.
+- Added Rust-side reconciliation after child exit: if `/health` still succeeds, the runtime stays `online` instead of being dropped to offline because the onefile launcher process exited.
+- Expanded packaged FastAPI CORS allow-origins for Tauri 2 localhost pages so `health`, `settings`, and `connections` responses are readable by the packaged WebView.
+- Rebuilt the packaged desktop app after the fix and re-verified that the EXE can cold-start through to healthy local-service state instead of remaining stuck on `connecting`.
+- Captured one new follow-up for `T18 - Localization Hardening`: some checked-in desktop shell strings still show mojibake and need source-level encoding cleanup, even though the packaged startup regression is now resolved.
+- Started `T12 - Offline-First Portfolio Hardening`.
+- Current implementation focus:
+  - make portfolio summary/holdings resilient when live quote or history fetches fail without usable cache
+  - keep transaction CRUD usable during cold offline / degraded runtime states
+  - add explicit portfolio `connecting | empty | degraded | ready` rendering instead of surfacing generic fetch failures
+- Implemented the first `T12` delivery slice:
+  - `PortfolioService` now wraps quote/history access with portfolio-local fallback semantics so summary and holdings degrade instead of throwing when no cache is available
+  - portfolio summary/holding payloads now expose `degraded`, `notes`, `missing_symbols`, `benchmark_status`, and per-holding `valuation_status`
+  - `PortfolioView` now reuses the existing app-level runtime gate, defers portfolio fetches until `sidecarReady`, and falls back to manual symbol entry when watchlist options are unavailable
+- Added a minimal backend regression test for `T12` covering:
+  - no-cache quote/history failures degrade summary instead of raising
+  - benchmark failure only degrades that benchmark and does not collapse the main portfolio curve
+- Current `T12` static verification is passing:
+  - `py -m compileall backend`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run typecheck`
+  - `npm run build`
+- Tightened the portfolio-local quote/history wrappers again after packaged smoke exposed a remaining latency gap: cold offline portfolio requests now fail fast into cache/unavailable semantics instead of waiting for provider-level network timeouts.
+- Rebuilt the packaged desktop app with the final `T12` sidecar changes and completed seeded packaged smoke against `src-tauri/target/release/pengbo-workbench.exe`:
+  - online: one open `AAPL` position rendered, the portfolio remained usable, and only the `BTC/USDT` benchmark fell back to cache
+  - offline with cache: holdings downgraded to `cached`, transactions remained editable/readable, and summary returned deterministic degraded notes instead of failing
+  - offline with cold cache: holdings downgraded to `unavailable`, summary returned `missing_symbols=["AAPL"]`, both benchmarks went `unavailable`, and transactions still remained available
+- Completed `T12 - Offline-First Portfolio Hardening`.
+- Added a new follow-up task, `T19 - Portfolio Offline Regression Automation`, so the seeded online/cached/cold-cache portfolio smoke path becomes repeatable instead of manual.
+
+## Recommended Next Task
+
+### T52 - Git Upload Readiness And Repository Normalization
+
+Priority: P2  
+Status: Completed
+
+Why this was next:
+
+- `T51 - Startup Time Reduction` closed the latest packaged-runtime performance gap, so the next highest-value task was preparing the project for safe public Git upload.
+- The project lacked a `README.md`, had only a minimal root `.gitignore`, and still had generated/runtime/publication-risk artifacts in the working tree.
+- The task board itself still pointed at an older roadmap-completion review, so T52 needed to include board reconciliation.
+
+Scope:
+
+- Document the public-upload boundary for source, documentation, diagnostics, generated artifacts, runtime data, and secrets.
+- Add a project README that explains architecture, workspaces, safety boundaries, local development, build, and validation commands.
+- Tighten ignore rules so public Git candidates do not include local runtime data, generated sidecar/Tauri artifacts, secrets, logs, or machine-specific files.
+- Keep the current trading boundary intact: all non-Binance providers remain read-only, and Binance execution remains default-off and user-confirmed.
+- Do not create a remote repository, push code, initialize a public release workflow, or advance deferred account/public-exposure tasks.
+
+Acceptance:
+
+- Public-upload source boundaries are documented in `README.md` and `docs/REPOSITORY_UPLOAD_READINESS.md`.
+- Ignore rules cover dependencies, caches, generated binaries, packaged outputs, local runtime state, diagnostics, logs, Stronghold/secret material, and machine-local credentials.
+- The task board reflects T52 completion and does not promote `T53` through `T56` automatically.
+- No new API, database, UI workflow, or live trading path is introduced.
+
+Completion evidence:
+
+- Added `README.md`.
+- Added `docs/REPOSITORY_UPLOAD_READINESS.md`.
+- Updated `.gitignore` and `src-tauri/.gitignore`.
+- Validation passed: README/package-script consistency review, ignore-boundary review, temporary Git ignore smoke outside the project tree, sensitive-term documentation scan, `npm run typecheck`, `npm run build`, plus the later Claude Code remediation validation recorded in Latest Execution Update.
+- No numbered successor task is promoted here; `T53`, `T54`, `T55`, and `T56` remain deferred until explicitly selected.
+
+## Priority Order
+
+### T52 - Git Upload Readiness And Repository Normalization
+
+Priority: P2  
+Status: Completed
+
+Scope:
+
+- Prepared the local project for a public Git upload without creating a remote repository, pushing code, or changing product behavior.
+- Documented source-vs-generated upload boundaries and local rebuild expectations.
+- Tightened ignore rules for generated assets, local runtime state, diagnostics, logs, caches, installers, binaries, and secret material.
+
+Acceptance:
+
+- A public reader can understand the product, architecture, safety boundary, and local setup flow from `README.md`.
+- A future Git initialization can use the ignore rules and upload-readiness document to avoid committing local data, generated binaries, or credentials.
+- Existing runtime/API behavior remains unchanged.
+
+Evidence:
+
+- `README.md`
+- `docs/REPOSITORY_UPLOAD_READINESS.md`
+- `.gitignore`
+- `src-tauri/.gitignore`
+- Validation passed: README/package-script consistency review, ignore-boundary review, temporary Git ignore smoke outside the project tree, sensitive-term documentation scan, `npm run typecheck`, and `npm run build`.
+
+### T12 - Offline-First Portfolio Hardening
+
+Priority: P1  
+Status: Completed
+
+Scope:
+
+- Hardened portfolio behavior when quotes and benchmarks are unavailable and cache is cold.
+- Replaced partial failures with explicit `connecting`, `empty`, `degraded`, and `ready` handling.
+- Prevented cold offline starts from breaking the portfolio page by failing fast into cache/unavailable semantics.
+
+Acceptance:
+
+- Portfolio pages stay usable when live data is unavailable.
+- Transactions remain readable/editable even when valuation and benchmark data degrade.
+- Packaged smoke now confirms deterministic `cached` / `unavailable` fallback semantics instead of ambiguous failure states.
+
+### T13 - Packaging Noise Reduction
+
+Priority: P1  
+Status: Completed
+
+Scope:
+
+- Continue reducing PyInstaller size and warning noise.
+- Trim `FinanceToolkit`, `pandas`, `SciPy`, `PySide6`, and `curl_cffi` spillover where possible.
+- Keep emitting build size, duration, and warning summary so reductions stay measurable.
+
+Acceptance:
+
+- Sidecar size moves closer to the `~120 MB` target.
+- Warning summary becomes materially shorter and more relevant.
+- Build time trends downward from the current `~81s` baseline.
+
+### T14 - Screener Quality Expansion
+
+Priority: P2  
+Status: Completed
+
+Scope:
+
+- Expand the screener universe beyond the current catalog-only flow.
+- Add richer factor logic, scoring, explanations, and missing-metric reporting.
+- Keep the upgraded screener surface compatible with the now-stable desktop/runtime baseline.
+
+Acceptance:
+
+- Screener output is meaningfully more informative than the current lightweight catalog pass.
+- The upgraded screener surface stays compatible with the current packaged/runtime contract.
+
+### T24 - Screener Configurable Profiles
+
+Priority: P2  
+Status: Completed
+
+Scope:
+
+- Add constrained, profile-aware tuning on top of the fixed `T14` score profiles instead of leaving preset filters as display-only copy.
+- Persist supported tuning options through the existing preset storage without introducing a free-form DSL or background jobs.
+- Keep `T14` scoring, explanations, and universe summaries stable while exposing a safe user-facing tuning path.
+
+Acceptance:
+
+- Users can tune supported screener profile emphasis from the desktop UI without code edits.
+- Tuned presets still return ranked, explained results through the current `/api/v1/screeners/*` contract.
+
+### T25 - Screener Variant Packaged Signoff
+
+Priority: P2  
+Status: Completed
+
+Scope:
+
+- Added `scripts/packaged_screener_variant_signoff.ps1` plus `npm run smoke:screener-variant-signoff` for a repeatable packaged screener-variant lifecycle pass.
+- Reused the AppData-backed packaged runtime pattern already established in earlier packaged smoke work instead of treating screener persistence as a repo-local dev-only contract.
+- Validated creation, tuning, activation, relaunch restore, deletion, and system-default fallback for custom screener variants against the real packaged desktop runtime.
+- Added stable packaged-shell automation anchors so preset state, variant state, summary filters, and run attribution remain script-verifiable after relaunch.
+
+Acceptance:
+
+- A documented and scripted packaged validation flow exists for screener variant persistence, relaunch restore, and deletion cleanup.
+- Packaged desktop validation confirms that the visible active variant state stays aligned with stored runtime data before future screener releases are signed off.
+- The latest packaged signoff result is captured in `logs/screener-variant-signoff-latest.json`.
+
+### T26 - Research Workspace
+
+Priority: P2  
+Status: Completed
+
+Scope:
+
+- Add a new `research` workspace to the desktop shell so research can be conducted in a dedicated surface instead of being split across dashboard, asset, screener, and portfolio pages.
+- Extend the frontend navigation, app store, and settings preferences to support `research` as a first-class `ViewKey`.
+- Build a three-column research workspace:
+  - left column for asset search, recent research, and screener hits
+  - middle column for the research brief canvas
+  - right column for notes, watchlist actions, portfolio handoff, and export actions
+- Add `/api/v1/research/*` endpoints backed by a new `research_service` that composes existing asset, screener, filings, and portfolio signals into a reusable research brief response.
+- Persist research brief snapshots and user-authored notes in SQLite so the research surface becomes durable and restart-friendly.
+- Keep the first release synchronous and local-only; do not add news aggregation, background jobs, cloud sync, or agent orchestration in this task.
+- Added `scripts/packaged_research_workspace_smoke.ps1` plus `npm run smoke:research-workspace` for a repeatable packaged research-workspace signoff pass.
+- Reused the existing packaged desktop and AppData-backed runtime pattern so research persistence is validated against the real release contract rather than only repo-local dev state.
+- Wired screener-originated research creation and portfolio handoff into the first release so the workspace is useful as a real desktop flow instead of a notes-only shell.
+
+Acceptance:
+
+- Users can open a dedicated research workspace from the desktop shell and generate a local research brief for a supported symbol.
+- Research notes persist across desktop relaunches without changing the existing packaged runtime model.
+- The new research surface reuses current provider and cache semantics instead of introducing a separate runtime path.
+- The latest packaged signoff result is captured in `logs/research-workspace-smoke-latest.json`.
+
+### T27 - Analysis Module Registry
+
+Priority: P2  
+Status: Completed
+
+Scope:
+
+- Introduce a backend analysis-module registry so reusable research outputs are produced through a common contract instead of being hard-coded separately inside each service or view.
+- Add a new `backend/app/analysis/` layer with a shared result envelope for `summary`, `highlights`, `sections`, `sources`, `generated_at`, and `stale`.
+- Seed the first module set from already-supported data domains:
+  - `asset_quality_snapshot`
+  - `filings_brief`
+  - `screener_match_explainer`
+  - `portfolio_risk_snapshot`
+- Add shared frontend presentation components so analysis cards can be rendered consistently across the future research workspace and current asset/portfolio surfaces.
+- Keep the existing `/api/v1/assets/*` and `/api/v1/screeners/*` contracts stable by routing new composed analysis output through the research layer instead of rewriting existing payload shapes.
+
+Acceptance:
+
+- New analysis modules can be registered and resolved through one backend contract rather than custom per-page logic.
+- At least four reusable modules render through shared frontend components with deterministic structure.
+- Existing asset, screener, and portfolio APIs remain backward compatible while the research stack gains richer composed output.
+
+### T28 - Provider Capability Catalog
+
+Priority: P2  
+Status: Completed
+
+Scope:
+
+- Add a provider capability catalog so the desktop app can explain what each provider supports instead of only reporting `ok` / `error` / `missing_credentials` health states.
+- Introduce `GET /api/v1/connections/catalog` with capability metadata for `quotes`, `history`, `fundamentals`, `filings`, `account`, `screeners`, and `research`.
+- Rework the Connections surface to show both provider health and provider capability coverage without removing the current credential and status workflow.
+- Use the capability catalog in research and asset surfaces to decide whether cards should render, degrade, or show explicit unsupported-state copy.
+- Keep capability metadata aligned with the existing provider model and `connection_profiles.metadata_json` rather than inventing a parallel persistence path.
+
+Acceptance:
+
+- The desktop shell can display a capability matrix for every current provider without breaking existing connection tests.
+- Research and asset surfaces can distinguish `unsupported` from `temporarily unavailable` using one shared provider-catalog source.
+- Provider capability discovery stays consistent with the current local runtime and persistence model.
+
+Implementation Notes:
+
+- Added `backend/app/services/capability_service.py` so provider coverage and asset applicability rules now live behind one shared backend contract instead of being duplicated across connections, asset, and research logic.
+- Added additive models plus `GET /api/v1/connections/catalog` for provider capability discovery while preserving the existing `/api/v1/connections/status` health endpoint and the current `/api/v1/assets/*` payload family.
+- Extended `AssetWorkspaceResponse.capabilities` with additive status/message fields so fundamentals and filings now distinguish `available`, `credential_required`, `unsupported`, and `temporarily_unavailable`.
+- Updated the connections, asset, and research surfaces so the new capability copy is visible in the desktop shell without replacing the current credential save/test/clear workflow.
+
+Validation:
+
+- `py -m compileall backend`
+- `py -m unittest discover -s backend/tests -p "test_*.py"`
+- `npm run typecheck`
+- `npm run build`
+
+### T29 - Command Palette And Report Export
+
+Priority: P2  
+Status: Completed (2026-04-23)
+
+Scope:
+
+- Add a global command palette so users can jump between assets, research briefs, screener actions, portfolio actions, and connection tests without relying only on sidebar navigation.
+- Support commands for opening an asset, opening a research brief, running a preset plus variant, adding a portfolio transaction, testing a provider, and exporting the current research brief.
+- Reuse the existing research Markdown export from `T26` and expose it through a command-driven cross-workspace action instead of building a second export path.
+- Reuse app-store state and runtime services instead of duplicating page-local action wiring.
+- Keep the first release keyboard-first and local-only; do not add workflow automation, macro recording, or multi-step agent flows in this task.
+
+Acceptance:
+
+- Users can invoke a global command palette and execute cross-workspace actions from one entry point.
+- The current research brief can be exported from the command palette through the existing local Markdown report path under the runtime diagnostics/reports area.
+- Command execution works with the existing desktop runtime model and does not require a new background service.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run build`
+
+### T30 - Provider Capability Packaged Signoff
+
+Priority: P3  
+Status: Completed (2026-04-23)
+
+Scope:
+
+- Add a lightweight packaged-shell signoff pass for the new provider capability catalog across the Connections, Asset, and Research surfaces.
+- Verify that packaged desktop runs render provider capability states consistently for `available`, `credential_required`, and `unsupported` cases without regressing the existing connection credential workflow.
+- Reuse the current packaged runtime plus research smoke baseline where possible instead of introducing a separate provider-only harness.
+
+Acceptance:
+
+- A repeatable packaged validation path exists for the new capability catalog and additive asset/research fallback copy.
+- Packaged desktop runs can prove the same capability-state semantics that backend tests and web builds now cover.
+
+### T31 - Credential Workflow And Crypto Capability Smoke Hardening
+
+  Priority: P3  
+  Status: Completed (2026-04-29)
+
+Scope:
+
+- Harden the packaged provider-capability smoke so it can drive the desktop EDGAR credential save/clear flow end-to-end through the real Stronghold-backed UI controls instead of relying on runtime environment injection for the available-state phase.
+- Restore a stable crypto unsupported sample to the packaged capability signoff, ideally returning to `BTC/USDT` once the current packaged public-quote SSL failures are either absorbed through cached/degraded handling or isolated from capability-state assertions.
+- Keep `logs/provider-capability-signoff-latest.json` as the single result artifact rather than introducing a second provider smoke format.
+
+Acceptance:
+
+- The packaged capability smoke can prove `credential_required -> available -> credential_required` through the desktop credential form itself, not only through runtime environment setup.
+- The packaged capability smoke can cover one unsupported crypto sample without intermittent Binance network failures turning the regression loop red for unrelated reasons.
+
+Validation:
+
+- `logs/provider-capability-signoff-latest.json` now records `failures=[]`, baseline EDGAR filings `credential_required`, after-save EDGAR filings `available`, post-restart EDGAR filings `available`, after-clear EDGAR filings `credential_required`, and `BTC/USDT` fundamentals/filings `unsupported`.
+- The smoke keeps `BTC/USDT` quote fetch flakiness isolated from capability assertions by recording quote-side `temporarily_unavailable` separately when it occurs.
+
+### T32 - Desktop WebView Credential Input Automation Adapter
+
+Priority: P3  
+Status: Completed (2026-04-29)
+
+Scope:
+
+- Add a deterministic desktop automation bridge for Tauri WebView text inputs so packaged smoke scripts can drive React-controlled credential fields through real desktop events instead of brittle UIAutomation value injection alone.
+- Prove that `connection-secret provider=edgar field=identity` can be populated in packaged runs such that the existing `connection-save provider=edgar` action actually triggers the Stronghold save, sidecar restart, and post-restart `available` state.
+- Keep the solution additive to the current packaged smoke harness and ASCII automation anchors rather than replacing the existing provider-capability signoff flow.
+
+Acceptance:
+
+- A packaged automation path can reliably fill the EDGAR identity field, click save, and observe `credential_required -> available` without falling back to environment injection.
+- The same packaged automation path can clear the saved identity and restore `credential_required`, allowing `T31` to close on the next pass.
+
+Validation:
+
+- The packaged smoke records `credential_input_adapter.value_verified=true` without logging the credential value.
+- The Tauri Stronghold path now logs only non-sensitive payload and persisted lengths, proving snapshot readback without exposing the identity string.
+
+### T33 - Portfolio Analytics And Professional Charting
+
+Priority: P2  
+Status: Completed (2026-04-29)
+
+Scope:
+
+- Add professional portfolio analytics on top of existing transactions, holdings, benchmarks, and offline/cached/unavailable semantics.
+- Add time-windowed performance views such as `Today`, `MTD`, `YTD`, `1Y`, and `Max`, plus core metrics for total return, realized/unrealized PnL, drawdown, volatility, Sharpe-style risk-adjusted return, benchmark relative return, and allocation concentration.
+- Add allocation breakdowns by asset, asset class, currency, market, and available sector metadata without requiring new cloud services.
+- Introduce a reusable professional chart component, with TradingView Lightweight Charts as the first candidate, while preserving the existing SVG `ChartPanel` as a fallback until the new chart path is validated.
+- Keep the UI quiet, dense, and work-focused: metric strips, time-window segmented controls, tabs, sortable holdings, chart legends/toggles, and tooltips instead of marketing-style panels.
+
+Acceptance:
+
+- Portfolio users can understand performance, drawdown, benchmark comparison, and allocation risk from one local desktop workspace.
+- Existing portfolio CRUD, offline-first behavior, and packaged portfolio smoke semantics remain intact.
+- The chart layer is reusable by Portfolio first and can later be shared with Asset, Factor Lab, and Strategy Lab.
+
+Validation:
+
+- `py -m compileall backend`
+- `py -m unittest discover -s backend/tests -p "test_*.py"`
+- `npm run typecheck`
+- `npm run build`
+- `npm run tauri:build`
+- `npm run smoke:portfolio-offline`
+- `npm run smoke:portfolio-ui-signoff`
+- `logs/portfolio-offline-smoke-latest.json` recorded `health_ready=true`, `failures=[]`, `analytics_windows_count=5`, `analytics_pnl_method=average_cost`, and preserved `live`, `cached`, and `unavailable` valuation semantics.
+- `logs/portfolio-ui-signoff-latest.json` recorded `health_ready=true`, `failures=[]`, stable `portfolio-view state=*` markers, stable `portfolio-status-pill state=*` markers, and enabled transaction-submit markers across ready/cached/unavailable UI scenarios.
+
+### T34 - Local Factor Research Lab
+
+Priority: P2  
+Status: Completed (2026-04-29)
+
+Scope:
+
+- Add a local factor research workspace inspired by Qlib, Alphalens, and Lean research workflows, but scoped to Pengbo's current local provider/cache model.
+- Compute and persist factor snapshots for supported assets using only reproducible local inputs and explicit data timestamps.
+- First factor families are limited to well-studied signals: 12-1 momentum, value, quality/profitability, investment/conservative growth, low-volatility/risk, and a transparent multi-factor composite.
+- Add factor diagnostics such as rank, percentile, bucket membership, missing-data reason, stale/cached status, and simple forward-return or historical bucket analysis where local data supports it.
+- Keep this task research-only: no orders, no broker calls, and no strategy deployment from this surface.
+
+Acceptance:
+
+- Users can rank a supported universe by validated factor families and inspect each factor's contribution and data quality.
+- Research output explains missing or stale inputs rather than silently scoring incomplete assets.
+- Backend tests cover factor formulas, ranking, missing-data behavior, and deterministic output for seeded fixtures.
+
+Validation:
+
+- `py -m compileall backend`
+- `py -m unittest discover -s backend/tests -p "test_*.py"`
+- PowerShell parser check for `scripts/packaged_factor_lab_smoke.ps1`
+- `npm run typecheck`
+- `npm run build`
+- `npm run tauri:build`
+- `npm run smoke:factor-lab`
+- `logs/factor-lab-smoke-latest.json` recorded `health_ready=true`, `failures=[]`, `evaluated_count=10`, `result_count=10`, `ranked_count=10`, `selected_symbol=AAPL`, `selected_rank=3`, `selected_percentile=80.0`, `selected_bucket=leader`, `selected_score=84.5`, `selected_contribution_count=5`, `restored_after_restart=true`, `research_factor_context=true`, and `export_exists=true`.
+
+### T35 - Strategy Backtesting And Paper Trading
+
+Priority: P2  
+Status: Completed
+
+Scope:
+
+- Add a local strategy lab that turns factor outputs into explicit strategy rules before any broker automation is introduced.
+- Support a bounded first strategy set: long-only top-N factor rotation, rebalance interval, max position weight, cash reserve, benchmark comparison, and configurable transaction-cost/slippage assumptions.
+- Run deterministic local backtests over cached historical data with clear warnings when history is incomplete, stale, or survivorship-biased.
+- Add paper-trading mode that records simulated orders, fills, positions, cash, PnL, drawdown, and rule decisions in local SQLite without contacting a broker.
+- Add strategy report export that includes factor definitions, rebalance rules, costs, data windows, performance, drawdown, turnover, and failure reasons.
+
+Acceptance:
+
+- Users can move from factor ranking to backtest to paper trading without leaving the desktop app.
+- Backtest and paper-trading results are reproducible from the same local data and assumptions.
+- No live order path exists in this task; all execution artifacts are simulated and clearly labeled as paper trading.
+
+Completion evidence:
+
+- Backend exposes additive `/api/v1/strategies/*` endpoints for templates, backtests, paper sessions, and report export.
+- DuckDB persists strategy backtest snapshots; SQLite persists paper sessions, simulated orders, fills, positions, cash ledger, and rule decisions.
+- Desktop Strategy Lab supports factor-run handoff, backtest setup, equity/benchmark charting, positions/trades, paper session launch, paper ledger display, and Markdown export.
+- `logs/strategy-lab-smoke-latest.json` recorded `health_ready=true`, `failures=[]`, `backtest_restored_after_restart=true`, `trade_count=5`, `paper_order_count=5`, `paper_fill_count=5`, `paper_ledger_count=6`, `no_live_orders=true`, `paper_no_live_orders=true`, and `export_exists=true`.
+
+### T36 - Automated Binance Execution And Risk Controls
+
+Priority: P1  
+Status: Completed
+
+Scope:
+
+- Add live execution automation after T35 proves strategy rules through paper trading, scoped strictly to Binance trading.
+- Implement the first live adapter as Binance-only because the project already has Binance provider credentials and private-account plumbing; do not add equity, ETF, macro, or other broker live-order adapters in this task.
+- Support Binance automated order placement from approved crypto strategy rules with pre-trade checks: Binance provider availability, max order notional, max daily turnover, max position weight, cash/balance check, stale-data block, duplicate-order block, symbol allowlist, and per-strategy kill switch.
+- Store Binance credentials only through the existing Stronghold-backed secret path or a stricter successor; never log API keys, secrets, account identifiers, or raw order auth payloads.
+- Add a Binance live-trading enablement flow that requires explicit user configuration, visible risk acknowledgement, paper-trading evidence, and a default-off live mode. Development and validation must not place live trades on the user's behalf.
+- Record every Binance signal, order intent, pre-trade decision, broker request result, fill, cancel, rejection, and kill-switch event in a local audit log.
+
+Acceptance:
+
+- A strategy can generate Binance live order intents and, when the user has explicitly enabled Binance live mode with their own Binance credentials, the app can submit Binance orders through the execution adapter.
+- Risk controls can block stale data, oversized orders, duplicate orders, missing Binance credentials, unavailable Binance provider state, disallowed symbols, and kill-switched strategies before any Binance request is sent.
+- Paper-trading and Binance live-trading ledgers share enough shape that live behavior can be compared against simulated expectations.
+
+Completion evidence:
+
+- Backend exposes additive `/api/v1/execution/binance/*` endpoints for config, intents, submit, kill switch, and audit without changing existing asset, factor, strategy backtest, or paper-session contracts.
+- SQLite persists Binance execution config, execution intents, kill-switch state, and audit events; intent payloads carry sanitized order/fill/ledger evidence for live-vs-paper comparison.
+- Desktop Strategy Lab now includes Live Execution controls for default-off status, risk config evidence, intent creation, risk-submit decisions, kill switch controls, recent intents, and audit trail.
+- `backend/tests/test_execution_service.py` covers default-off blocking before adapter calls, missing credentials, provider unavailable, stale data, notional/turnover/weight/balance/duplicate/allowlist/kill-switch risk blocks, eligible mock submit order/fill/ledger/audit, and API flow.
+- `logs/binance-execution-smoke-latest.json` recorded `health_ready=true`, `failures=[]`, `config_live_enabled=false`, `submit_status=blocked`, `blocked_checks=["live_mode","risk_acknowledgement"]`, `live_order_recorded=false`, and `audit_restored_after_restart=true`.
+
+### T37 - Factor-Aware Research, Screening, And Execution Reports
+
+Priority: P2  
+Status: Completed
+
+Scope:
+
+- Connect portfolio analytics, factor research, strategy backtests, paper trading, and Binance live execution evidence back into Research, Screeners, and command-palette workflows.
+- Add factor score and factor contribution surfaces to screeners without breaking the existing `/api/v1/screeners/*` contract.
+- Extend research briefs with factor exposure, strategy fit, backtest summary, paper/Binance-live execution state, and data-quality notes.
+- Export evidence-backed reports that include factor definitions, source timestamps, provider capability states, backtest assumptions, paper/Binance-live execution ledgers, risk-control blocks, and chart/table sources.
+- Keep visible copy careful: reports should say what the model observed and did, not promise returns or present automated execution as financial advice.
+
+Acceptance:
+
+- Users can trace a Binance automated order from factor signal to strategy rule to backtest/paper evidence to Binance live order audit event.
+- Screeners and research briefs can explain why a symbol is selected, what factor evidence supports it, and whether execution is blocked or enabled.
+- Exported reports are locally reproducible and include enough evidence to review decisions after the fact.
+
+Completion evidence:
+
+- `backend/app/services/evidence_service.py` composes recent or explicitly selected factor, screener, backtest, paper-session, Binance execution, and audit evidence into a single read-only snapshot.
+- Research exports now include an Evidence Chain section; strategy exports include factor definitions/source timestamps and linked execution/audit evidence.
+- `backend/tests/test_research_service.py` covers full API evidence-chain creation/export, and `logs/evidence-report-smoke-latest.json` records successful packaged restart restoration.
+
+### T38 - Desktop UI Information Architecture
+
+Priority: P2  
+Status: Completed
+
+Scope:
+
+- Redesign the app-level information architecture before changing styling: navigation, top status, main workspace, right context panel, command entry, and global context state.
+- Map current pages to the new shell structure: Dashboard, Asset, Research, Factor Lab, Strategy Lab, Portfolio, Connections, Settings, plus future Workflow and Data Sources surfaces.
+- Define global context rules for active symbol, active research brief, active factor run, active backtest, active paper session, active Binance intent, provider health, and language.
+- Document responsive rules for the packaged minimum window size so the UI can become denser without text overlap.
+- Keep this task structural only; visual styling, language dictionaries, and page-level rebuilds are separate tasks.
+
+Acceptance:
+
+- A concrete shell/layout spec exists and identifies the frontend files to change.
+- The plan supports both Chinese and English text lengths before styling begins.
+- No execution behavior, provider behavior, or live trading behavior changes in this task.
+
+Completion evidence:
+
+- Added `docs/desktop-ui-information-architecture.md`.
+- The spec documents the four target shell regions, current and future workspace map, global context rules, responsive rules, and file ownership for T39/T40/T41.
+- Static validation reviewed `src/App.tsx`, `src/store/app-store.ts`, and `src/views/*.tsx`; no runtime/build smoke was required because T38 changed documentation and task-board state only.
+
+### T39 - Desktop Visual Design System Refresh
+
+Priority: P2  
+Status: Completed
+
+Scope:
+
+- Replace the current rough desktop styling with a professional financial-terminal design system.
+- Define tokens for color, spacing, typography, table density, chart panels, status badges, risk states, and action buttons.
+- Rework shared shell components first: sidebar/navigation, header/status area, command entry, panels, tables, cards, empty states, loading states, and error states.
+- Add display density modes: compact and standard.
+- Keep the palette restrained and multi-hue; avoid a one-note dark-blue/purple/gradient look.
+
+Acceptance:
+
+- Core shell screens look coherent and professional at desktop minimum size and wide desktop size.
+- Shared components no longer rely on one-off page styling for basic terminal surfaces.
+- Compact mode shows more financial data without unreadable text or overlapping controls.
+- Playwright screenshots are captured for at least Dashboard, Asset, Research, Strategy Lab, Portfolio, and Connections.
+
+Completion evidence:
+
+- `src/styles.css` now defines reusable terminal tokens for backgrounds, panels, borders, text hierarchy, charts, status/risk/cache states, focus rings, control radius, and density spacing.
+- `src/App.tsx` marks the shell with `density-standard`, and `src/styles.css` also defines `.density-compact` so the later T40 preference work can persist density without redesigning the component layer.
+- The visual refresh remains additive to the existing shell and page class names, preserving navigation, workspace rendering, and automation-safe `aria-label` anchors.
+- `scripts/visual_design_smoke.mjs` and `npm run smoke:visual-design` now capture Dashboard, Asset, Research, Strategy Lab, Portfolio, and Connections at `desktop-min` and `desktop-wide` sizes.
+- `logs/visual-design-screenshots/visual-design-smoke-latest.json` recorded `failures=[]`, `viewport_count=2`, `page_count=6`, and `screenshot_count=12`.
+- Validation passed: `npm run typecheck`, `npm run build`, `npm run smoke:visual-design`, and `npm run smoke:portfolio-ui-signoff`.
+
+### T40 - Chinese/English Localization Foundation
+
+Priority: P2  
+Status: Completed
+
+Scope:
+
+- Added a lightweight typed frontend localization layer in `src/i18n/index.ts` rather than introducing a new third-party i18n framework.
+- Extended existing settings preferences with persisted `language` and `density` fields while keeping `/api/v1/settings/preferences` compatible.
+- Localized the main shell/navigation/topbar/setup banners, shared status badge labels, Settings normal flow, and Command Palette frame copy.
+- Restored readable runtime network error copy in `src/lib/api.ts`.
+- Preserved stable ASCII automation anchors and left deeper page-level business copy/table polish for T41.
+
+Acceptance:
+
+- Settings can switch between `zh-CN` and `en-US` without rebuilding the app and can save the preference for restart restore.
+- Settings can switch between `standard` and `compact` density using the T39 density tokens.
+- Shell, Settings, and Command Palette common flows now read from the dictionary instead of hardcoded visible copy.
+- Existing backend/API tests remain compatible because route shapes do not change.
+
+Evidence:
+
+- `backend/tests/test_settings_service.py` covers default `zh-CN` / `standard` preferences and persisted `en-US` / `compact` restore.
+- `logs/localization-smoke-latest.json` recorded `failures=[]` across the localization contract checks.
+- Validation passed: `py -m compileall backend`, `py -m unittest discover -s backend/tests -p "test_*.py"`, `npm run typecheck`, `npm run build`, and `npm run smoke:localization`.
+
+### T41 - Core Page UI Polish Pass
+
+Priority: P2  
+Status: Completed
+
+Scope:
+
+- Applied the T39 design system and T40 localization foundation to the highest-traffic pages, using the local Fincept Terminal repo as the benchmark for terminal-style workspace density and screen-level completeness.
+- Polished Dashboard, Asset, Research, Strategy Lab, Portfolio, Connections, and Settings with more consistent panels, metric strips, chart areas, tables/lists, status copy, controls, empty/error states, and visible primary workflows.
+- Kept T41 as a product-surface pass only: no backend schema, provider behavior, workflow execution, trading behavior, or data-source behavior changed.
+- Kept the shell ready for future `Workflow Studio` and `Data Sources` entries by tightening navigation/topbar/page density without adding those routes in T41.
+- Preserved `/api/v1/...` contracts and automation-safe `aria-label` anchors such as `nav-*`, `search-asset`, `portfolio-*`, `connection-*`, and smoke anchors.
+- Added a focused bilingual page-polish screenshot smoke without replacing the existing `smoke:visual-design` flow.
+
+Acceptance:
+
+- Each core page has a clear primary workflow and no obvious visual overlap at minimum packaged window size.
+- Chinese and English both fit in buttons, tabs, panels, tables, and status badges.
+- Page-level tables, panels, metric strips, chart areas, and action controls use the T39 density tokens and T40 dictionary rather than one-off styling or hardcoded mixed-language copy.
+- Playwright screenshots cover both languages for at least the shell, Dashboard, Research, Strategy Lab, Portfolio, Connections, and Settings.
+- T41 records a short page-by-page gap list for any Fincept-like workspace breadth that should become a later task instead of being squeezed into page polish.
+
+Evidence:
+
+- `src/i18n/index.ts` now carries expanded page-level dictionary coverage for the polished surfaces.
+- `src/components/shared.tsx` now localizes shared panel/chart/status states and supports async retry actions safely.
+- `src/views/dashboard-view.tsx`, `src/views/asset-view.tsx`, `src/views/settings-view.tsx`, and `src/App.tsx` were updated for the page-polish pass while preserving behavior and anchors.
+- `src/styles.css` now uses the existing density tokens for tighter terminal spacing, reduced panel/control radius, and Dashboard/Asset layout helpers.
+- `scripts/page_polish_smoke.mjs` plus `npm run smoke:page-polish` captures bilingual page evidence and restores the original preferences after the run.
+- Screenshot scope: Dashboard, Research, Strategy Lab, Portfolio, Connections, and Settings in `zh-CN` and `en-US` at `desktop-min` and `desktop-wide`; latest result is `logs/page-polish-screenshots/page-polish-smoke-latest.json` with `screenshot_count=24` and `failures=[]`.
+- Validation passed: `npm run typecheck`, `npm run build`, `npm run smoke:localization`, `npm run smoke:visual-design`, `npm run smoke:page-polish`, and `npm run smoke:portfolio-ui-signoff`.
+- Fincept-like breadth gaps left after T41: Workflow automation remained `T42-T44`, and first-class Data Sources Center remained `T45-T47`. `T42` is now complete, leaving Workflow Studio UI/signoff to `T43-T44`.
+
+### T42 - Workflow Engine Backend
+
+Priority: P1  
+Status: Completed
+
+Scope:
+
+- Added a local workflow service that runs predefined workflow templates by calling existing services instead of duplicating research, factor, strategy, portfolio, or execution logic. This is the first backend step toward the Fincept-style Workflow / Node Editor gap, while the first Pengbo release stays template-driven rather than a full free-form node canvas.
+- Persisted workflow runs in SQLite with template key, step statuses, inputs, outputs, artifact IDs, timestamps, errors, blocked reasons, audit events, and manual-confirmation requirements.
+- Seeded safe workflow templates:
+  - screener result to research brief
+  - research brief to factor run
+  - factor run to strategy backtest
+  - backtest to paper session
+  - paper session to Binance execution intent
+  - evidence report export
+- Added action policy categories: `read_only`, `local_analysis`, `local_simulation`, `binance_intent`, and `user_confirmed_binance_submit`.
+- Ensured workflow automation can create Binance preset live-order intents and request a user confirmation modal, but cannot submit unless the user explicitly clicks approve.
+- Added explicit step provenance so later reports can show which provider/source/artifact produced each workflow output.
+
+Acceptance:
+
+- Backend can run each workflow template through API calls and persist a restart-safe run history.
+- Failed, blocked, and manual-required steps are explicit and inspectable.
+- Workflow run output links back to generated research briefs, factor runs, backtests, paper sessions, Binance intents, audit records, and evidence reports.
+- Workflow automation cannot change live mode, clear kill switches, or silently acknowledge risk; Binance live submit can occur only after the workflow-created preset order is shown in a confirmation modal and the user explicitly clicks approve.
+
+Evidence:
+
+- `backend/app/services/workflow_service.py` implements the template-driven engine.
+- `backend/app/storage/sqlite_store.py` now persists `workflow_runs`.
+- `backend/app/api/routes.py` exposes additive `/api/v1/workflows/*` routes.
+- `backend/tests/test_workflow_service.py` covers templates, API creation, restart restore, blocked/manual states, artifact refs, and Binance no-submit boundaries.
+- Validation passed: `py -m compileall backend`, `py -m unittest discover -s backend/tests -p "test_*.py"`, `npm run typecheck`, and `npm run build`.
+- No new T42 blocker task was added; that pass originally advanced the workflow lane to `T43 - Workflow Studio UI`, which is now completed.
+
+### T43 - Workflow Studio UI
+
+Priority: P1  
+Status: Completed
+
+Scope:
+
+- Added a dedicated Workflow Studio surface in the desktop shell, positioned as Pengbo's first practical answer to Fincept's Node Editor / workflow tooling without taking on a full drag-and-drop graph editor in v1.
+- Shows workflow templates, fixed input forms, step timeline, blocked/manual-required states, artifact links, recent runs, audit events, and protected manual-boundary copy.
+- Added workflow-aware command-palette entry and recent-run handoff into Workflow Studio.
+- Added artifact navigation into Research, Factor Lab, Strategy Lab backtests/paper sessions, and Binance intent context without adding a direct submit path.
+- Uses the localized design system from T39/T40/T41 and preserves stable ASCII automation anchors.
+
+Acceptance:
+
+- Users can run the safe chain from screener/research/factor/backtest/paper to Binance intent from one UI surface.
+- Workflow Studio clearly distinguishes completed, failed, blocked, and manual-required steps.
+- Generated artifacts are navigable from the workflow run into Research, Factor Lab, Strategy Lab, and execution evidence without losing active context.
+- Workflow Studio can show the protected confirmation boundary for a prepared Binance preset live-order intent, but no T43 UI path silently submits, changes live mode, clears kill switches, or acknowledges risk.
+
+Completion evidence:
+
+- `src/views/workflow-studio-view.tsx` implements the Workflow Studio workspace backed by `/api/v1/workflows/*`.
+- `src/lib/api.ts`, `src/store/app-store.ts`, `src/App.tsx`, `src/i18n/index.ts`, and `src/views/settings-view.tsx` now treat `workflowStudio` as a first-class workspace/default-view option.
+- `scripts/workflow_studio_smoke.mjs` plus `npm run smoke:workflow-studio` records template loading, run creation, manual-required state, `binance_intent` artifact evidence, reload restore, screenshot capture, and console health in `logs/workflow-studio-smoke/workflow-studio-smoke-latest.json`.
+- `scripts/page_polish_smoke.mjs` now captures Workflow Studio in both languages and both desktop viewports; latest `logs/page-polish-screenshots/page-polish-smoke-latest.json` records `page_count=7`, `screenshot_count=28`, and `failures=[]`.
+- Validation passed: `py -m compileall backend`, `py -m unittest discover -s backend/tests -p "test_*.py"`, `npm run typecheck`, `npm run build`, `npm run smoke:workflow-studio`, and `npm run smoke:page-polish`.
+
+### T44 - Workflow Packaged Signoff
+
+Priority: P3  
+Status: Completed
+
+Scope:
+
+- Add packaged smoke automation for workflow creation, step execution, restart restore, Binance preset live-order confirmation boundary, and evidence export.
+- Reuse the existing packaged runtime backup/restore pattern so workflow tests do not mutate the user's real AppData state.
+- Record a workflow smoke artifact under `logs/`.
+
+Acceptance:
+
+- Packaged smoke proves workflow history restores after restart.
+- Packaged smoke proves workflow automation can create a Binance preset live-order intent, show the confirmation-required state, and avoid submit until explicit simulated user approval is provided.
+- Evidence report export exists and links the generated workflow artifacts.
+
+Completion evidence:
+
+- `scripts/packaged_workflow_studio_smoke.ps1` and `npm run smoke:workflow-studio:packaged` now validate Workflow Studio through the real `src-tauri/target/release/pengbo-workbench.exe` window with Windows UIAutomation.
+- `npm run tauri:build` refreshed the release EXE, sidecar, MSI, and NSIS artifacts on 2026-05-12.
+- Latest packaged result in `logs/workflow-studio-packaged-smoke-latest.json` records `health_ready=true`, `template_count=6`, `run_status=blocked`, `manual_required=true`, `manual_policy=user_confirmed_binance_submit`, `binance_intent_artifact_count=1`, `evidence_export_status=completed`, `evidence_export_exists=true`, `recent_restored_after_restart=true`, and `failures=[]`.
+- Validation passed: PowerShell parser check for `scripts/packaged_workflow_studio_smoke.ps1`, `npm run typecheck`, `npm run tauri:build`, and `npm run smoke:workflow-studio:packaged`.
+
+### T45 - Data Source Expansion Foundation
+
+Priority: P1  
+Status: Completed
+
+Scope:
+
+- Extend the provider capability catalog so new sources can describe asset coverage, credential requirements, rate-limit notes, cache behavior, locale/region, supported data domains, freshness, provenance, and testability.
+- Define provider interfaces for market data, macro data, China/Asia data, crypto public data, news/events, fundamentals, and research signals.
+- Add source freshness and provenance fields so UI/report surfaces can show where data came from and when it was fetched.
+- Treat this as the foundation for a Fincept-like Data Sources Center: connectors should be discoverable, testable, explainable, and visible from UI/report surfaces rather than hidden inside individual services.
+- Keep all new providers read-only unless they are Binance execution paths already covered by `/api/v1/execution/binance/*`.
+
+Acceptance:
+
+- Adding a new read-only provider does not require page-specific capability hacks.
+- UI and reports can show source name, freshness, credential status, and unsupported states consistently.
+- Provider test results and recent fetch health can be recorded in a common shape for the later Data Sources UI.
+- No new provider introduces a live trading API.
+
+Completion evidence:
+
+- Added additive provider source metadata models for catalog providers and capabilities: domains, coverage, regions/locales, credential notes, rate-limit notes, cache policy, freshness, provenance, testability, `read_only`, and `live_trading`.
+- Replaced the hard-coded capability table with a provider source registry for `market`, `fundamentals`, `edgar`, and `binance`, while preserving the existing `/api/v1/connections/catalog` route and legacy response fields.
+- Updated public read-only provider testing so `market` and `fundamentals` do not appear as missing-credential providers; their test result now records `planned`, while unknown providers return `unsupported`.
+- Added lightweight source-contract rendering to the Connections provider cards without adding the dedicated Data Sources workspace reserved for T47.
+- Validation passed: `py -m unittest backend.tests.test_capability_service`, `npm run typecheck`, `py -m unittest discover -s backend/tests -p "test_*.py"`, and `npm run build`.
+
+### T46 - Initial Data Source Connector Pack
+
+Priority: P1  
+Status: Completed
+
+Scope:
+
+- Add a first connector pack focused on more information coverage:
+  - FRED for macro series.
+  - DBnomics/OECD/World Bank or IMF for broader economics.
+  - AkShare for China/Asia market and macro coverage where stable.
+  - CoinGecko for crypto public market context.
+  - RSS/event-source ingestion for market news and company/event monitoring.
+- Favor connectors that close visible terminal gaps exposed by the Fincept benchmark: macro/economics breadth, China/Asia coverage, public crypto context, and news/event monitoring.
+- Keep provider failures cache-aware and visible instead of breaking pages.
+- Prefer sources with clear free/public access for the first pass; API-key sources can be optional.
+
+Acceptance:
+
+- At least three new read-only sources are available through backend provider capability status.
+- Asset, Research, or Data Sources surfaces can display new source output or explicit unavailable/unsupported states.
+- New source payloads carry enough provenance/freshness metadata to be used in research and evidence reports.
+- Tests cover successful fetch, cached fallback where applicable, and provider unavailable handling.
+- No new provider introduces a live trading API.
+
+Completion evidence:
+
+- Added and validated read-only data-source runtime paths for World Bank macro series, DBnomics macro series, RSS/news events, optional-key FRED macro series, and optional-key CoinGecko public crypto market context.
+- `backend/tests/test_data_source_service.py` now covers provider status listing, successful fetch, cached fallback, missing credentials, unavailable-without-cache handling, FRED API-key masking, CoinGecko demo-key header use, and RSS symbol extraction.
+- The connector pack keeps provenance/freshness metadata on returned macro, crypto, and event payloads, including stale/unavailable reason fields when cached fallback is used.
+- Safety boundary remained intact: all catalog providers are `read_only=true` and `live_trading=false`, and the T46 data-source files do not add live submit, risk acknowledgement, or kill-switch mutation paths.
+- Validation passed: `py -m unittest backend.tests.test_data_source_service backend.tests.test_capability_service`, `py -m unittest discover -s backend/tests -p "test_*.py"`, `npm run typecheck`, and `npm run build`.
+- `npm run build` passed with the existing Vite large-chunk warning only. No new blocker task was discovered; the next planned task is `T47 - Data Sources UI And Signoff`.
+
+### T47 - Data Sources UI And Signoff
+
+Priority: P2  
+Status: Completed
+
+Scope:
+
+- Add a dedicated Data Sources surface that shows provider coverage, credentials, freshness, source domains, connector tests, recent fetch status, cache behavior, and report/research applicability.
+- Expose new macro, China/Asia, crypto public, news/event, and fundamentals sources in a user-understandable way.
+- Add packaged smoke coverage for provider capability rendering and at least one new source-backed research or data view.
+- Keep EDGAR/Binance credential workflows intact while presenting read-only data sources as a broader terminal capability area.
+
+Acceptance:
+
+- User can see which data sources are active, missing credentials, rate-limited, cached, unsupported, or unavailable.
+- Research/report output includes source provenance for newly added data.
+- Data Sources feels like a first-class workspace rather than an expanded settings panel.
+- Packaged signoff confirms new provider UI does not regress existing EDGAR/Binance credential workflows.
+
+Completion evidence:
+
+- `src/views/data-sources-view.tsx` now renders provider coverage, credential requirement/configuration, freshness, domains, cache policy, testability, rate-limit notes, provenance, stale/unavailable state, and explicit read-only/no-live-trading contract markers.
+- `src/i18n/index.ts` contains the Data Sources page copy for both `zh-CN` and `en-US`, preserving the existing language preference mechanism.
+- `POST /api/v1/data-sources/reports/export` writes a read-only Markdown report with included source summaries and provenance details; latest packaged export path: `C:\Users\Laurence\AppData\Roaming\com.pengbo.workbench\diagnostics\reports\data-sources-2026-05-13T183350.513682z0000.md`.
+- `scripts/packaged_data_sources_smoke.ps1` and `npm run smoke:data-sources:packaged` validate the real release EXE with AppData backup/restore, UIAutomation anchors, `/data-sources/status`, `/connections/catalog`, and report export file creation.
+- Latest packaged Data Sources smoke artifact: `logs/data-sources-packaged-smoke-latest.json` with `provider_count=5`, `report_source_count=5`, `report_export_exists=true`, and `failures=[]`.
+- Latest provider capability signoff artifact: `logs/provider-capability-signoff-latest.json` with `failures=[]`, confirming EDGAR/Binance credential workflow non-regression.
+- Validation passed:
+  - `py -m unittest backend.tests.test_data_source_service`
+  - `py -m unittest discover -s backend/tests -p "test_*.py"`
+  - `npm run typecheck`
+  - `npm run build`
+  - `npm run smoke:page-polish`
+  - `npm run tauri:build`
+  - `npm run smoke:data-sources:packaged`
+  - `npm run smoke:provider-capability-signoff`
+- No new blocker task was discovered.
+
+### T17 - Packaged Startup Regression Automation
+
+Priority: P2  
+Status: Completed
+
+Scope:
+
+- Add a repeatable packaged-app smoke check for cold launch, runtime badge state, and first-screen health recovery.
+- Capture the startup contract that `T16` restored so future packaging or shell changes do not silently reintroduce false offline state.
+- Reuse packaged diagnostics/log artifacts where possible instead of inventing a separate telemetry path.
+
+Acceptance:
+
+- A documented or scripted smoke path exists for packaged cold launch plus sidecar restart recovery.
+- Future regressions in startup state reconciliation are caught before release packaging is signed off.
+
+### T19 - Portfolio Offline Regression Automation
+
+Priority: P2  
+Status: Completed
+
+Scope:
+
+- Add a repeatable packaged smoke path for a seeded portfolio across online, offline-with-cache, and offline-cold-cache scenarios.
+- Assert that transactions remain available while holdings/summary move through `live`, `cached`, and `unavailable` semantics.
+- Reuse the same temporary runtime-data backup/restore pattern used during the final `T12` validation so the smoke path does not permanently mutate local desktop data.
+
+Acceptance:
+
+- A documented or scripted packaged smoke flow exists for seeded portfolio offline validation.
+- The smoke path verifies `missing_symbols`, benchmark fallback status, and continued transaction availability before future portfolio releases are signed off.
+
+### T18 - Localization Hardening
+
+Priority: P3  
+Status: Completed
+
+Scope:
+
+- Normalize the remaining user-visible English coming from backend/provider response payloads, runtime metadata, and legacy fallback copy.
+- Clean up mojibake or incorrectly encoded checked-in Chinese UI strings that still appear in shared shell surfaces such as navigation and status helpers.
+- Decide whether the project should stay Chinese-first or introduce a lightweight i18n layer for future bilingual support.
+- Keep number, date, and status formatting consistent with the chosen locale across all desktop surfaces.
+
+Acceptance:
+
+- The packaged desktop shell no longer exposes obvious hardcoded English in normal user flows.
+- Shared shell copy no longer shows obvious mojibake or broken encoding in normal startup and navigation flows.
+- Locale-sensitive formatting behaves consistently across dashboard, connections, portfolio, and settings views.
+
+### T20 - Residual Packaging Warning Trim
+
+Priority: P3  
+Status: Completed
+
+Scope:
+
+- Investigate the remaining `pandas` / `yfinance` driven `SciPy` warning residue that still appears in the packaged sidecar build report after `T13`.
+- Decide whether those last warning lines can be removed safely through narrower dependency hooks or by replacing the remaining heavyweight upstream path without regressing the current asset workspace payload.
+- Keep the current `warning_categories` reporting so any further reduction remains measurable and reversible.
+
+Acceptance:
+
+- `logs/sidecar-build-latest.json` no longer reports the current residual `scipy.stats` / `scipy.sparse` warning trio as actionable, or the team has a documented reason they are intentionally accepted.
+- Any additional trim keeps `AAPL` packaged asset workspace smoke passing with overview plus 6 ratios.
+
+### T21 - Installed Bundle Startup Automation
+
+Priority: P3  
+Status: Completed
+
+Scope:
+
+- Extend the new T17 startup automation beyond the release EXE path so an MSI-installed desktop launch is also covered.
+- Verify that the installed app still reaches healthy `/health`, keeps the single-instance contract, and writes logs and runtime data to the expected Tauri AppData roots.
+- Reuse the existing packaged startup smoke assertions and result-file shape instead of creating a separate installer-only harness.
+
+Acceptance:
+
+- A documented or scripted smoke path exists for an MSI-installed packaged desktop binary, not only `src-tauri/target/release/pengbo-workbench.exe`.
+- MSI-backed startup validation confirms healthy AppData paths, single-instance behavior, and adopt-existing handling before release signoff.
+
+### T23 - NSIS Installed Startup Automation
+
+Priority: P3  
+Status: Completed
+
+Scope:
+
+- Extend the new T21 installed-startup automation beyond the MSI path so the NSIS-installed desktop lifecycle is also covered.
+- Verify that the NSIS-installed app resolves the installed EXE path correctly, reaches healthy `/health`, and preserves the single-instance plus adopt-existing startup contracts.
+- Reuse the existing installed-startup result shape where possible so MSI and NSIS results stay comparable.
+
+Acceptance:
+
+- A documented or scripted smoke path exists for the NSIS-installed packaged desktop binary.
+- NSIS-backed startup validation confirms healthy startup and AppData behavior without regressing the now-stable MSI path.
+
+### T22 - Portfolio Packaged UI State Signoff
+
+Priority: P3  
+Status: Completed
+
+Scope:
+
+- Add a lightweight packaged-shell signoff pass for the portfolio page across `ready`, `cached`, and `unavailable` states using the seeded runtime flow established by `T19`.
+- Verify that packaged portfolio banners, degraded notes, empty-state guidance, and transaction affordances stay aligned with the backend/runtime semantics under each state.
+- Reuse the T19 backup/restore and seeded-data flow instead of inventing a separate portfolio fixture path.
+
+Acceptance:
+
+- A repeatable packaged validation flow exists for visible portfolio-shell state handling, not only API-layer regression checks.
+- Future regressions in portfolio surface copy or state rendering can be distinguished from sidecar/API regressions before release signoff.
+
+## Completed Work
+
+### Foundation And Desktop Runtime
+
+- T01 - Task tracking and execution logging
+- T02 - React + Vite desktop shell
+- T03 - Desktop visual system
+- T04 - FastAPI sidecar API surface
+- T05 - Frontend dependency install and build validation
+- T06 - Python sidecar syntax and startup validation
+- T07 - Tauri 2 shell, sidecar lifecycle, Stronghold, runtime config, and desktop build path
+- T08 - SQLite and DuckDB persistence foundation
+- T09 - Real providers wired into dashboard, asset, settings, connections, portfolio, and screener flows
+- T10 - Desktop onboarding, diagnostics export, runtime recovery actions, and packaged first-run guidance
+- T11 - Provider UX hardening, masked credential summaries, cache freshness surfaces, and clear-credential UX
+- T12 - Offline-first portfolio hardening completed with nullable valuation fields, degraded summary notes, benchmark independence, runtime-gated portfolio loading, manual symbol fallback, and packaged online/offline smoke validation.
+- T14 - Screener quality expansion completed with a controlled expanded universe, score-ranked preset profiles, explanations, missing-metric reporting, and a lightweight desktop UI upgrade.
+- T34 - Local factor research lab completed with additive factor APIs, DuckDB snapshot persistence, a dedicated desktop Factor Lab, research handoff/export context, and packaged smoke validation.
+
+### Packaging Stabilization And Provider Hardening
+
+- Added a bootstrap sidecar entrypoint instead of freezing `backend/app/cli.py` directly.
+- Added deterministic startup and bootstrap logging.
+- Replaced Binance `ccxt` usage with a lighter REST path while preserving current response shape.
+- Tightened PyInstaller collection and emitted build metrics.
+- Fixed packaged EDGAR collection so the bundled sidecar now includes `edgar` reference data.
+- Fixed provider reset-state handling so cache freshness does not leak back into unconfigured cards.
+- T13 - Packaging noise reduction completed with a lighter Yahoo-based fundamentals path, a `117.8 MB` packaged sidecar, faster sidecar builds, and categorized build-warning reporting.
+- T20 - Residual packaging warning trim completed with the residual SciPy trio reclassified into `accepted_packaging_noise`, explicit per-line reasons captured in `logs/sidecar-build-latest.json`, and a regression test guarding the warning classifier.
+- T15 - Packaged EDGAR + Binance live signoff completed at the runtime/provider layer, including live success, cached fallback, and reset validation.
+- T16 - Desktop runtime status reconciliation completed at the code/package-validation layer, including runtime-first request gating, desktop fetch retry/recovery, clearer sidecar startup messaging, packaged bootstrap health logging, and duplicate-launch single-instance protection.
+- T16 - Follow-up packaged runtime hardening also covers orphan-sidecar adoption on `127.0.0.1:8765` plus process-tree cleanup for owned sidecar launches.
+- T16 - Follow-up packaged startup hotfix also covers calmer first-boot retry behavior, onefile child-exit reconciliation against live `/health`, and Tauri 2 localhost CORS coverage for packaged WebView requests.
+- T17 - Packaged startup regression automation completed with a scripted cold-launch smoke, API and bootstrap-log assertions, single-instance verification, and adopt-existing coverage captured in `logs/packaged-startup-smoke-latest.json`.
+- T19 - Portfolio offline regression automation completed with a scripted seeded packaged smoke, AppData runtime backup/restore, proxy-forced cache/cold-cache validation, and result capture in `logs/portfolio-offline-smoke-latest.json`.
+
+## Latest Verification Snapshot
+
+- `py -m compileall backend`
+- `py -m unittest discover -s backend/tests -p "test_*.py"`
+- `npm run sidecar:build`
+- `npm run typecheck`
+- `npm run build`
+- `npm run tauri:build`
+- `npm run smoke:packaged-startup`
+- `npm run smoke:installed-startup`
+- `npm run smoke:installed-startup:nsis`
+- `npm run smoke:portfolio-offline`
+- `npm run smoke:portfolio-ui-signoff`
+- `npm run smoke:screener-variant-signoff`
+- `npm run smoke:factor-lab`
+- `npm run smoke:strategy-lab`
+- `npm run smoke:binance-execution`
+- `npm run smoke:provider-capability-signoff`
+- packaged double-launch regression check on `src-tauri/target/release/pengbo-workbench.exe`
+- packaged Simplified Chinese UI pass rebuilt on the latest EXE/MSI/NSIS outputs
+- 2026-04-18 packaged cold-launch regression fix rebuilt and rechecked on `src-tauri/target/release/pengbo-workbench.exe`
+- T14 screener verification:
+  - `backend/tests/test_screener_service.py` now covers expanded-universe selection, score ordering, provider-data fallback, and API rejection for invalid `universeSource`
+  - the screener API now returns `evaluated_count`, `universe_label`, `score`, `score_label`, and `explanations` without changing the `/api/v1/screeners/*` route set
+  - the desktop screener UI now builds successfully with the expanded-universe selector plus ranked result rendering
+- T24 screener configurable-profile verification:
+  - `backend/tests/test_screener_service.py` now also covers default variant seeding, variant CRUD and activation, system-default delete protection, variant-key scoring differences, and API coverage for the new screener variant endpoints
+  - the screener API now preserves the existing preset/run routes while adding optional `variantKey`, active-variant summaries on presets, and dedicated variant CRUD/activate endpoints
+  - the desktop screener UI now builds successfully with the new preset-selection, variant-management, controlled-tuning, and run-attribution workflow
+- T25 screener packaged signoff verification:
+  - `logs/screener-variant-signoff-latest.json` recorded `health_ready=true` with `failures=[]`
+  - `initial_run` showed `custom-b61133ad` active/selected, 3 summary markers, `evaluated_count=10`, `hit_count=8`, and packaged run attribution under `universe=expanded`
+  - `after_restart` restored the same custom variant plus the same summary markers after a full packaged relaunch
+  - `after_delete` fell back to `default`, restored the system-default summary markers, and API run attribution returned `variant_key=default`
+- T26 research workspace verification:
+  - `backend/tests/test_research_service.py` now covers durable brief creation, recent-brief listing, notes persistence, Markdown export, and API create/read/update/export coverage
+  - the desktop shell now builds successfully with a dedicated `research` workspace plus screener-to-research and research-to-portfolio handoff flows
+  - `logs/research-workspace-smoke-latest.json` recorded `health_ready=true` with `failures=[]`, created `brief-a735821c40c8` for `AAPL`, restored notes after relaunch, and confirmed export creation under `C:\Users\Laurence\AppData\Roaming\com.pengbo.workbench\diagnostics\reports`
+- T27 analysis module registry verification:
+  - `backend/tests/test_analysis_registry.py` now covers registry resolution plus full envelope generation for the four built-in analysis modules
+  - `backend/tests/test_research_service.py` now also covers additive `analysis_modules` output on create/read plus Markdown export content for the new structured analysis section
+  - the desktop research workspace now builds successfully with shared analysis cards rendered from `analysis_modules` instead of per-module ad hoc TSX
+  - `logs/research-workspace-smoke-latest.json` recorded `health_ready=true` with `failures=[]`, created `brief-6e2d9c8aac4c` for `AAPL`, captured `analysis_module_count=4`, preserved the same module set after relaunch, and confirmed export creation under `C:\Users\Laurence\AppData\Roaming\com.pengbo.workbench\diagnostics\reports`
+- T28 provider capability catalog verification:
+  - `backend/tests/test_capability_service.py` now covers the 4-provider / 7-capability catalog mapping, credential-gated EDGAR behavior, unsupported crypto fundamentals, and temporarily-unavailable supported equity fundamentals
+  - `backend/tests/test_research_service.py` now validates the additive capability status/message fields carried through research brief snapshots
+  - the backend API now exposes `GET /api/v1/connections/catalog` while preserving the existing `/api/v1/connections/status` and `/api/v1/assets/*` contracts
+  - the desktop shell now builds successfully with a provider capability matrix in Connections plus explicit availability-state rendering in Asset and Research
+- T30 provider capability packaged signoff verification:
+  - `logs/provider-capability-signoff-latest.json` recorded `health_ready=true` with `failures=[]`
+  - `baseline` kept packaged EDGAR filings in `credential_required` while `market/quotes` remained `available` and the unsupported sample stayed `fundamentals=unsupported` plus `filings=unsupported`
+  - `after_identity_save` verified packaged EDGAR filings moved to `available` for the AAPL capability path
+  - `after_identity_clear` verified the same packaged EDGAR path returned to `credential_required`
+  - this T30 baseline originally used `SPY` as the unsupported sample while `BTC/USDT` quote flakiness was still noisy; the later T31/T32 smoke restores `BTC/USDT` with quote-state tolerance
+- T31/T32 credential workflow and WebView input adapter verification:
+  - `logs/provider-capability-signoff-latest.json` recorded `health_ready=true` with `failures=[]`
+  - `credential_input_adapter.value_verified=true`, with the EDGAR identity value omitted from the result artifact
+  - `baseline.connections.edgar_filings_status=credential_required`
+  - `after_identity_save.connections.edgar_filings_status=available`
+  - `after_identity_save.post_restart_edgar_status=available`
+  - `after_identity_clear.connections.edgar_filings_status=credential_required`
+  - `BTC/USDT` is restored as the unsupported crypto sample, with fundamentals and filings asserted as `unsupported` while quote availability is tracked separately
+- T33 portfolio analytics and professional charting verification:
+  - `backend/tests/test_portfolio_service.py` now covers additive analytics windows, benchmark fallback selection, average-cost realized/unrealized PnL, allocation buckets, and unavailable-window degradation.
+  - `logs/portfolio-offline-smoke-latest.json` recorded `health_ready=true`, `failures=[]`, `analytics_windows_count=5`, and `analytics_pnl_method=average_cost` across online, offline-with-cache, and offline-cold-cache scenarios.
+  - `logs/portfolio-ui-signoff-latest.json` recorded `health_ready=true`, `failures=[]`, stable `portfolio-view state=*` markers, stable portfolio pill markers, `AAPL` holding markers for `live`, `cached`, and `unavailable`, and enabled transaction-submit markers.
+  - the desktop portfolio UI now renders the professional chart layer, analytics window controls, PnL strip, and allocation tabs while preserving existing portfolio CRUD and offline semantics.
+- T34 local factor research lab verification:
+  - `backend/tests/test_factor_service.py` now covers factor ranking, snapshot persistence, recent-run listing, API run creation, research handoff, and Markdown export factor-context content.
+  - the backend API now exposes additive `/api/v1/factors/families`, `/api/v1/factors/runs`, `/api/v1/factors/runs/recent`, and `/api/v1/factors/runs/{run_id}` without changing stable asset, screener, research, or portfolio payloads.
+  - the desktop Factor Lab now builds successfully with run setup controls, recent persisted snapshots, ranked factor rows, contribution details, chart context, diagnostics, and `factor-open-research` handoff anchors.
+  - `logs/factor-lab-smoke-latest.json` recorded `health_ready=true`, `failures=[]`, run `factor-c2e6068aecb4`, `evaluated_count=10`, `result_count=10`, `ranked_count=10`, selected `AAPL` at rank `3`, percentile `80.0`, `selected_bucket=leader`, `selected_score=84.5`, `selected_contribution_count=5`, `restored_after_restart=true`, `research_factor_context=true`, and `export_exists=true`.
+- T35 strategy backtesting and paper trading verification:
+  - `backend/tests/test_strategy_service.py` now covers strategy template/API flow, backtest persistence and restore, report export, paper orders/fills/cash ledger, and no-live-order assertions.
+  - the backend API now exposes additive `/api/v1/strategies/templates`, `/api/v1/strategies/backtests`, `/api/v1/strategies/backtests/recent`, `/api/v1/strategies/backtests/{run_id}`, `/api/v1/strategies/paper/sessions`, `/api/v1/strategies/paper/sessions/recent`, `/api/v1/strategies/paper/sessions/{session_id}`, and `/api/v1/strategies/reports/{artifact_id}/export` without changing stable asset, factor, research, or portfolio payloads.
+  - the desktop Strategy Lab now builds successfully with factor-run selection, backtest controls, equity/benchmark charting, positions/trades, diagnostics, paper-session launch, local paper ledger display, and `strategy-*` automation anchors.
+  - `logs/strategy-lab-smoke-latest.json` recorded `health_ready=true`, `failures=[]`, `factor_run_id=factor-d567dc44ae18`, `backtest_run_id=strategy-c87ff2ff1b09`, `backtest_restored_after_restart=true`, `equity_curve_count=64`, `trade_count=5`, `position_count=5`, `warning_count=3`, `no_live_orders=true`, `paper_session_id=paper-27aa50c9b0ac`, `paper_order_count=5`, `paper_fill_count=5`, `paper_ledger_count=6`, `paper_no_live_orders=true`, and `export_exists=true`.
+- T36 automated Binance execution and risk controls verification:
+  - `backend/tests/test_execution_service.py` now covers default-off blocking before adapter calls, credentials/provider/stale/notional/daily-turnover/position-weight/balance/duplicate/allowlist/kill-switch risk blocks, eligible mock submit order/fill/ledger/audit persistence, paper-session linkage, and API config/intents/submit/audit/kill-switch flow.
+  - the backend API now exposes additive `/api/v1/execution/binance/config`, `/api/v1/execution/binance/intents`, `/api/v1/execution/binance/intents/recent`, `/api/v1/execution/binance/intents/{intent_id}/submit`, `/api/v1/execution/binance/kill-switch`, and `/api/v1/execution/binance/audit` without changing stable asset, factor, strategy backtest, or paper-session payloads.
+  - the desktop Strategy Lab now builds successfully with Live Execution status, Binance intent creation, risk-submit evidence, blocked-check rendering, kill switch controls, recent intents, and audit trail anchors.
+  - `logs/binance-execution-smoke-latest.json` recorded `health_ready=true`, `failures=[]`, `config_live_enabled=false`, `intent_id=intent-e78276e996f0`, `submit_status=blocked`, `blocked_checks=["live_mode","risk_acknowledgement"]`, `no_live_order_until_submit=true`, `live_order_recorded=false`, `audit_count_before_restart=2`, `audit_count_after_restart=2`, and `audit_restored_after_restart=true`.
+- T17 packaged startup automation verification:
+  - `logs/packaged-startup-smoke-latest.json` recorded `health_ready=true`, `single_instance_ok=true`, and `adopt_existing_ok=true`
+  - the scripted cold launch reached `http://127.0.0.1:8765/api/v1/health` in about `11.5s`
+  - `/settings/runtime` and `/connections/status` both returned successfully during the automated run
+  - the packaged bootstrap log appended `adopted_existing=true` when the smoke pre-seeded a healthy `8765` sidecar
+- T21 installed MSI startup automation verification:
+  - `logs/installed-bundle-startup-smoke-latest.json` recorded `install_exit_code=0`, `health_ready=true`, `single_instance_ok=true`, and `adopt_existing_ok=true`
+  - the scripted MSI install resolved `C:\Program Files\Pengbo Workbench\pengbo-workbench.exe` plus `pengbo-sidecar.exe`
+  - the installed app reached `http://127.0.0.1:8765/api/v1/health` in about `12.84s`
+  - `/settings/runtime` confirmed the installed lifecycle keeps logs under `C:\Users\Laurence\AppData\Local\com.pengbo.workbench\logs` and runtime data under `C:\Users\Laurence\AppData\Roaming\com.pengbo.workbench`
+  - the installed bootstrap log appended `adopted_existing=true` when the smoke pre-seeded a healthy `8765` sidecar from the installed bundle
+- T23 installed NSIS startup automation verification:
+  - `logs/installed-bundle-startup-smoke-nsis-latest.json` recorded `install_exit_code=0`, `health_ready=true`, `single_instance_ok=true`, and `adopt_existing_ok=true`
+  - the scripted NSIS install resolved `C:\Program Files\Pengbo Workbench\pengbo-workbench.exe` plus `pengbo-sidecar.exe`
+  - the installed app reached `http://127.0.0.1:8765/api/v1/health` in about `12.31s`
+  - `/settings/runtime` confirmed the NSIS-installed lifecycle also keeps logs under `C:\Users\Laurence\AppData\Local\com.pengbo.workbench\logs` and runtime data under `C:\Users\Laurence\AppData\Roaming\com.pengbo.workbench`
+  - the installed bootstrap log appended `adopted_existing=true` when the smoke pre-seeded a healthy `8765` sidecar from the NSIS-installed bundle
+- packaged runtime/API validation after the hotfix:
+  - `http://127.0.0.1:8765/api/v1/health`
+  - `/settings/preferences`
+  - `/settings/onboarding`
+  - `/connections/status`
+- packaged shell startup validation after the hotfix:
+  - the desktop shell no longer stays pinned on `connecting` once the sidecar is healthy
+  - the packaged WebView can read localhost responses under the Tauri 2 `tauri.localhost` origin
+- latest packaged sidecar artifact: `src-tauri/binaries/pengbo-sidecar-x86_64-pc-windows-msvc.exe` at `117,868,930 bytes`
+- latest packaged bundles:
+  - `src-tauri/target/release/pengbo-workbench.exe`
+  - `src-tauri/target/release/bundle/msi/Pengbo Workbench_0.1.0_x64_en-US.msi`
+  - `src-tauri/target/release/bundle/nsis/Pengbo Workbench_0.1.0_x64-setup.exe`
+- T13 packaging verification:
+  - `logs/sidecar-build-latest.json` now records `warning_categories.actionable` separately from `warning_categories.optional_dependency_noise`
+  - sidecar build metrics improved from `160,652,673 bytes / 74.84s` to `117,766,856 bytes / 59.25s`
+  - actionable packaged-warning residue is currently down to 3 `pandas` / `SciPy` lines
+- T20 packaging verification:
+  - `npm run sidecar:build` regenerated `logs/sidecar-build-latest.json` with `size_bytes=117,770,120` and `duration_seconds=56.4`
+  - `warning_counts.actionable=0` and the residual SciPy trio is now tracked under `warning_categories.accepted_packaging_noise`
+  - `warning_notes.accepted_packaging_noise` now records why each remaining SciPy line is intentionally accepted instead of actionable
+  - backend `TestClient` validation still returned `AAPL` overview data plus 6 ratios from `/api/v1/assets/AAPL/workspace`
+- T13 packaged smoke verification:
+  - cold-launching `src-tauri/target/release/pengbo-workbench.exe` still brought up a healthy local sidecar on `http://127.0.0.1:8765/api/v1/health`
+  - `/connections/status` now reports `Yahoo Fundamentals`
+  - `/api/v1/assets/AAPL/workspace` returned `market_cap="$3.97T"` and 6 ratios after the lighter fundamentals change
+  - `/api/v1/portfolio/summary` still returned successfully after the packaging trim
+- T16 static/build verification:
+  - desktop runtime config no longer falls back to relative `/api/v1` when Tauri runtime discovery is temporarily unavailable
+  - dashboard/watchlist/connections startup requests are gated behind runtime-plus-health reconciliation
+  - desktop network misses now refresh runtime config and retry once before surfacing a sidecar-specific error
+  - Tauri bootstrap logs now record runtime status changes, resolved base URL, and `/health` probe failures
+- T16 packaged regression verification:
+  - launching the packaged EXE twice now keeps a single `pengbo-workbench` instance alive
+  - the active packaged sidecar still answers `http://127.0.0.1:8765/api/v1/health` with `200`
+  - no fresh DuckDB lock/bootstrap-failure entries are appended during the second launch handoff
+  - when a healthy `8765` sidecar already exists, launching the packaged EXE now appends `adopted_existing=true` instead of trying a random replacement port
+- packaged runtime checks against `http://127.0.0.1:8765/api/v1`:
+  - `/health`
+  - `/connections/status` with no credentials
+  - `/connections/status` with EDGAR identity loaded
+  - `/connections/test` for EDGAR returning `ok`
+  - `/connections/test` for EDGAR returning `cached` after forcing live failure via invalid proxy env
+  - `DELETE /connections/edgar/profile` + relaunch without identity returning `missing_credentials` with cleared summary/timestamps/cache freshness
+  - `/connections/status` with Binance credentials loaded
+  - `/connections/test` for Binance returning `ok`
+  - `/connections/binance/account` returning a real private-account snapshot and writing cache
+  - `/connections/test` for Binance returning `cached` after forcing live failure via invalid proxy env
+  - `/connections/binance/account` returning cached balances with `stale=true` during forced live failure
+  - `DELETE /connections/binance/profile` + relaunch without credentials returning `missing_credentials` with cleared summary/timestamps/cache freshness
+- T12 packaged portfolio offline smoke verification:
+  - online seeded scenario returned one live-valued `AAPL` holding, with `BTC/USDT` benchmark independently degrading to `cached`
+  - offline-with-cache seeded scenario returned one cached-valued holding plus intact transaction history, with degraded summary notes instead of request failure
+  - offline-cold-cache seeded scenario returned one `unavailable` holding, `missing_symbols=["AAPL"]`, both benchmarks `unavailable`, and intact transaction history
+- T19 packaged portfolio automation verification:
+  - `logs/portfolio-offline-smoke-latest.json` recorded `health_ready=true` with no failures
+  - `online` seeded scenario returned one `AAPL` holding at `valuation_status=live` and `benchmark_status={SPY=live, BTC/USDT=live}`
+  - `offline_with_cache` returned the same seeded holding at `valuation_status=cached`, downgraded both benchmarks to `cached`, and successfully updated the transaction notes
+  - `offline_cold_cache` returned the same seeded holding at `valuation_status=unavailable`, reported `missing_symbols=["AAPL"]`, downgraded both benchmarks to `unavailable`, and still successfully updated the transaction notes
+- T22 packaged portfolio UI signoff verification:
+  - `logs/portfolio-ui-signoff-latest.json` recorded `health_ready=true` with no failures
+  - `ready` seeded scenario recorded `portfolio-status-pill state=live`, `portfolio-holding symbol=AAPL valuation=live`, and an enabled transaction submit action
+  - `cached` seeded scenario recorded `portfolio-status-pill state=degraded`, `portfolio-holding symbol=AAPL valuation=cached`, cache-degraded summary notes, and an enabled transaction submit action
+  - `unavailable` seeded scenario recorded `portfolio-status-pill state=degraded`, `portfolio-holding symbol=AAPL valuation=unavailable`, unavailable benchmark plus missing valuation notes, and an enabled transaction submit action
+- pending verification:
+  - Optional final visual walkthrough of the freshly rebuilt EXE remains useful, but `T12` is now package-smoke validated at the runtime/API layer.
+
+## Notes
+
+- Source of truth for the latest packaging baseline:
+  - `logs/SIDECAR_PACKAGING_SPRINT_2026-04-15.md`
+  - `logs/sidecar-build-latest.json`
+- `T15` remains completed through packaged-runtime verification; `T16` removed the code/build blocker that was keeping the packaged shell badge and startup fetch state unreliable, and `T17` now captures that startup contract in a repeatable smoke path.
+- The remaining validation gaps are no longer startup-health automation, portfolio offline API coverage, portfolio UI-state signoff, screener packaged signoff, residual warning trimming, or installer parity; packaged EXE, MSI, and NSIS startup coverage are now all repeatable.
+- T37 is now closed; no new blocker task was added in this pass. A visual walkthrough/report-polish pass remains useful but is optional rather than a required unblocker.
+- Automated live order placement remains a Binance-only product target, and any live request path remains default-off behind factor evidence, backtesting, paper trading, risk gates, audit logs, kill switches, and explicit user-owned Binance configuration.

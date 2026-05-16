@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+
+# Frontend and TypeScript build output
+dist/
+*.tsbuildinfo
+vite.config.d.ts
+vite.config.js
+
+# Python caches and packaging output
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.pyinstaller/
+build/
+
+# Tauri, Rust, and generated desktop artifacts
+src-tauri/target/
+src-tauri/gen/schemas/
+src-tauri/binaries/
+src-tauri/**/.cargo-lock
+*.pdb
+*.rlib
+*.lib
+*.dll
+*.exe
+*.msi
+
+# Local runtime data and desktop automation state
+.pengbo-runtime/
+.playwright-mcp/
+.claude/
+logs/
+diagnostics/
+reports/
+claude-probe-debug.log
+latest
+*-browser-check.png
+*-screenshot.png
+
+# Secrets and machine-local credential stores
+.env
+.env.*
+*.env
+*.key
+*.pem
+*.p12
+*.pfx
+*.stronghold
+stronghold/
+credentials/
+secrets/
+local-credentials*
+local-secrets*
+*.credential
+*.secret
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
