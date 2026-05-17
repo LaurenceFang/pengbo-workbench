@@ -1,6 +1,6 @@
 # Pengbo Workbench Task Board
 
-Updated: 2026-05-16
+Updated: 2026-05-18
 
 ## Current Assessment
 
@@ -46,15 +46,21 @@ Updated: 2026-05-16
 - `T50 - Security Architecture And Global Audit Foundation` is now implemented as the first security-hardening pass: `docs/SECURITY_ARCHITECTURE.md` defines the local-first threat boundary, data classification, secret handling rules, execution gates, and public-exposure prerequisites; the backend now stores redacted `security_audit_events` and exposes `/api/v1/security/audit` for cross-module credential/execution security events.
 - `T51 - Startup Time Reduction` is now implemented and package-smoke validated. The packaged launch path no longer blocks Tauri setup on sidecar health, the Tauri-mode sidecar keeps health/settings startup light before full service initialization, cold-start adopt-existing probes use a short timeout, bundled sidecar shutdown avoids visible console windows, and the latest packaged startup smoke records `health_ready_seconds=2.88s`, `failures=[]`, `single_instance_ok=true`, `adopt_existing_ok=true`, and `shutdown_sidecar_exited_ok=true` in `logs/packaged-startup-smoke-latest.json`.
 - `T52 - Git Upload Readiness And Repository Normalization` is now implemented, security-remediated after independent Claude Code review, and selected for first public GitHub upload. The public-upload boundary is documented in `README.md` and `docs/REPOSITORY_UPLOAD_READINESS.md`, root and Tauri ignore rules exclude generated/runtime/secret artifacts, CORS methods are explicit, generated sidecar build logs are documented as local ignored resources, and no API/runtime contract was changed.
-- `T53 - Local Unlock PIN And Idle Lock` is planned/deferred only. Do not implement until selected; this should add a local unlock factor, lockout behavior, idle auto-lock, and audit events before broader account-sensitive workflows.
-- `T54 - Account-Scoped Provider Credential Model` is planned/deferred only. Do not implement until selected; this should separate account metadata from credential material and prepare provider credentials for future per-account ownership.
-- `T55 - Future Public Auth And Session Layer` is planned/deferred only. Do not implement until selected; this should introduce authenticated users, sessions, permission checks, and account-level audit context before any public deployment.
-- `T56 - Public Exposure Gateway And Sidecar Hardening` is planned/deferred only. Do not implement until selected; this should review CORS, bind addresses, API gateway rules, rate limits, CSRF posture, request logging, and deployment topology before any internet-facing mode.
+- `T53 - Local Unlock PIN And Idle Lock` is now selected as the recommended next task; it should add a local unlock factor, lockout behavior, idle auto-lock, and audit events before broader account-sensitive workflows.
+- `T54 - Account-Scoped Provider Credential Model` is sequenced immediately after T53; it should separate account metadata from credential material and prepare provider credentials for future per-account ownership.
+- `T55 - Future Public Auth And Session Layer` remains blocked behind T53 and T54; it should introduce authenticated users, sessions, permission checks, and account-level audit context before any public deployment.
+- `T56 - Public Exposure Gateway And Sidecar Hardening` remains blocked behind T53, T54, and T55; it should review CORS, bind addresses, API gateway rules, rate limits, CSRF posture, request logging, and deployment topology before any internet-facing mode.
+- `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
 - The T38-T47 roadmap sequence is now closed through packaged Data Sources signoff. All live trading remains restricted to Binance, while non-Binance assets stay research, analysis, backtest, paper-trading, report, or alert only.
 
 ## Latest Planning Update
+
+- Replanned the post-T52 sequence on 2026-05-18 after reviewing the external product assessments and local task board state.
+- Promoted `T53 - Local Unlock PIN And Idle Lock` as the current recommended next task, followed by `T54`, `T55`, and `T56` in strict order before any public, account, remote, or team-facing mode.
+- Added the future product-trust roadmap from `T57` through `T94`; these tasks cover open-source boundary, CI, release, demo mode, research-flow polish, data-source governance, local AI research assistance, China-market connectors, and security packaged signoff.
+- The new `T57+` roadmap is intentionally queued after the security-accountability sequence and should not be implemented before T53-T56 unless the task board is explicitly re-prioritized.
 
 - Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
 - Treated `FinceptTerminal` as a product-pattern reference rather than a migration target; the local `Pengbo Workbench` stack remains the implementation baseline.
@@ -750,41 +756,773 @@ Updated: 2026-05-16
 
 ## Recommended Next Task
 
-### T52 - Git Upload Readiness And Repository Normalization
+### T53 - Local Unlock PIN And Idle Lock
 
-Priority: P2  
-Status: Completed
+Priority: P1
+Status: Planned
 
-Why this was next:
+Why this is next:
 
-- `T51 - Startup Time Reduction` closed the latest packaged-runtime performance gap, so the next highest-value task was preparing the project for safe public Git upload.
-- The project lacked a `README.md`, had only a minimal root `.gitignore`, and still had generated/runtime/publication-risk artifacts in the working tree.
-- The task board itself still pointed at an older roadmap-completion review, so T52 needed to include board reconciliation.
+- `T52 - Git Upload Readiness And Repository Normalization` is complete, and the public-upload boundary now documents Pengbo as a local-first desktop app.
+- The next product risk is local sensitive-data access: provider credentials, execution configuration, audit pages, and future account/public modes need a local unlock layer before broader exposure.
+- The user selected the security-accountability sequence as the current priority; T53 must happen before `T54`, `T55`, `T56`, and before the later `T57+` product-trust roadmap.
 
 Scope:
 
-- Document the public-upload boundary for source, documentation, diagnostics, generated artifacts, runtime data, and secrets.
-- Add a project README that explains architecture, workspaces, safety boundaries, local development, build, and validation commands.
-- Tighten ignore rules so public Git candidates do not include local runtime data, generated sidecar/Tauri artifacts, secrets, logs, or machine-specific files.
-- Keep the current trading boundary intact: all non-Binance providers remain read-only, and Binance execution remains default-off and user-confirmed.
-- Do not create a remote repository, push code, initialize a public release workflow, or advance deferred account/public-exposure tasks.
+- Add a local unlock PIN or passphrase flow for sensitive desktop surfaces.
+- Add idle timeout behavior that locks sensitive surfaces after inactivity.
+- Add lock/unlock state to the local desktop runtime without introducing hosted accounts, remote sessions, or public API exposure.
+- Gate provider credential management, execution/risk configuration, security audit views, and future account-sensitive workflows behind the local unlock boundary.
+- Record lock, unlock, failed unlock, timeout, and sensitive-surface access events in the global security audit layer with no raw secrets.
 
 Acceptance:
 
-- Public-upload source boundaries are documented in `README.md` and `docs/REPOSITORY_UPLOAD_READINESS.md`.
-- Ignore rules cover dependencies, caches, generated binaries, packaged outputs, local runtime state, diagnostics, logs, Stronghold/secret material, and machine-local credentials.
-- The task board reflects T52 completion and does not promote `T53` through `T56` automatically.
-- No new API, database, UI workflow, or live trading path is introduced.
+- First launch can initialize the local unlock factor without sending anything to a remote service.
+- Sensitive surfaces are locked until the local unlock succeeds.
+- Idle timeout relocks sensitive surfaces and shows a clear desktop UI state.
+- Failed unlock attempts are rate-limited or lockout-protected enough to prevent trivial repeated guessing.
+- Security audit events are redacted and visible through the existing audit surface.
+- Packaged EXE validation proves initialization, unlock, failed unlock, idle relock, restart restore, and audit evidence.
 
-Completion evidence:
+Implementation notes:
 
-- Added `README.md`.
-- Added `docs/REPOSITORY_UPLOAD_READINESS.md`.
-- Updated `.gitignore` and `src-tauri/.gitignore`.
-- Validation passed: README/package-script consistency review, ignore-boundary review, temporary Git ignore smoke outside the project tree, sensitive-term documentation scan, `npm run typecheck`, `npm run build`, plus the later Claude Code remediation validation recorded in Latest Execution Update.
-- No numbered successor task is promoted here; `T53`, `T54`, `T55`, and `T56` remain deferred until explicitly selected.
+- Preserve the local-first boundary and avoid adding hosted identity, OAuth, cloud sync, or multi-user semantics in T53.
+- Treat the local unlock factor as a desktop safety layer, not as a complete defense against same-user malware or higher-privilege processes.
+- Keep all credential material in the existing Stronghold/secret bridge pattern; T53 should not move raw secrets into SQLite, DuckDB, logs, diagnostics, screenshots, or exports.
+- After T53 closes, promote `T54 - Account-Scoped Provider Credential Model`.
 
 ## Priority Order
+
+### T53 - Local Unlock PIN And Idle Lock
+
+Priority: P1
+Status: Planned
+Target Window: 2026-05-18 to 2026-05-31
+Depends on: T52
+
+Task:
+
+- Add a local PIN or passphrase initialization flow for the desktop app.
+- Gate sensitive surfaces behind unlock state: provider credentials, execution/risk settings, security audit views, and future account-sensitive workflows.
+- Add idle timeout relock after inactivity and a clear locked UI state.
+- Write redacted audit events for initialize, unlock, failed unlock, timeout, relock, and sensitive-surface access.
+- Validate the packaged EXE for first launch, unlock, failed unlock, idle relock, restart restore, and audit evidence.
+
+Done when:
+
+- Sensitive surfaces cannot be opened before unlock.
+- Failed unlock attempts have basic rate-limit or lockout protection.
+- No raw secret, PIN, passphrase, or unlock material appears in SQLite, DuckDB, logs, diagnostics, screenshots, or exports.
+- T54 is promoted as the next task after packaged signoff.
+
+### T54 - Account-Scoped Provider Credential Model
+
+Priority: P1
+Status: Planned
+Target Window: 2026-06-01 to 2026-06-14
+Depends on: T53
+
+Task:
+
+- Introduce local account/profile ownership metadata for provider credentials without adding cloud accounts.
+- Separate account labels, provider capability metadata, credential state, and raw secret storage.
+- Migrate existing provider credential records into an account-scoped model while preserving `/api/v1/...` compatibility.
+- Add UI affordances for selecting the active local profile and seeing credential readiness per provider.
+- Extend audit events for credential create, update, rotate, disable, and provider-readiness checks.
+
+Done when:
+
+- A local user can understand which profile owns each provider credential.
+- Existing provider workflows continue to work through compatibility APIs.
+- Secret material remains in the existing Stronghold/secret bridge pattern.
+- Packaged EXE validation covers migration, profile switching, provider readiness, and redacted audit output.
+
+### T55 - Future Public Auth And Session Layer
+
+Priority: P1
+Status: Planned
+Target Window: 2026-06-15 to 2026-06-30
+Depends on: T53, T54
+
+Task:
+
+- Define a future-ready identity/session model that can support public deployment later without turning the current app into a hosted service.
+- Add local session concepts, session expiry, session-bound permissions, and audit coverage.
+- Document which routes and surfaces are desktop-local only, which are account-sensitive, and which could later become remote-safe.
+- Add tests for session creation, expiry, permission checks, and redacted session audit events.
+
+Done when:
+
+- The app has an explicit session boundary instead of ad hoc UI-only access checks.
+- The implementation does not introduce OAuth, hosted accounts, remote sync, or public network exposure.
+- T56 has a clear input map of routes, permissions, and risks to harden.
+
+### T56 - Public Exposure Gateway And Sidecar Hardening
+
+Priority: P1
+Status: Planned
+Target Window: 2026-07-01 to 2026-07-14
+Depends on: T53, T54, T55
+
+Task:
+
+- Harden the sidecar/API boundary for any future public exposure: bind address, CORS, CSRF posture, request validation, request logging, and rate-limit hooks.
+- Produce a route-by-route exposure classification: local-only, authenticated local, future public candidate, and never-public.
+- Add regression tests for unsafe origin rejection, invalid method handling, unauthenticated access denial, and redacted logs.
+- Keep current desktop runtime local-first and do not create a public service or hosted deployment.
+
+Done when:
+
+- Sensitive routes are protected by explicit gateway/session checks.
+- Public exposure risks are documented before any hosted mode is attempted.
+- Packaged EXE validation proves the local app still starts and works with the hardened sidecar.
+- T57+ product-trust roadmap can begin without weakening the security-accountability base.
+
+### T57 - License And Open Source Boundary
+
+Priority: P2
+Status: Planned
+Target Window: 2026-07-15 to 2026-07-17
+Depends on: T56
+
+Task:
+
+- Choose the project license and add `LICENSE`.
+- Document what is open-source, what remains local/private, and what must never be uploaded.
+- Recheck repository files against the public-upload boundary.
+
+Done when:
+
+- A public reader can understand legal usage and source boundaries before installing or contributing.
+
+### T58 - Version Governance Cleanup
+
+Priority: P2
+Status: Planned
+Target Window: 2026-07-18 to 2026-07-20
+Depends on: T57
+
+Task:
+
+- Normalize app version, package version, sidecar version, and release notes naming.
+- Add a lightweight changelog or release-history file.
+- Make version evidence visible in app diagnostics.
+
+Done when:
+
+- Build artifacts, docs, diagnostics, and release notes report the same version story.
+
+### T59 - GitHub Actions CI Baseline
+
+Priority: P2
+Status: Planned
+Target Window: 2026-07-21 to 2026-07-24
+Depends on: T58
+
+Task:
+
+- Add CI for typecheck, frontend build, backend unit checks, smoke scripts that can run without secrets, and public-boundary scans.
+- Keep CI no-key and no-live-trading.
+- Document which packaged tests remain local Windows-only.
+
+Done when:
+
+- A pull request can prove baseline quality without credentials or private runtime data.
+
+### T60 - Demo Mode And No-Key Startup
+
+Priority: P1
+Status: Planned
+Target Window: 2026-07-25 to 2026-07-28
+Depends on: T59
+
+Task:
+
+- Ensure first launch works without provider credentials.
+- Add demo/sample states for key workflows so reviewers can inspect the product safely.
+- Make credential-missing states useful rather than dead ends.
+
+Done when:
+
+- A new user can open the app, explore the main product flow, and understand what credentials would unlock.
+
+### T61 - First Release Packaging
+
+Priority: P1
+Status: Planned
+Target Window: 2026-07-29 to 2026-08-01
+Depends on: T60
+
+Task:
+
+- Produce a signed or clearly documented local installer/build artifact.
+- Add release checklist steps for Windows packaged validation.
+- Record installer startup, no-key startup, demo-mode startup, and security-boundary evidence.
+
+Done when:
+
+- The first external reviewer can install and run Pengbo without source-build knowledge.
+
+### T62 - README Product Proof Upgrade
+
+Priority: P2
+Status: Planned
+Target Window: 2026-08-02 to 2026-08-04
+Depends on: T61
+
+Task:
+
+- Add real screenshots or verified packaged screenshots.
+- Describe the user journey in practical product language: research, data status, evidence, portfolio, and audit boundaries.
+- Link validation evidence without exposing local data.
+
+Done when:
+
+- The README shows a credible product, not only an engineering skeleton.
+
+### T63 - Contributor Entry Kit
+
+Priority: P2
+Status: Planned
+Target Window: 2026-08-05 to 2026-08-07
+Depends on: T62
+
+Task:
+
+- Add contributor setup notes, issue labels or templates, code style expectations, and test expectations.
+- Document safe contribution areas versus credential/execution-sensitive areas.
+- Add a small "first issue" candidate list grounded in the current roadmap.
+
+Done when:
+
+- A contributor can start safely without asking for private keys, private data, or unclear runtime assumptions.
+
+### T64 - Research Flow Definition
+
+Priority: P1
+Status: Planned
+Target Window: 2026-08-08 to 2026-08-11
+Depends on: T63
+
+Task:
+
+- Define the core user flow: open asset, inspect data status, review thesis, compare evidence, export report, and record audit trail.
+- Map existing pages and APIs to that flow.
+- Identify dead ends, duplicate concepts, and missing handoffs.
+
+Done when:
+
+- The product has one primary research journey that the whole team can optimize around.
+
+### T65 - Asset Page Research Entry Polish
+
+Priority: P1
+Status: Planned
+Target Window: 2026-08-12 to 2026-08-16
+Depends on: T64
+
+Task:
+
+- Make the asset/security page the practical starting point for research.
+- Show price, provider freshness, portfolio exposure, thesis summary, recent evidence, and next actions.
+- Reduce navigation friction from asset view to report/export.
+
+Done when:
+
+- A user can start from one ticker or symbol and complete a basic research loop without hunting through unrelated pages.
+
+### T66 - Data Status Strip Everywhere
+
+Priority: P1
+Status: Planned
+Target Window: 2026-08-17 to 2026-08-21
+Depends on: T65
+
+Task:
+
+- Add a consistent data-status strip to research-critical views.
+- Show provider, freshness, read-only/trading capability, missing credential reason, and degradation state.
+- Keep wording cautious: observed, cached, simulated, degraded, blocked, audited.
+
+Done when:
+
+- Every research decision surface explains where its data came from and whether it is fresh enough.
+
+### T67 - Research Brief Quality Upgrade
+
+Priority: P1
+Status: Planned
+Target Window: 2026-08-22 to 2026-08-28
+Depends on: T66
+
+Task:
+
+- Upgrade briefs from summary text into structured thesis, evidence, counter-evidence, risks, watch items, and source provenance.
+- Add brief templates for equity, crypto, portfolio, and macro use cases.
+- Make unsupported or stale evidence explicit.
+
+Done when:
+
+- A brief reads like a cautious analyst note and never implies certainty without evidence.
+
+### T68 - Report Export Evidence Pack
+
+Priority: P1
+Status: Planned
+Target Window: 2026-08-29 to 2026-09-04
+Depends on: T67
+
+Task:
+
+- Export reports with evidence tables, provider status, generated time, data freshness, and audit references.
+- Add PDF/Markdown export parity where practical.
+- Validate that exports exclude secrets and private runtime state.
+
+Done when:
+
+- A user can hand someone a report that explains both conclusion and evidence quality.
+
+### T69 - Command Center V1
+
+Priority: P2
+Status: Planned
+Target Window: 2026-09-05 to 2026-09-11
+Depends on: T68
+
+Task:
+
+- Build a compact command center for common actions: search asset, open research brief, refresh provider, export report, view audit, and run safe smoke checks.
+- Keep it operational and dense, not a marketing dashboard.
+- Preserve keyboard and accessibility anchors.
+
+Done when:
+
+- Experienced users can move through frequent workflows quickly from one place.
+
+### T70 - First-Run Product Onboarding
+
+Priority: P2
+Status: Planned
+Target Window: 2026-09-12 to 2026-09-18
+Depends on: T69
+
+Task:
+
+- Add first-run guidance for demo mode, provider setup, local unlock, privacy boundary, and safe execution boundary.
+- Keep onboarding skippable and local-only.
+- Add a resettable checklist for new reviewers.
+
+Done when:
+
+- A first-time user understands what Pengbo can do now and what is intentionally blocked.
+
+### T71 - Provider Capability Matrix
+
+Priority: P1
+Status: Planned
+Target Window: 2026-09-19 to 2026-09-23
+Depends on: T70
+
+Task:
+
+- Create a provider capability matrix for asset classes, regions, endpoints, credential needs, rate limits, freshness, and read/write status.
+- Keep existing `/api/v1/connections/catalog` compatibility.
+- Make unsupported capabilities explicit.
+
+Done when:
+
+- Product and engineering can decide connector work from a shared source of truth.
+
+### T72 - Provider Credential State Model
+
+Priority: P1
+Status: Planned
+Target Window: 2026-09-24 to 2026-09-28
+Depends on: T71, T54
+
+Task:
+
+- Normalize credential states: missing, configured, invalid, expired, disabled, read-only, trading-gated, and blocked.
+- Surface exact next action per state.
+- Ensure audit output remains redacted.
+
+Done when:
+
+- Provider readiness is understandable without exposing secret values.
+
+### T73 - Provider Freshness And Cache Policy
+
+Priority: P1
+Status: Planned
+Target Window: 2026-09-29 to 2026-10-03
+Depends on: T72
+
+Task:
+
+- Define cache TTL, stale data labeling, refresh behavior, and offline fallback per provider class.
+- Add visible freshness rules to research surfaces and exports.
+- Add tests for stale, cached, failed refresh, and offline states.
+
+Done when:
+
+- The app cannot silently treat stale or simulated data as current market evidence.
+
+### T74 - Data Quality Status Contract
+
+Priority: P1
+Status: Planned
+Target Window: 2026-10-04 to 2026-10-08
+Depends on: T73
+
+Task:
+
+- Add structured data-quality fields for completeness, timeliness, source confidence, and limitation notes.
+- Use the contract across research, portfolio, screener, reports, and provider diagnostics.
+- Avoid performance claims where evidence is simulated or blocked.
+
+Done when:
+
+- Data quality is machine-readable and user-visible across the product.
+
+### T75 - Provenance UI And Export Sync
+
+Priority: P1
+Status: Planned
+Target Window: 2026-10-09 to 2026-10-13
+Depends on: T74
+
+Task:
+
+- Show source provenance inline on critical research and portfolio views.
+- Carry the same provenance into exports.
+- Add audit links or IDs where available.
+
+Done when:
+
+- The UI and exported report tell the same evidence story.
+
+### T76 - Existing Providers Audit
+
+Priority: P1
+Status: Planned
+Target Window: 2026-10-14 to 2026-10-18
+Depends on: T75
+
+Task:
+
+- Audit every existing provider implementation against capability, credential, freshness, quality, and provenance contracts.
+- Fix drift or mark unsupported states honestly.
+- Confirm no new live-trading path is introduced.
+
+Done when:
+
+- Existing providers match the product contract instead of relying on implied behavior.
+
+### T77 - Data Sources Packaged Signoff V2
+
+Priority: P1
+Status: Planned
+Target Window: 2026-10-19 to 2026-10-23
+Depends on: T76
+
+Task:
+
+- Validate the provider catalog, credential states, freshness labels, cache behavior, provenance, and exports in the packaged EXE.
+- Save evidence artifacts for no-key, configured-key, offline, stale, and blocked states.
+- Update the board with exact outcomes and follow-ups.
+
+Done when:
+
+- Data-source behavior is trustworthy enough to support broader AI and China-market work.
+
+### T78 - Local LLM Runtime Probe
+
+Priority: P2
+Status: Planned
+Target Window: 2026-10-24 to 2026-10-30
+Depends on: T77
+
+Task:
+
+- Probe local LLM options for summarization and research assistance.
+- Measure startup cost, latency, memory, model availability, and offline behavior.
+- Keep all AI features disabled unless explicitly enabled.
+
+Done when:
+
+- The team has evidence for whether local AI is practical on the target Windows machine.
+
+### T79 - AI Permission Boundary
+
+Priority: P1
+Status: Planned
+Target Window: 2026-10-31 to 2026-11-04
+Depends on: T78, T56
+
+Task:
+
+- Define what AI can read, what it cannot read, what requires unlock, and what requires explicit user confirmation.
+- Prevent AI from reading raw secrets, private credential material, or execution submission paths.
+- Add audit events for AI context creation and report generation.
+
+Done when:
+
+- AI assistance has a clear permission boundary before any assistant UI ships.
+
+### T80 - Research Assistant Backend
+
+Priority: P1
+Status: Planned
+Target Window: 2026-11-05 to 2026-11-12
+Depends on: T79
+
+Task:
+
+- Build a backend research-assistant service that consumes structured evidence, provenance, and data-quality contracts.
+- Return grounded summaries, questions, risks, and citations to local evidence.
+- Avoid free-form web claims unless a source connector explicitly supports them.
+
+Done when:
+
+- Assistant output is grounded in product evidence and can be audited.
+
+### T81 - Research Assistant UI
+
+Priority: P1
+Status: Planned
+Target Window: 2026-11-13 to 2026-11-20
+Depends on: T80
+
+Task:
+
+- Add assistant UI into the research flow, not as a separate chatbot island.
+- Show source evidence, uncertainty, and data limitations next to generated text.
+- Provide actions for saving notes, adding watch items, and exporting briefs.
+
+Done when:
+
+- The assistant improves research workflow without hiding provenance.
+
+### T82 - Evidence-Grounded Prompt Layer
+
+Priority: P1
+Status: Planned
+Target Window: 2026-11-21 to 2026-11-27
+Depends on: T81
+
+Task:
+
+- Add prompt templates for thesis, counter-thesis, earnings review, portfolio risk, provider limitation, and report rewrite.
+- Include strict language rules for observed/simulated/blocked evidence.
+- Add regression fixtures for hallucination-prone scenarios.
+
+Done when:
+
+- Generated text consistently stays inside known evidence boundaries.
+
+### T83 - Cloud LLM Explicit Opt-In
+
+Priority: P2
+Status: Planned
+Target Window: 2026-11-28 to 2026-12-04
+Depends on: T82
+
+Task:
+
+- Add optional cloud LLM configuration only after a clear privacy warning and user opt-in.
+- Show what context would leave the machine before submission.
+- Keep local mode as the default.
+
+Done when:
+
+- A user cannot accidentally send private research context to a cloud model.
+
+### T84 - AI Research Packaged Signoff
+
+Priority: P1
+Status: Planned
+Target Window: 2026-12-05 to 2026-12-11
+Depends on: T83
+
+Task:
+
+- Validate local-disabled, local-enabled, cloud-disabled, cloud-opt-in, stale evidence, blocked evidence, and export flows in the packaged EXE.
+- Save screenshots or logs that prove redaction, permission prompts, and provenance.
+- Update roadmap based on remaining AI quality gaps.
+
+Done when:
+
+- AI features are useful, permissioned, and auditable in the real desktop build.
+
+### T85 - China Market Data Source Study
+
+Priority: P2
+Status: Planned
+Target Window: 2026-12-12 to 2026-12-18
+Depends on: T77
+
+Task:
+
+- Study feasible A-share, HK, China macro, FX, fund, and news/data options.
+- Classify sources by license, API stability, cost, region coverage, and redistribution risk.
+- Recommend a first read-only connector pack.
+
+Done when:
+
+- The team has a legally and technically cautious China-market source plan.
+
+### T86 - Connector Manifest Contract
+
+Priority: P1
+Status: Planned
+Target Window: 2026-12-19 to 2026-12-23
+Depends on: T85
+
+Task:
+
+- Define a connector manifest for capabilities, regions, asset classes, credentials, freshness, rate limits, licensing notes, and read-only status.
+- Align the manifest with provider catalog compatibility.
+- Add schema validation.
+
+Done when:
+
+- New connectors can be added without custom one-off product behavior.
+
+### T87 - Connector Test Harness
+
+Priority: P1
+Status: Planned
+Target Window: 2026-12-24 to 2026-12-30
+Depends on: T86
+
+Task:
+
+- Build a connector test harness for no-key, configured-key, timeout, malformed response, stale response, and license-blocked states.
+- Produce local fixtures where live calls are unavailable or unsafe.
+- Keep live secrets out of test output.
+
+Done when:
+
+- Connector quality can be verified before UI integration.
+
+### T88 - A-Share Read-Only Connector V1
+
+Priority: P1
+Status: Planned
+Target Window: 2026-12-31 to 2027-01-08
+Depends on: T87
+
+Task:
+
+- Add the first read-only A-share connector based on the approved source plan.
+- Support search, quote/status, basic company profile, and freshness/provenance fields.
+- Mark unsupported trading or restricted data explicitly.
+
+Done when:
+
+- A-share research can begin with honest read-only data status.
+
+### T89 - HK/China Macro Connector V1
+
+Priority: P1
+Status: Planned
+Target Window: 2027-01-09 to 2027-01-16
+Depends on: T88
+
+Task:
+
+- Add the first read-only HK or China macro connector from the approved source plan.
+- Support key series, freshness, provenance, and export integration.
+- Keep licensing limitations visible.
+
+Done when:
+
+- Regional macro context can appear in research briefs without manual copy/paste.
+
+### T90 - China Market Research Template
+
+Priority: P1
+Status: Planned
+Target Window: 2027-01-17 to 2027-01-23
+Depends on: T89
+
+Task:
+
+- Add a China-market research template that reflects A-share/HK/macro data limitations.
+- Include policy, liquidity, listing venue, currency, sector, and source-quality sections.
+- Integrate assistant and report export only where evidence is available.
+
+Done when:
+
+- China-market output feels purpose-built rather than a translated US-equity template.
+
+### T91 - Connector Packaged Signoff
+
+Priority: P1
+Status: Planned
+Target Window: 2027-01-24 to 2027-01-30
+Depends on: T90
+
+Task:
+
+- Validate connector manifests, A-share connector, HK/macro connector, research templates, exports, offline states, and blocked-license states in the packaged EXE.
+- Save evidence artifacts and update follow-up tasks.
+- Confirm all new connectors remain read-only.
+
+Done when:
+
+- The first China-market connector pack is usable and honestly bounded.
+
+### T92 - Credential Audit Trail Hardening
+
+Priority: P1
+Status: Planned
+Target Window: 2027-01-31 to 2027-02-05
+Depends on: T91, T54
+
+Task:
+
+- Harden audit coverage for credential lifecycle, unlock state, provider readiness, AI context access, and report exports.
+- Add redaction regression tests for sensitive strings.
+- Review all diagnostics and exports for accidental secret leakage.
+
+Done when:
+
+- Credential and sensitive-workflow history is accountable without exposing the secrets themselves.
+
+### T93 - Sensitive Workspace Lock Rules
+
+Priority: P1
+Status: Planned
+Target Window: 2027-02-06 to 2027-02-11
+Depends on: T92, T53
+
+Task:
+
+- Extend lock rules to notebooks, reports, exports, assistant contexts, screenshots, and cached research artifacts where sensitive data may appear.
+- Add clear user-facing locked, hidden, or redacted states.
+- Validate idle relock and restart restore across these workspaces.
+
+Done when:
+
+- Lock behavior covers the actual places where sensitive work accumulates, not only credential screens.
+
+### T94 - Security Packaged Signoff
+
+Priority: P1
+Status: Planned
+Target Window: 2027-02-12 to 2027-02-18
+Depends on: T92, T93
+
+Task:
+
+- Run a packaged security signoff covering local unlock, idle relock, account-scoped credentials, session checks, sidecar gateway, AI permissions, exports, diagnostics, and audit views.
+- Produce evidence artifacts and update the board with any remaining blockers.
+- Confirm no public service, hosted account, or live trading path was added outside explicit roadmap scope.
+
+Done when:
+
+- Pengbo has a documented security-accountability baseline that supports the next real release cycle.
 
 ### T52 - Git Upload Readiness And Repository Normalization
 
