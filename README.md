@@ -4,6 +4,25 @@ Pengbo Workbench is a local-first desktop financial terminal built with Tauri, R
 
 The current product is designed for local desktop use. It is not a hosted web service, and the local FastAPI sidecar is expected to bind to `127.0.0.1`.
 
+## Product Direction
+
+Pengbo Workbench is intended to become a local-first, privacy-first, auditable personal financial research workspace. The near-term goal is not to copy the full breadth of Bloomberg or institutional terminals. The product should first make one complete research loop reliable: choose an asset or theme, inspect data status, review evidence, form a research brief, connect that brief to portfolio or strategy context, and export a report with provenance and risk boundaries.
+
+The first target users are independent investors, small research or portfolio teams, quant learners, and Chinese/English desktop users who want a practical local tool rather than a hosted SaaS account.
+
+## Current Roadmap
+
+The active roadmap is tracked in [IMPLEMENTATION_TASKS.md](IMPLEMENTATION_TASKS.md). The next implementation sequence is:
+
+1. `T53 - Local Unlock PIN And Idle Lock`
+2. `T54 - Account-Scoped Provider Credential Model`
+3. `T55 - Future Public Auth And Session Layer`
+4. `T56 - Public Exposure Gateway And Sidecar Hardening`
+
+These tasks are intentionally prioritized before broader public, account, remote, team, AI, or China-market connector work. Later planned work from `T57` onward covers open-source readiness, CI, releases, demo mode, research-flow polish, data governance, local AI assistance, China-market connectors, and security packaged signoff.
+
+For the product-team assessment behind this direction, see [docs/product-team-assessment-2026-05-17.md](docs/product-team-assessment-2026-05-17.md).
+
 ## Workspaces
 
 - Dashboard: runtime readiness, market pulse, watchlist, and handoffs into the main workflows.
