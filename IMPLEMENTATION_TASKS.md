@@ -49,7 +49,8 @@ Updated: 2026-05-18
 - `T53 - Local Unlock PIN And Idle Lock` is now implemented and package-smoke validated. Sensitive desktop surfaces now require a local unlock factor, failed unlock attempts are tracked with lockout support, idle relock is audited, Tauri credential commands verify unlock state, and packaged evidence is recorded in `logs/local-security-packaged-smoke-latest.json`.
 - `T54 - Account-Scoped Provider Credential Model` is now implemented and package-smoke validated. Provider credential readiness metadata is scoped to explicit local profiles, the existing `/api/v1/...` compatibility routes still work, Stronghold secret material remains outside SQLite, and packaged evidence is recorded in `logs/account-scoped-credentials-smoke-latest.json`.
 - `T55 - Future Public Auth And Session Layer` is now implemented as a local-only session boundary: the backend persists redacted session metadata, the desktop API client attaches `X-Pengbo-Session`, sensitive credential/execution/export/audit routes require session-bound permissions, and `/api/v1/security/route-classification` gives T56 a route-level exposure map.
-- `T56 - Public Exposure Gateway And Sidecar Hardening` is now the recommended next task; it should review CORS, bind addresses, API gateway rules, rate limits, CSRF posture, request logging, and deployment topology before any internet-facing mode.
+- `T56 - Public Exposure Gateway And Sidecar Hardening` is now implemented and package-smoke validated. The sidecar refuses non-loopback bind addresses, CORS origins are centralized, unsafe origins and invalid methods are rejected before route handling, sensitive gateway failures are audited with redaction, rate-limit hooks are present, and the public-exposure posture is documented in `docs/public-exposure-gateway-t56.md`.
+- `T57 - License And Open Source Boundary` is now the recommended next task.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -68,6 +69,13 @@ Updated: 2026-05-18
 - Added `/api/v1/security/route-classification` so T56 has a concrete route/surface/exposure/permission map before sidecar gateway hardening.
 - Validation passed: `py -m pytest backend\tests`, `npm run typecheck`, and `npm run build`.
 - Merged the completed `codex/t53-local-unlock-idle-lock` branch into `main` before closing T55, so the current `main` line now contains T53 local unlock, T54 account-scoped credentials, and T55 local session permissions together.
+
+- Executed `T56 - Public Exposure Gateway And Sidecar Hardening` on 2026-05-19 against the current checkout.
+- Added a gateway hardening middleware with loopback bind validation, centralized allowed CORS origins, unsafe-origin rejection, invalid-method rejection, sensitive-prefix rate-limit hooks, and redacted gateway audit events.
+- Documented the current public-exposure posture in `docs/public-exposure-gateway-t56.md`; no route is promoted to a public candidate by T56.
+- Added packaged gateway evidence in `logs/gateway-hardening-packaged-smoke-latest.json` with `health_ready=true`, `loopback_listener_only=true`, `unsafe_origin_rejected=true`, `invalid_method_rejected=true`, `sensitive_route_requires_session=true`, `allowed_origin_ok=true`, `redacted_gateway_audit_ok=true`, and `failures=[]`.
+- Packaged startup evidence also remains green in `logs/packaged-startup-smoke-latest.json` with `health_ready=true`, `settings_runtime_ok=true`, `connections_status_ok=true`, `single_instance_ok=true`, `adopt_existing_ok=true`, `shutdown_sidecar_exited_ok=true`, and `failures=[]`.
+- Validation passed: `py -m pytest backend\tests`, `npm run typecheck`, `npm run build`, `npm run tauri:build`, `npm run smoke:gateway-hardening:packaged`, and `npm run smoke:packaged-startup`.
 
 - Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
 - Treated `FinceptTerminal` as a product-pattern reference rather than a migration target; the local `Pengbo Workbench` stack remains the implementation baseline.
@@ -793,35 +801,34 @@ Updated: 2026-05-18
 
 ## Recommended Next Task
 
-### T56 - Public Exposure Gateway And Sidecar Hardening
+### T57 - License And Open Source Boundary
 
-Priority: P1
+Priority: P2
 Status: Planned
 
 Why this is next:
 
-- `T55 - Future Public Auth And Session Layer` now gives the sidecar an explicit local session, permission, audit, and route-classification layer.
-- `T56` should harden the API gateway posture before any public exposure is considered: bind address, CORS, CSRF posture, request validation, request logging, and rate-limit hooks.
-- `T53` and `T54` are now present from `codex/t53-local-unlock-idle-lock`, so T56 can build on local unlock, account-scoped credentials, and session-bound permissions together.
+- `T53` through `T56` are now implemented and package-smoke validated as the local security-accountability base.
+- The next public-trust gap is making the repository boundary explicit before broader open-source, CI, release, demo, or contributor work.
+- T57 should clarify what is safe to publish, what remains local-only, and how license/readme/security notices represent the current product honestly.
 
 Scope:
 
-- Use `/api/v1/security/route-classification` as the starting map for route-level exposure decisions.
-- Review and harden bind address, CORS, CSRF assumptions, method handling, request validation, request logging, and rate-limit hooks.
-- Add regression tests for unsafe origin rejection, invalid method handling, unauthenticated sensitive-route denial, and redacted request/security logs.
-- Preserve the local-first desktop runtime and do not create a public service or hosted deployment.
+- Add or verify the project license and public-use boundary.
+- Review README, security docs, packaged artifacts, ignore rules, and generated/runtime paths for open-source consistency.
+- Document the local-first/non-hosted boundary and the no-secret/no-runtime-artifact publishing rules.
+- Preserve existing API/runtime behavior and avoid product-scope expansion.
 
 Acceptance:
 
-- Unsafe origins and invalid methods are rejected consistently.
-- Sensitive local routes continue to require session-bound permissions.
-- Request/security logs are useful but redacted.
-- T53/T54 gaps are explicitly resolved or carried as blocker tasks before any internet-facing mode is described as ready.
+- The repository has an explicit license/public-use boundary.
+- README and security docs match the implemented T53-T56 local-security posture.
+- Generated runtime, credentials, logs, packaged build output, and local diagnostics are still excluded from publication.
+- Any unresolved public-repo risk is written back as a blocker task before T58+ work proceeds.
 
 Implementation notes:
 
-- Keep all live trading boundaries unchanged: Binance-only, default-off, risk-gated, kill-switch gated, and user-confirmed.
-- Do not introduce OAuth, hosted accounts, remote sync, public network exposure, or multi-user product semantics unless the board is explicitly expanded.
+- Do not change live trading behavior, provider credentials, sidecar networking, hosted account semantics, or release packaging in this task unless needed to make the public boundary accurate.
 
 ## Priority Order
 
@@ -916,7 +923,7 @@ Completion notes:
 ### T56 - Public Exposure Gateway And Sidecar Hardening
 
 Priority: P1
-Status: Planned
+Status: Completed (2026-05-19)
 Target Window: 2026-07-01 to 2026-07-14
 Depends on: T53, T54, T55
 
@@ -933,6 +940,15 @@ Done when:
 - Public exposure risks are documented before any hosted mode is attempted.
 - Packaged EXE validation proves the local app still starts and works with the hardened sidecar.
 - T57+ product-trust roadmap can begin without weakening the security-accountability base.
+
+Completion notes:
+
+- Added `GatewayHardeningMiddleware` with loopback-only bind validation, centralized allowed origins, unsafe-origin rejection, invalid-method rejection, sensitive-prefix rate-limit hooks, and redacted gateway audit events.
+- Kept the current runtime local-first: no OAuth, hosted accounts, remote sync, public service, multi-user semantics, or new live-trading path was introduced.
+- Documented the public-exposure posture in `docs/public-exposure-gateway-t56.md`, including the CSRF stance, exposure classes, and T53/T54/T55 reconciliation.
+- Added `backend/tests/test_gateway_hardening.py` and `scripts/packaged_gateway_hardening_smoke.ps1`.
+- Packaged gateway signoff passed in `logs/gateway-hardening-packaged-smoke-latest.json` with `loopback_listener_only=true`, `unsafe_origin_rejected=true`, `invalid_method_rejected=true`, `sensitive_route_requires_session=true`, `allowed_origin_ok=true`, `redacted_gateway_audit_ok=true`, and `failures=[]`.
+- Packaged startup signoff passed in `logs/packaged-startup-smoke-latest.json` with `health_ready=true`, `connections_status_ok=true`, `settings_runtime_ok=true`, `single_instance_ok=true`, `adopt_existing_ok=true`, `shutdown_sidecar_exited_ok=true`, and `failures=[]`.
 
 ### T57 - License And Open Source Boundary
 

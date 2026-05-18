@@ -32,6 +32,7 @@ from ..services.watchlist_service import WatchlistService
 from ..services.workflow_service import WorkflowService
 from ..storage.duckdb_store import DuckDbStore
 from ..storage.sqlite_store import SqliteStore
+from .gateway import GatewayHardeningMiddleware, allowed_origins, validate_sidecar_bind
 from .routes import register_routes
 
 
@@ -168,6 +169,7 @@ class LazyAppContainer:
 
 
 def create_app(settings: RuntimeSettings) -> FastAPI:
+    validate_sidecar_bind(settings)
     container = LazyAppContainer(settings) if settings.runtime_mode == "tauri" else AppContainer(settings)
 
     @asynccontextmanager
@@ -187,16 +189,11 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
     )
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://127.0.0.1:4173",
-            "http://localhost:4173",
-            "tauri://localhost",
-            "http://tauri.localhost",
-            "https://tauri.localhost",
-        ],
+        allow_origins=allowed_origins(),
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
+    app.add_middleware(GatewayHardeningMiddleware, settings=settings)
     register_routes(app)
     return app

@@ -26,6 +26,7 @@
     "smoke:data-sources:packaged": "powershell -ExecutionPolicy Bypass -File ./scripts/packaged_data_sources_smoke.ps1",
     "smoke:local-security:packaged": "powershell -ExecutionPolicy Bypass -File ./scripts/packaged_local_security_smoke.ps1",
     "smoke:account-credentials:packaged": "powershell -ExecutionPolicy Bypass -File ./scripts/packaged_account_scoped_credentials_smoke.ps1",
+    "smoke:gateway-hardening:packaged": "powershell -ExecutionPolicy Bypass -File ./scripts/packaged_gateway_hardening_smoke.ps1",
     "smoke:watchlist:packaged": "powershell -ExecutionPolicy Bypass -File ./scripts/packaged_watchlist_smoke.ps1",
     "smoke:workflow-studio": "node ./scripts/workflow_studio_smoke.mjs",
     "smoke:visual-design": "node ./scripts/visual_design_smoke.mjs",

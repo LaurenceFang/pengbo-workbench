@@ -12,14 +12,14 @@ The first target users are independent investors, small research or portfolio te
 
 ## Current Roadmap
 
-The active roadmap is tracked in [IMPLEMENTATION_TASKS.md](IMPLEMENTATION_TASKS.md). The current security-accountability sequence is:
+The active roadmap is tracked in [IMPLEMENTATION_TASKS.md](IMPLEMENTATION_TASKS.md). The current security-accountability sequence is complete:
 
-1. `T53 - Local Unlock PIN And Idle Lock` remains planned in this checkout.
-2. `T54 - Account-Scoped Provider Credential Model` remains planned in this checkout.
+1. `T53 - Local Unlock PIN And Idle Lock` is implemented and package-smoke validated.
+2. `T54 - Account-Scoped Provider Credential Model` is implemented and package-smoke validated.
 3. `T55 - Future Public Auth And Session Layer` is implemented as a local-only session, permission, and audit boundary.
-4. `T56 - Public Exposure Gateway And Sidecar Hardening` is the next gateway-hardening input and must reconcile the remaining T53/T54 gaps before any public exposure.
+4. `T56 - Public Exposure Gateway And Sidecar Hardening` is implemented as a local-only gateway boundary with loopback bind enforcement, unsafe-origin rejection, method handling, rate-limit hooks, and redacted gateway audit evidence.
 
-These tasks are intentionally prioritized before broader public, account, remote, team, AI, or China-market connector work. Later planned work from `T57` onward covers open-source readiness, CI, releases, demo mode, research-flow polish, data governance, local AI assistance, China-market connectors, and security packaged signoff.
+These tasks were intentionally prioritized before broader public, account, remote, team, AI, or China-market connector work. The next roadmap lane begins at `T57 - License And Open Source Boundary`, followed by open-source readiness, CI, releases, demo mode, research-flow polish, data governance, local AI assistance, China-market connectors, and security packaged signoff.
 
 For the product-team assessment behind this direction, see [docs/product-team-assessment-2026-05-17.md](docs/product-team-assessment-2026-05-17.md).
 
