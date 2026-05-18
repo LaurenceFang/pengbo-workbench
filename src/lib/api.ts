@@ -140,6 +140,8 @@ export type ConnectionTestResponse = {
   last_success_at: string | null;
   cache_updated_at: string | null;
   cache_age_seconds: number | null;
+  profile_id: string;
+  profile_label: string;
 };
 
 export type ConnectionStatusItem = {
@@ -155,10 +157,22 @@ export type ConnectionStatusItem = {
   last_success_at: string | null;
   cache_updated_at: string | null;
   cache_age_seconds: number | null;
+  profile_id: string;
+  profile_label: string;
+};
+
+export type CredentialProfile = {
+  profile_id: string;
+  label: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ConnectionsStatusResponse = {
   providers: ConnectionStatusItem[];
+  profiles: CredentialProfile[];
+  active_profile: CredentialProfile | null;
 };
 
 export type SourceFreshnessMetadata = {
@@ -1423,6 +1437,19 @@ export const api = {
   },
   getConnectionsStatus: () => apiFetch<ConnectionsStatusResponse>("/connections/status"),
   getConnectionsCatalog: () => apiFetch<ConnectionsCatalogResponse>("/connections/catalog"),
+  getConnectionProfiles: () => apiFetch<CredentialProfile[]>("/connections/profiles"),
+  createConnectionProfile: (label: string) =>
+    jsonRequest<CredentialProfile>("/connections/profiles", "POST", { label }),
+  setActiveConnectionProfile: async (profileId: string) => {
+    const profile = await jsonRequest<CredentialProfile>("/connections/profiles/active", "PUT", { profile_id: profileId });
+    if (isTauriRuntime()) {
+      await invoke<RuntimeCommandResponse>("set_active_connection_profile", {
+        payload: { profileId },
+      });
+      invalidateRuntimeConfig();
+    }
+    return profile;
+  },
   getDataSourceStatus: () => apiFetch<DataSourceStatusResponse>("/data-sources/status"),
   getDataSourceProviderStatus: (provider: string) =>
     apiFetch<DataSourceRuntimeStatus>(`/data-sources/sources/${encodeURIComponent(provider)}/status`),
@@ -1522,19 +1549,19 @@ export const api = {
     }
     return invoke<DiagnosticsExportResult>("export_diagnostics_bundle");
   },
-  saveConnectionSecret: async (provider: string, payload: ConnectionSecretPayload) => {
+  saveConnectionSecret: async (provider: string, payload: ConnectionSecretPayload, profileId?: string) => {
     if (!isTauriRuntime()) {
       throw new Error("凭证编辑仅在桌面版中可用。");
     }
     await ensureLocalSecurityUnlocked("provider_credentials");
-    return invoke<RuntimeCommandResponse>("save_connection_secret", { provider, payload });
+    return invoke<RuntimeCommandResponse>("save_connection_secret", { provider, payload, profileId });
   },
-  clearConnectionSecret: async (provider: string) => {
+  clearConnectionSecret: async (provider: string, profileId?: string) => {
     if (!isTauriRuntime()) {
       throw new Error("凭证编辑仅在桌面版中可用。");
     }
     await ensureLocalSecurityUnlocked("provider_credentials");
-    return invoke<RuntimeCommandResponse>("clear_connection_secret", { provider });
+    return invoke<RuntimeCommandResponse>("clear_connection_secret", { provider, profileId });
   },
   clearConnectionProfile: (provider: string) =>
     apiFetch<{ ok: boolean }>(`/connections/${encodeURIComponent(provider)}/profile`, {

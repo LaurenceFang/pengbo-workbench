@@ -230,6 +230,8 @@ class ConnectionCheckResponse(BaseModel):
     last_success_at: str | None = None
     cache_updated_at: str | None = None
     cache_age_seconds: int | None = None
+    profile_id: str = "local_default"
+    profile_label: str = "Local default"
 
 
 class SourceFreshnessMetadata(BaseModel):
@@ -258,10 +260,30 @@ class ConnectionStatusItem(BaseModel):
     last_success_at: str | None = None
     cache_updated_at: str | None = None
     cache_age_seconds: int | None = None
+    profile_id: str = "local_default"
+    profile_label: str = "Local default"
+
+
+class CredentialProfile(BaseModel):
+    profile_id: str
+    label: str
+    is_active: bool = False
+    created_at: str
+    updated_at: str
 
 
 class ConnectionsStatusResponse(BaseModel):
     providers: list[ConnectionStatusItem]
+    profiles: list[CredentialProfile] = Field(default_factory=list)
+    active_profile: CredentialProfile | None = None
+
+
+class CreateCredentialProfileRequest(BaseModel):
+    label: str = Field(min_length=1, max_length=80)
+
+
+class SetActiveCredentialProfileRequest(BaseModel):
+    profile_id: str = Field(min_length=1, max_length=80)
 
 
 class ProviderCapability(BaseModel):

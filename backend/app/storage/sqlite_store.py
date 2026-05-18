@@ -26,6 +26,48 @@ class SqliteStore:
         with self._lock:
             self.connection.close()
 
+    def _migrate_connection_profiles_to_account_scope(self) -> None:
+        columns = {
+            row["name"]
+            for row in self.connection.execute("PRAGMA table_info(connection_profiles)").fetchall()
+        }
+        if "profile_id" in columns:
+            return
+
+        now = utc_now_iso()
+        self.connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS connection_profiles_v2 (
+                profile_id TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                is_configured INTEGER NOT NULL,
+                metadata_json TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY (profile_id, provider),
+                FOREIGN KEY (profile_id) REFERENCES credential_profiles(profile_id) ON DELETE CASCADE
+            )
+            """
+        )
+        self.connection.execute(
+            """
+            INSERT OR REPLACE INTO connection_profiles_v2 (
+                profile_id, provider, is_configured, metadata_json, updated_at
+            )
+            SELECT 'local_default', provider, is_configured, metadata_json, updated_at
+            FROM connection_profiles
+            """
+        )
+        self.connection.execute("DROP TABLE connection_profiles")
+        self.connection.execute("ALTER TABLE connection_profiles_v2 RENAME TO connection_profiles")
+        self.connection.execute(
+            """
+            INSERT INTO credential_profiles (profile_id, label, is_active, created_at, updated_at)
+            VALUES ('local_default', 'Local default', 1, ?, ?)
+            ON CONFLICT(profile_id) DO NOTHING
+            """,
+            (now, now),
+        )
+
     def initialize(self) -> None:
         with self._lock:
             self.connection.executescript(
@@ -109,6 +151,14 @@ class SqliteStore:
                     provider TEXT PRIMARY KEY,
                     is_configured INTEGER NOT NULL,
                     metadata_json TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS credential_profiles (
+                    profile_id TEXT PRIMARY KEY,
+                    label TEXT NOT NULL,
+                    is_active INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 );
 
@@ -235,11 +285,33 @@ class SqliteStore:
                 """
             )
             self.connection.commit()
+            self._migrate_connection_profiles_to_account_scope()
         self._seed_defaults()
 
     def _seed_defaults(self) -> None:
         now = utc_now_iso()
         with self._lock:
+            self.connection.execute(
+                """
+                INSERT INTO credential_profiles (profile_id, label, is_active, created_at, updated_at)
+                VALUES ('local_default', 'Local default', 1, ?, ?)
+                ON CONFLICT(profile_id) DO NOTHING
+                """,
+                (now, now),
+            )
+            active_count = self.connection.execute(
+                "SELECT COUNT(*) AS count FROM credential_profiles WHERE is_active = 1"
+            ).fetchone()["count"]
+            if int(active_count) == 0:
+                self.connection.execute(
+                    """
+                    UPDATE credential_profiles
+                    SET is_active = 1, updated_at = ?
+                    WHERE profile_id = 'local_default'
+                    """,
+                    (now,),
+                )
+
             self.connection.execute(
                 """
                 INSERT INTO watchlists (key, title, is_default, updated_at)
@@ -432,16 +504,138 @@ class SqliteStore:
             self.connection.commit()
         return payload
 
-    def get_connection_profile(self, provider: str) -> dict[str, Any] | None:
+    def list_credential_profiles(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self.connection.execute(
+                """
+                SELECT profile_id, label, is_active, created_at, updated_at
+                FROM credential_profiles
+                ORDER BY is_active DESC, updated_at DESC, label ASC
+                """
+            ).fetchall()
+        return [
+            {
+                "profile_id": row["profile_id"],
+                "label": row["label"],
+                "is_active": bool(row["is_active"]),
+                "created_at": row["created_at"],
+                "updated_at": row["updated_at"],
+            }
+            for row in rows
+        ]
+
+    def get_active_credential_profile(self) -> dict[str, Any]:
         with self._lock:
             row = self.connection.execute(
-                "SELECT provider, is_configured, metadata_json, updated_at FROM connection_profiles WHERE provider = ?",
-                (provider,),
+                """
+                SELECT profile_id, label, is_active, created_at, updated_at
+                FROM credential_profiles
+                WHERE is_active = 1
+                ORDER BY updated_at DESC
+                LIMIT 1
+                """
+            ).fetchone()
+        if row is None:
+            now = utc_now_iso()
+            self.upsert_credential_profile("local_default", label="Local default", is_active=True)
+            return {
+                "profile_id": "local_default",
+                "label": "Local default",
+                "is_active": True,
+                "created_at": now,
+                "updated_at": now,
+            }
+        return {
+            "profile_id": row["profile_id"],
+            "label": row["label"],
+            "is_active": bool(row["is_active"]),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    def upsert_credential_profile(self, profile_id: str, *, label: str, is_active: bool = False) -> dict[str, Any]:
+        now = utc_now_iso()
+        with self._lock:
+            if is_active:
+                self.connection.execute("UPDATE credential_profiles SET is_active = 0")
+            self.connection.execute(
+                """
+                INSERT INTO credential_profiles (profile_id, label, is_active, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(profile_id) DO UPDATE SET
+                    label = excluded.label,
+                    is_active = excluded.is_active,
+                    updated_at = excluded.updated_at
+                """,
+                (profile_id, label, int(is_active), now, now),
+            )
+            self.connection.commit()
+        return self.get_credential_profile(profile_id) or {
+            "profile_id": profile_id,
+            "label": label,
+            "is_active": is_active,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+    def get_credential_profile(self, profile_id: str) -> dict[str, Any] | None:
+        with self._lock:
+            row = self.connection.execute(
+                """
+                SELECT profile_id, label, is_active, created_at, updated_at
+                FROM credential_profiles
+                WHERE profile_id = ?
+                """,
+                (profile_id,),
             ).fetchone()
         if row is None:
             return None
 
         return {
+            "profile_id": row["profile_id"],
+            "label": row["label"],
+            "is_active": bool(row["is_active"]),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    def set_active_credential_profile(self, profile_id: str) -> dict[str, Any]:
+        profile = self.get_credential_profile(profile_id)
+        if profile is None:
+            raise ValueError(f"Credential profile not found: {profile_id}")
+        now = utc_now_iso()
+        with self._lock:
+            self.connection.execute("UPDATE credential_profiles SET is_active = 0")
+            self.connection.execute(
+                """
+                UPDATE credential_profiles
+                SET is_active = 1, updated_at = ?
+                WHERE profile_id = ?
+                """,
+                (now, profile_id),
+            )
+            self.connection.commit()
+        return self.get_active_credential_profile()
+
+    def get_connection_profile(self, provider: str, profile_id: str | None = None) -> dict[str, Any] | None:
+        credential_profile = self.get_credential_profile(profile_id) if profile_id else self.get_active_credential_profile()
+        if credential_profile is None:
+            return None
+        with self._lock:
+            row = self.connection.execute(
+                """
+                SELECT profile_id, provider, is_configured, metadata_json, updated_at
+                FROM connection_profiles
+                WHERE profile_id = ? AND provider = ?
+                """,
+                (credential_profile["profile_id"], provider),
+            ).fetchone()
+        if row is None:
+            return None
+
+        return {
+            "profile_id": row["profile_id"],
+            "profile_label": credential_profile["label"],
             "provider": row["provider"],
             "is_configured": bool(row["is_configured"]),
             "metadata": json.loads(row["metadata_json"]),
@@ -455,8 +649,12 @@ class SqliteStore:
         is_configured: bool,
         metadata: dict[str, Any] | None = None,
         merge_metadata: bool = True,
+        profile_id: str | None = None,
     ) -> None:
-        existing = self.get_connection_profile(provider) if merge_metadata else None
+        credential_profile = self.get_credential_profile(profile_id) if profile_id else self.get_active_credential_profile()
+        if credential_profile is None:
+            raise ValueError(f"Credential profile not found: {profile_id}")
+        existing = self.get_connection_profile(provider, credential_profile["profile_id"]) if merge_metadata else None
         payload_data = dict(existing["metadata"]) if existing else {}
         payload_data.update(metadata or {})
         payload = json.dumps(payload_data, ensure_ascii=False)
@@ -464,22 +662,25 @@ class SqliteStore:
         with self._lock:
             self.connection.execute(
                 """
-                INSERT INTO connection_profiles (provider, is_configured, metadata_json, updated_at)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(provider) DO UPDATE SET
+                INSERT INTO connection_profiles (profile_id, provider, is_configured, metadata_json, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(profile_id, provider) DO UPDATE SET
                     is_configured = excluded.is_configured,
                     metadata_json = excluded.metadata_json,
                     updated_at = excluded.updated_at
                 """,
-                (provider, int(is_configured), payload, utc_now_iso()),
+                (credential_profile["profile_id"], provider, int(is_configured), payload, utc_now_iso()),
             )
             self.connection.commit()
 
-    def delete_connection_profile(self, provider: str) -> None:
+    def delete_connection_profile(self, provider: str, profile_id: str | None = None) -> None:
+        credential_profile = self.get_credential_profile(profile_id) if profile_id else self.get_active_credential_profile()
+        if credential_profile is None:
+            raise ValueError(f"Credential profile not found: {profile_id}")
         with self._lock:
             self.connection.execute(
-                "DELETE FROM connection_profiles WHERE provider = ?",
-                (provider,),
+                "DELETE FROM connection_profiles WHERE profile_id = ? AND provider = ?",
+                (credential_profile["profile_id"], provider),
             )
             self.connection.commit()
 

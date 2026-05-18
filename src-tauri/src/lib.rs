@@ -114,6 +114,12 @@ struct ConnectionSecretPayload {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SetActiveProfilePayload {
+    profile_id: String,
+}
+
+#[derive(Debug, Deserialize)]
 struct LocalSecurityStatus {
     initialized: bool,
     locked: bool,
@@ -178,6 +184,7 @@ pub fn run() {
             export_diagnostics_bundle,
             save_connection_secret,
             clear_connection_secret,
+            set_active_connection_profile,
             test_connection
         ])
         .setup(|app| {
@@ -224,21 +231,23 @@ fn save_connection_secret(
     state: State<'_, AppState>,
     provider: String,
     payload: ConnectionSecretPayload,
+    profile_id: Option<String>,
 ) -> Result<RuntimeCommandResponse, String> {
     ensure_local_unlocked(&app, state.inner(), "provider_credentials")?;
     let paths = runtime_paths(&app)?;
     let bootstrap_log_path = paths.log_dir.join("sidecar-bootstrap.log");
     let provider_key = provider.to_lowercase();
+    let profile_key = normalize_profile_id(profile_id.as_deref());
     match provider.to_lowercase().as_str() {
         "binance" => {
-            save_secret_value(&app, "binance.api_key", payload.api_key)?;
-            save_secret_value(&app, "binance.secret", payload.secret)?;
-            save_secret_value(&app, "binance.password", payload.password)?;
+            save_profile_secret_value(&app, &profile_key, "binance.api_key", payload.api_key)?;
+            save_profile_secret_value(&app, &profile_key, "binance.secret", payload.secret)?;
+            save_profile_secret_value(&app, &profile_key, "binance.password", payload.password)?;
         }
         "edgar" => {
             let payload_length = payload.identity.as_deref().unwrap_or_default().trim().len();
-            save_secret_value(&app, "edgar.identity", payload.identity)?;
-            let persisted_length = load_secret_value(&app, "edgar.identity")?
+            save_profile_secret_value(&app, &profile_key, "edgar.identity", payload.identity)?;
+            let persisted_length = load_profile_secret_value(&app, &profile_key, "edgar.identity")?
                 .as_deref()
                 .unwrap_or_default()
                 .trim()
@@ -251,18 +260,18 @@ fn save_connection_secret(
             );
         }
         "fred" => {
-            save_secret_value(&app, "fred.api_key", payload.api_key)?;
+            save_profile_secret_value(&app, &profile_key, "fred.api_key", payload.api_key)?;
         }
         "coingecko" => {
-            save_secret_value(&app, "coingecko.demo_api_key", payload.api_key)?;
-            save_secret_value(&app, "coingecko.pro_api_key", payload.secret)?;
+            save_profile_secret_value(&app, &profile_key, "coingecko.demo_api_key", payload.api_key)?;
+            save_profile_secret_value(&app, &profile_key, "coingecko.pro_api_key", payload.secret)?;
         }
         _ => return Err(format!("unsupported provider: {provider}")),
     }
     if provider_key != "edgar" {
         append_log_line(
             &bootstrap_log_path,
-            &format!("credential save provider={provider_key}"),
+            &format!("credential save provider={provider_key} profile={profile_key}"),
         );
     }
 
@@ -274,27 +283,44 @@ fn clear_connection_secret(
     app: AppHandle,
     state: State<'_, AppState>,
     provider: String,
+    profile_id: Option<String>,
 ) -> Result<RuntimeCommandResponse, String> {
     ensure_local_unlocked(&app, state.inner(), "provider_credentials")?;
+    let profile_key = normalize_profile_id(profile_id.as_deref());
     match provider.to_lowercase().as_str() {
         "binance" => {
-            save_secret_value(&app, "binance.api_key", None)?;
-            save_secret_value(&app, "binance.secret", None)?;
-            save_secret_value(&app, "binance.password", None)?;
+            save_profile_secret_value(&app, &profile_key, "binance.api_key", None)?;
+            save_profile_secret_value(&app, &profile_key, "binance.secret", None)?;
+            save_profile_secret_value(&app, &profile_key, "binance.password", None)?;
         }
         "edgar" => {
-            save_secret_value(&app, "edgar.identity", None)?;
+            save_profile_secret_value(&app, &profile_key, "edgar.identity", None)?;
         }
         "fred" => {
-            save_secret_value(&app, "fred.api_key", None)?;
+            save_profile_secret_value(&app, &profile_key, "fred.api_key", None)?;
         }
         "coingecko" => {
-            save_secret_value(&app, "coingecko.demo_api_key", None)?;
-            save_secret_value(&app, "coingecko.pro_api_key", None)?;
+            save_profile_secret_value(&app, &profile_key, "coingecko.demo_api_key", None)?;
+            save_profile_secret_value(&app, &profile_key, "coingecko.pro_api_key", None)?;
         }
         _ => return Err(format!("unsupported provider: {provider}")),
     }
 
+    Ok(RuntimeCommandResponse { ok: true })
+}
+
+#[tauri::command]
+fn set_active_connection_profile(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    payload: SetActiveProfilePayload,
+) -> Result<RuntimeCommandResponse, String> {
+    ensure_local_unlocked(&app, state.inner(), "provider_credentials")?;
+    save_secret_value(
+        &app,
+        "active_credential_profile_id",
+        Some(normalize_profile_id(Some(&payload.profile_id))),
+    )?;
     Ok(RuntimeCommandResponse { ok: true })
 }
 
@@ -817,36 +843,39 @@ fn sidecar_envs(app: &AppHandle) -> Result<Vec<(String, String)>, String> {
     let mut envs = vec![];
     let paths = runtime_paths(app)?;
     let (_stronghold, client) = open_stronghold(app)?;
+    let active_profile_id = load_secret_value_from_client(&client, "active_credential_profile_id")?
+        .map(|value| normalize_profile_id(Some(&value)))
+        .unwrap_or_else(|| "local_default".to_string());
 
-    let edgar_identity = load_secret_value_from_client(&client, "edgar.identity")?
+    let edgar_identity = load_profile_secret_value_from_client(&client, &active_profile_id, "edgar.identity")?
         .or_else(|| env::var("EDGAR_IDENTITY").ok())
         .filter(|value| !value.trim().is_empty());
     if let Some(identity) = edgar_identity {
         envs.push(("EDGAR_IDENTITY".to_string(), identity));
     }
 
-    let binance_api_key = load_secret_value_from_client(&client, "binance.api_key")?
+    let binance_api_key = load_profile_secret_value_from_client(&client, &active_profile_id, "binance.api_key")?
         .or_else(|| env::var("PENGBO_BINANCE_API_KEY").ok())
         .filter(|value| !value.trim().is_empty());
     if let Some(api_key) = binance_api_key {
         envs.push(("PENGBO_BINANCE_API_KEY".to_string(), api_key));
     }
 
-    let binance_secret = load_secret_value_from_client(&client, "binance.secret")?
+    let binance_secret = load_profile_secret_value_from_client(&client, &active_profile_id, "binance.secret")?
         .or_else(|| env::var("PENGBO_BINANCE_SECRET").ok())
         .filter(|value| !value.trim().is_empty());
     if let Some(secret) = binance_secret {
         envs.push(("PENGBO_BINANCE_SECRET".to_string(), secret));
     }
 
-    let binance_password = load_secret_value_from_client(&client, "binance.password")?
+    let binance_password = load_profile_secret_value_from_client(&client, &active_profile_id, "binance.password")?
         .or_else(|| env::var("PENGBO_BINANCE_PASSWORD").ok())
         .filter(|value| !value.trim().is_empty());
     if let Some(password) = binance_password {
         envs.push(("PENGBO_BINANCE_PASSWORD".to_string(), password));
     }
 
-    let fred_api_key = load_secret_value_from_client(&client, "fred.api_key")?
+    let fred_api_key = load_profile_secret_value_from_client(&client, &active_profile_id, "fred.api_key")?
         .or_else(|| env::var("PENGBO_FRED_API_KEY").ok())
         .or_else(|| env::var("FRED_API_KEY").ok())
         .filter(|value| !value.trim().is_empty());
@@ -854,14 +883,14 @@ fn sidecar_envs(app: &AppHandle) -> Result<Vec<(String, String)>, String> {
         envs.push(("PENGBO_FRED_API_KEY".to_string(), api_key));
     }
 
-    let coingecko_demo_api_key = load_secret_value_from_client(&client, "coingecko.demo_api_key")?
+    let coingecko_demo_api_key = load_profile_secret_value_from_client(&client, &active_profile_id, "coingecko.demo_api_key")?
         .or_else(|| env::var("PENGBO_COINGECKO_DEMO_API_KEY").ok())
         .filter(|value| !value.trim().is_empty());
     if let Some(api_key) = coingecko_demo_api_key {
         envs.push(("PENGBO_COINGECKO_DEMO_API_KEY".to_string(), api_key));
     }
 
-    let coingecko_pro_api_key = load_secret_value_from_client(&client, "coingecko.pro_api_key")?
+    let coingecko_pro_api_key = load_profile_secret_value_from_client(&client, &active_profile_id, "coingecko.pro_api_key")?
         .or_else(|| env::var("PENGBO_COINGECKO_PRO_API_KEY").ok())
         .filter(|value| !value.trim().is_empty());
     if let Some(api_key) = coingecko_pro_api_key {
@@ -875,6 +904,58 @@ fn sidecar_envs(app: &AppHandle) -> Result<Vec<(String, String)>, String> {
     }
 
     Ok(envs)
+}
+
+fn normalize_profile_id(value: Option<&str>) -> String {
+    let raw = value.unwrap_or("local_default").trim();
+    if raw.is_empty() {
+        return "local_default".to_string();
+    }
+    raw.chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() || character == '_' || character == '-' {
+                character
+            } else {
+                '_'
+            }
+        })
+        .collect()
+}
+
+fn profile_secret_key(profile_id: &str, key: &str) -> String {
+    format!("profile.{}.{}", normalize_profile_id(Some(profile_id)), key)
+}
+
+fn save_profile_secret_value(
+    app: &AppHandle,
+    profile_id: &str,
+    key: &str,
+    value: Option<String>,
+) -> Result<(), String> {
+    save_secret_value(app, &profile_secret_key(profile_id, key), value.clone())?;
+    if normalize_profile_id(Some(profile_id)) == "local_default" {
+        save_secret_value(app, key, value)?;
+    }
+    Ok(())
+}
+
+fn load_profile_secret_value(app: &AppHandle, profile_id: &str, key: &str) -> Result<Option<String>, String> {
+    let (_stronghold, client) = open_stronghold(app)?;
+    load_profile_secret_value_from_client(&client, profile_id, key)
+}
+
+fn load_profile_secret_value_from_client(
+    client: &iota_stronghold::Client,
+    profile_id: &str,
+    key: &str,
+) -> Result<Option<String>, String> {
+    if let Some(value) = load_secret_value_from_client(client, &profile_secret_key(profile_id, key))? {
+        return Ok(Some(value));
+    }
+    if normalize_profile_id(Some(profile_id)) == "local_default" {
+        return load_secret_value_from_client(client, key);
+    }
+    Ok(None)
 }
 
 fn save_secret_value(app: &AppHandle, key: &str, value: Option<String>) -> Result<(), String> {
@@ -893,11 +974,6 @@ fn save_secret_value(app: &AppHandle, key: &str, value: Option<String>) -> Resul
     stronghold
         .save()
         .map_err(|error| format!("failed to persist stronghold snapshot: {error}"))
-}
-
-fn load_secret_value(app: &AppHandle, key: &str) -> Result<Option<String>, String> {
-    let (_stronghold, client) = open_stronghold(app)?;
-    load_secret_value_from_client(&client, key)
 }
 
 fn load_secret_value_from_client(

@@ -47,8 +47,8 @@ Updated: 2026-05-18
 - `T51 - Startup Time Reduction` is now implemented and package-smoke validated. The packaged launch path no longer blocks Tauri setup on sidecar health, the Tauri-mode sidecar keeps health/settings startup light before full service initialization, cold-start adopt-existing probes use a short timeout, bundled sidecar shutdown avoids visible console windows, and the latest packaged startup smoke records `health_ready_seconds=2.88s`, `failures=[]`, `single_instance_ok=true`, `adopt_existing_ok=true`, and `shutdown_sidecar_exited_ok=true` in `logs/packaged-startup-smoke-latest.json`.
 - `T52 - Git Upload Readiness And Repository Normalization` is now implemented, security-remediated after independent Claude Code review, and selected for first public GitHub upload. The public-upload boundary is documented in `README.md` and `docs/REPOSITORY_UPLOAD_READINESS.md`, root and Tauri ignore rules exclude generated/runtime/secret artifacts, CORS methods are explicit, generated sidecar build logs are documented as local ignored resources, and no API/runtime contract was changed.
 - `T53 - Local Unlock PIN And Idle Lock` is now implemented and package-smoke validated. Sensitive desktop surfaces now require a local unlock factor, failed unlock attempts are tracked with lockout support, idle relock is audited, Tauri credential commands verify unlock state, and packaged evidence is recorded in `logs/local-security-packaged-smoke-latest.json`.
-- `T54 - Account-Scoped Provider Credential Model` is now selected as the recommended next task; it should separate account metadata from credential material and prepare provider credentials for future per-account ownership.
-- `T55 - Future Public Auth And Session Layer` remains blocked behind T53 and T54; it should introduce authenticated users, sessions, permission checks, and account-level audit context before any public deployment.
+- `T54 - Account-Scoped Provider Credential Model` is now implemented and package-smoke validated. Provider credential readiness metadata is scoped to explicit local profiles, the existing `/api/v1/...` compatibility routes still work, Stronghold secret material remains outside SQLite, and packaged evidence is recorded in `logs/account-scoped-credentials-smoke-latest.json`.
+- `T55 - Future Public Auth And Session Layer` is now selected as the recommended next task; it should introduce authenticated local sessions, permission checks, and account-level audit context before any public deployment.
 - `T56 - Public Exposure Gateway And Sidecar Hardening` remains blocked behind T53, T54, and T55; it should review CORS, bind addresses, API gateway rules, rate limits, CSRF posture, request logging, and deployment topology before any internet-facing mode.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
@@ -59,6 +59,7 @@ Updated: 2026-05-18
 
 - Replanned the post-T52 sequence on 2026-05-18 after reviewing the external product assessments and local task board state.
 - Completed `T53 - Local Unlock PIN And Idle Lock` on 2026-05-18 and promoted `T54 - Account-Scoped Provider Credential Model` as the current recommended next task, followed by `T55` and `T56` in strict order before any public, account, remote, or team-facing mode.
+- Completed `T54 - Account-Scoped Provider Credential Model` on 2026-05-18 and promoted `T55 - Future Public Auth And Session Layer` as the current recommended next task, followed by `T56` before any public, remote, or team-facing mode.
 - Added the future product-trust roadmap from `T57` through `T94`; these tasks cover open-source boundary, CI, release, demo mode, research-flow polish, data-source governance, local AI research assistance, China-market connectors, and security packaged signoff.
 - The new `T57+` roadmap is intentionally queued after the security-accountability sequence and should not be implemented before T53-T56 unless the task board is explicitly re-prioritized.
 
@@ -101,7 +102,23 @@ Updated: 2026-05-18
   - `npm run typecheck`
   - `npm run tauri:build`
   - `npm run smoke:local-security:packaged`
-- No new blocker task was discovered. `T54 - Account-Scoped Provider Credential Model` is now promoted as the next recommended task.
+- Completed `T54 - Account-Scoped Provider Credential Model`.
+- Added account-scoped local credential profiles in SQLite with automatic migration of existing `connection_profiles` rows into the default `local_default` profile.
+- Preserved existing `/api/v1/connections/status`, `/catalog`, `/test`, and profile-clear compatibility while adding local profile list/create/select endpoints for the desktop credential surface.
+- Kept raw credential material in the Tauri Stronghold bridge. Profile-scoped Stronghold keys now use the selected local profile while retaining default-profile fallback compatibility for existing secret keys.
+- Added Connections UI affordances for selecting or creating a local profile and showing provider readiness ownership per provider card.
+- Extended credential audit events with redacted `profile_id` and `profile_label` context for profile creation, profile selection, provider readiness checks, and profile clearing.
+- Added repeatable account-scoped packaged validation via `scripts/packaged_account_scoped_credentials_smoke.ps1` and `npm run smoke:account-credentials:packaged`. The latest result in `logs/account-scoped-credentials-smoke-latest.json` records `health_ready=true`, `default_profile_seen=true`, `profile_created=true`, `profile_switch_ok=true`, `readiness_profile_context_ok=true`, `redacted_audit_ok=true`, `sqlite_plaintext_secret_found=false`, and `failures=[]`.
+- Validation passed:
+  - `py -m pytest backend/tests/test_account_scoped_credentials.py backend/tests/test_security_audit_service.py`
+  - `py -m pytest backend/tests/test_capability_service.py backend/tests/test_data_source_service.py backend/tests/test_execution_service.py backend/tests/test_research_service.py backend/tests/test_account_scoped_credentials.py`
+  - `npm run typecheck`
+  - `npm run build`
+  - `cargo check`
+  - `npm run tauri:build`
+  - `npm run smoke:account-credentials:packaged`
+- The older `smoke:provider-capability-signoff` harness could not be rerun cleanly during this pass because its runtime reset step repeatedly hit an external SQLite file lock from a packaged sidecar process; the T54-specific packaged smoke completed cleanly after strengthening sidecar cleanup and no code-level provider regression was observed in build or focused tests.
+- No new blocker task was discovered. `T55 - Future Public Auth And Session Layer` is now promoted as the next recommended task.
 
 - Executed the first public GitHub upload path for `T52 - Git Upload Readiness And Repository Normalization`.
 - Created the public repository `LaurenceFang/pengbo-workbench` for the safe source upload target.
@@ -770,7 +787,7 @@ Updated: 2026-05-18
 
 ## Recommended Next Task
 
-### T54 - Account-Scoped Provider Credential Model
+### T55 - Future Public Auth And Session Layer
 
 Priority: P1
 Status: Planned
@@ -778,31 +795,29 @@ Status: Planned
 Why this is next:
 
 - `T53 - Local Unlock PIN And Idle Lock` is complete and package-smoke validated, so sensitive local surfaces now have an initialization/unlock/idle-relock boundary.
-- The next security-accountability gap is credential ownership: provider credentials are still local-machine scoped rather than attached to an explicit local account/profile.
-- T54 must happen before `T55`, `T56`, and before any public, team-facing, remote, or broader account-sensitive workflow.
+- `T54 - Account-Scoped Provider Credential Model` is complete and package-smoke validated, so provider credential ownership now has explicit local profile context without moving raw secrets out of Stronghold.
+- The next security-accountability gap is session identity: sensitive route access is still based on local unlock state rather than explicit session-bound permissions and expiry.
+- T55 must happen before `T56` and before any public, team-facing, remote, or broader account-sensitive workflow.
 
 Scope:
 
-- Introduce local account/profile ownership metadata for provider credentials without adding cloud accounts.
-- Separate account labels, provider capability metadata, credential readiness state, and raw secret storage.
-- Migrate existing provider credential records into an account-scoped local model while preserving `/api/v1/...` compatibility.
-- Add UI affordances for selecting the active local profile and seeing credential readiness per provider.
-- Extend audit events for credential create, update, rotate, disable, and provider-readiness checks.
+- Define a future-ready identity/session model that can support public deployment later without turning the current app into a hosted service.
+- Add local session concepts, session expiry, session-bound permissions, and audit coverage.
+- Document which routes and surfaces are desktop-local only, which are account-sensitive, and which could later become remote-safe.
+- Add tests for session creation, expiry, permission checks, and redacted session audit events.
 
 Acceptance:
 
-- A local user can understand which profile owns each provider credential.
-- Existing provider workflows continue to work through compatibility APIs.
-- Secret material remains in the existing Stronghold/secret bridge pattern.
-- Security audit output stays redacted and includes local profile/account context.
-- Packaged EXE validation covers migration, profile switching, provider readiness, and redacted audit output.
+- The app has an explicit session boundary instead of ad hoc UI-only access checks.
+- The implementation does not introduce OAuth, hosted accounts, remote sync, or public network exposure.
+- T56 has a clear input map of routes, permissions, and risks to harden.
 
 Implementation notes:
 
-- Preserve the local-first boundary and avoid adding hosted identity, OAuth, cloud sync, or remote multi-user semantics in T54.
-- Build on the T53 unlock boundary; do not weaken local unlock checks for credential surfaces.
-- Keep all raw credential material in the existing Stronghold/secret bridge pattern; T54 should only add ownership/readiness metadata outside Stronghold.
-- After T54 closes, promote `T55 - Future Public Auth And Session Layer`.
+- Preserve the local-first boundary and avoid adding hosted identity, OAuth, cloud sync, or remote multi-user semantics in T55.
+- Build on the T53 unlock boundary and T54 local-profile context; do not weaken unlock checks for credential, execution, audit, or account-sensitive surfaces.
+- Keep session records redacted and local-only.
+- After T55 closes, promote `T56 - Public Exposure Gateway And Sidecar Hardening`.
 
 ## Priority Order
 
@@ -838,7 +853,7 @@ Completion:
 ### T54 - Account-Scoped Provider Credential Model
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-06-01 to 2026-06-14
 Depends on: T53
 
@@ -856,6 +871,15 @@ Done when:
 - Existing provider workflows continue to work through compatibility APIs.
 - Secret material remains in the existing Stronghold/secret bridge pattern.
 - Packaged EXE validation covers migration, profile switching, provider readiness, and redacted audit output.
+
+Completion:
+
+- Added account-scoped local credential profiles in SQLite with automatic migration of existing `connection_profiles` rows into the default `local_default` profile.
+- Preserved existing `/api/v1/connections/status`, `/catalog`, `/test`, and profile-clear compatibility while adding local profile list/create/select endpoints.
+- Kept raw credential material in the Tauri Stronghold bridge with profile-scoped keys and default-profile fallback compatibility for existing secrets.
+- Added Connections UI controls for selecting/creating a local profile and showing provider readiness ownership per provider card.
+- Extended credential audit events with redacted local profile context.
+- Packaged signoff passed in `logs/account-scoped-credentials-smoke-latest.json` with `default_profile_seen=true`, `profile_created=true`, `profile_switch_ok=true`, `readiness_profile_context_ok=true`, `redacted_audit_ok=true`, `sqlite_plaintext_secret_found=false`, and `failures=[]`.
 
 ### T55 - Future Public Auth And Session Layer
 

@@ -13,7 +13,9 @@ from ..models import (
     ConnectionCheckResponse,
     ConnectionsCatalogResponse,
     ConnectionsStatusResponse,
+    CreateCredentialProfileRequest,
     CreateResearchBriefRequest,
+    CredentialProfile,
     CreateScreenerPresetVariantRequest,
     CryptoMarketsResponse,
     DataSourceReportExportRequest,
@@ -53,6 +55,7 @@ from ..models import (
     ScreenerRunResponse,
     SettingsRuntimeResponse,
     SecurityAuditEvent,
+    SetActiveCredentialProfileRequest,
     StrategyBacktestListItem,
     StrategyBacktestRequest,
     StrategyBacktestResponse,
@@ -520,6 +523,24 @@ def register_routes(app: FastAPI) -> None:
     @app.get("/api/v1/connections/catalog", response_model=ConnectionsCatalogResponse)
     def get_connections_catalog(request: Request) -> ConnectionsCatalogResponse:
         return _container(request).connections_service.get_catalog()
+
+    @app.get("/api/v1/connections/profiles", response_model=list[CredentialProfile])
+    def get_connection_profiles(request: Request) -> list[CredentialProfile]:
+        _require_unlocked(request, "provider_credentials")
+        return _container(request).connections_service.list_profiles()
+
+    @app.post("/api/v1/connections/profiles", response_model=CredentialProfile)
+    def create_connection_profile(request: Request, payload: CreateCredentialProfileRequest) -> CredentialProfile:
+        _require_unlocked(request, "provider_credentials")
+        return _container(request).connections_service.create_profile(payload)
+
+    @app.put("/api/v1/connections/profiles/active", response_model=CredentialProfile)
+    def set_active_connection_profile(request: Request, payload: SetActiveCredentialProfileRequest) -> CredentialProfile:
+        _require_unlocked(request, "provider_credentials")
+        try:
+            return _container(request).connections_service.set_active_profile(payload)
+        except ValueError as error:
+            raise _value_error_to_http(error) from error
 
     @app.post("/api/v1/connections/test", response_model=ConnectionCheckResponse)
     def test_connection(request: Request, payload: ConnectionCheckRequest) -> ConnectionCheckResponse:
