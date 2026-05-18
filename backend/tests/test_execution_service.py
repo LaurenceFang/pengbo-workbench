@@ -276,12 +276,20 @@ class ExecutionApiTests(unittest.TestCase):
                 container.execution_service.asset_service = container.asset_service
                 container.execution_service.binance_provider = FakeProvider()
 
+                blocked_response = client.get("/api/v1/execution/binance/config")
+                self.assertEqual(blocked_response.status_code, 423)
+                unlock_response = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock_response.status_code, 200)
+
                 config_response = client.get("/api/v1/execution/binance/config")
                 self.assertEqual(config_response.status_code, 200)
                 self.assertFalse(config_response.json()["live_enabled"])
+                session = client.post("/api/v1/security/session", json={}).json()
+                session_headers = {"X-Pengbo-Session": session["session_id"]}
 
                 intent_response = client.post(
                     "/api/v1/execution/binance/intents",
+                    headers=session_headers,
                     json={
                         "symbol": "BTC/USDT",
                         "side": "buy",
@@ -293,7 +301,10 @@ class ExecutionApiTests(unittest.TestCase):
                 intent = intent_response.json()
                 self.assertEqual(intent["status"], "draft")
 
-                submit_response = client.post(f"/api/v1/execution/binance/intents/{intent['intent_id']}/submit")
+                submit_response = client.post(
+                    f"/api/v1/execution/binance/intents/{intent['intent_id']}/submit",
+                    headers=session_headers,
+                )
                 self.assertEqual(submit_response.status_code, 200)
                 submitted = submit_response.json()
                 self.assertEqual(submitted["status"], "blocked")
@@ -301,18 +312,22 @@ class ExecutionApiTests(unittest.TestCase):
 
                 kill_response = client.post(
                     "/api/v1/execution/binance/kill-switch",
+                    headers=session_headers,
                     json={"enabled": True, "reason": "api test"},
                 )
                 self.assertEqual(kill_response.status_code, 200)
                 self.assertTrue(kill_response.json()["kill_switch_enabled"])
 
-                audit_response = client.get("/api/v1/execution/binance/audit")
+                audit_response = client.get("/api/v1/execution/binance/audit", headers=session_headers)
                 self.assertEqual(audit_response.status_code, 200)
                 event_types = [item["event_type"] for item in audit_response.json()]
                 self.assertIn("intent_created", event_types)
                 self.assertIn("intent_blocked", event_types)
 
-                security_audit_response = client.get("/api/v1/security/audit?category=execution")
+                security_audit_response = client.get(
+                    "/api/v1/security/audit?category=execution",
+                    headers=session_headers,
+                )
                 self.assertEqual(security_audit_response.status_code, 200)
                 security_event_types = [item["event_type"] for item in security_audit_response.json()]
                 self.assertIn("binance_intent_created", security_event_types)

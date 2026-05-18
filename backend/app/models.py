@@ -71,6 +71,14 @@ WorkflowActionPolicy = Literal[
 ]
 WorkflowRunStatus = Literal["pending", "running", "completed", "blocked", "failed"]
 WorkflowStepStatus = Literal["pending", "running", "completed", "blocked", "failed", "manual_required"]
+SessionPermission = Literal[
+    "session:read",
+    "security:audit:read",
+    "credentials:manage",
+    "execution:manage",
+    "account:read",
+    "reports:export",
+]
 
 
 class HealthResponse(BaseModel):
@@ -230,6 +238,8 @@ class ConnectionCheckResponse(BaseModel):
     last_success_at: str | None = None
     cache_updated_at: str | None = None
     cache_age_seconds: int | None = None
+    profile_id: str = "local_default"
+    profile_label: str = "Local default"
 
 
 class SourceFreshnessMetadata(BaseModel):
@@ -258,10 +268,30 @@ class ConnectionStatusItem(BaseModel):
     last_success_at: str | None = None
     cache_updated_at: str | None = None
     cache_age_seconds: int | None = None
+    profile_id: str = "local_default"
+    profile_label: str = "Local default"
+
+
+class CredentialProfile(BaseModel):
+    profile_id: str
+    label: str
+    is_active: bool = False
+    created_at: str
+    updated_at: str
 
 
 class ConnectionsStatusResponse(BaseModel):
     providers: list[ConnectionStatusItem]
+    profiles: list[CredentialProfile] = Field(default_factory=list)
+    active_profile: CredentialProfile | None = None
+
+
+class CreateCredentialProfileRequest(BaseModel):
+    label: str = Field(min_length=1, max_length=80)
+
+
+class SetActiveCredentialProfileRequest(BaseModel):
+    profile_id: str = Field(min_length=1, max_length=80)
 
 
 class ProviderCapability(BaseModel):
@@ -1348,3 +1378,54 @@ class SecurityAuditEvent(BaseModel):
     subject: str | None = None
     summary: str
     payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class LocalSecurityStatus(BaseModel):
+    initialized: bool
+    locked: bool
+    unlocked_until: str | None = None
+    idle_timeout_seconds: int = 600
+    failed_attempts: int = 0
+    max_failed_attempts: int = 5
+    lockout_until: str | None = None
+    sensitive_surfaces: list[str] = Field(default_factory=list)
+
+
+class LocalSecurityInitializeRequest(BaseModel):
+    unlock_secret: str = Field(min_length=4, max_length=128)
+
+
+class LocalSecurityUnlockRequest(BaseModel):
+    unlock_secret: str = Field(min_length=1, max_length=128)
+
+
+class LocalSecurityTouchRequest(BaseModel):
+    surface: str | None = None
+
+
+class LocalAuthSessionRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    account_id: str | None = Field(default=None, alias="accountId")
+    account_label: str | None = Field(default=None, alias="accountLabel")
+    ttl_minutes: int | None = Field(default=None, ge=5, le=1440, alias="ttlMinutes")
+
+
+class LocalAuthSessionResponse(BaseModel):
+    session_id: str
+    account_id: str
+    account_label: str
+    created_at: str
+    expires_at: str
+    revoked_at: str | None = None
+    permissions: list[SessionPermission]
+    status: Literal["active", "expired", "revoked"]
+
+
+class RoutePermissionClassification(BaseModel):
+    method: str
+    path: str
+    surface: str
+    exposure: Literal["desktop_local", "account_sensitive", "future_public_candidate", "never_public"]
+    permission: SessionPermission | None = None
+    notes: str

@@ -140,6 +140,8 @@ export type ConnectionTestResponse = {
   last_success_at: string | null;
   cache_updated_at: string | null;
   cache_age_seconds: number | null;
+  profile_id: string;
+  profile_label: string;
 };
 
 export type ConnectionStatusItem = {
@@ -155,10 +157,22 @@ export type ConnectionStatusItem = {
   last_success_at: string | null;
   cache_updated_at: string | null;
   cache_age_seconds: number | null;
+  profile_id: string;
+  profile_label: string;
+};
+
+export type CredentialProfile = {
+  profile_id: string;
+  label: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ConnectionsStatusResponse = {
   providers: ConnectionStatusItem[];
+  profiles: CredentialProfile[];
+  active_profile: CredentialProfile | null;
 };
 
 export type SourceFreshnessMetadata = {
@@ -355,6 +369,29 @@ export type AppPreferences = {
 
 export type OnboardingState = {
   onboarding_seen_at: string | null;
+};
+
+export type LocalSecurityStatus = {
+  initialized: boolean;
+  locked: boolean;
+  unlocked_until: string | null;
+  idle_timeout_seconds: number;
+  failed_attempts: number;
+  max_failed_attempts: number;
+  lockout_until: string | null;
+  sensitive_surfaces: string[];
+};
+
+export type SecurityAuditEvent = {
+  event_id: string;
+  created_at: string;
+  category: string;
+  event_type: string;
+  actor: string;
+  surface: string;
+  subject: string | null;
+  summary: string;
+  payload: Record<string, unknown>;
 };
 
 export type SetupStatus = {
@@ -1163,6 +1200,35 @@ export type TranslationSuggestResponse = {
   used_fallback: boolean;
 };
 
+export type LocalAuthSession = {
+  session_id: string;
+  account_id: string;
+  account_label: string;
+  created_at: string;
+  expires_at: string;
+  revoked_at: string | null;
+  permissions: Array<
+    | "session:read"
+    | "security:audit:read"
+    | "credentials:manage"
+    | "execution:manage"
+    | "account:read"
+    | "reports:export"
+  >;
+  status: "active" | "expired" | "revoked";
+};
+
+export type RoutePermissionClassification = {
+  method: string;
+  path: string;
+  surface: string;
+  exposure: "desktop_local" | "account_sensitive" | "future_public_candidate" | "never_public";
+  permission: LocalAuthSession["permissions"][number] | null;
+  notes: string;
+};
+
+let localAuthSession: LocalAuthSession | null = null;
+
 async function getApiBaseUrl(): Promise<string> {
   const runtime = await getRuntimeConfig();
   return runtime.baseUrl;
@@ -1202,24 +1268,68 @@ async function performApiRequest(path: string, init?: RequestInit, runtime?: Run
   return fetch(`${baseUrl}${path}`, init);
 }
 
+function mergeSessionHeader(init: RequestInit | undefined, sessionId: string): RequestInit {
+  const headers = new Headers(init?.headers);
+  headers.set("X-Pengbo-Session", sessionId);
+  return { ...init, headers };
+}
+
+function needsLocalAuthSession(path: string): boolean {
+  return !(
+    path === "/health" ||
+    path === "/security/session" ||
+    path.startsWith("/security/route-classification")
+  );
+}
+
+async function ensureLocalAuthSession(runtime: RuntimeConfig): Promise<LocalAuthSession> {
+  if (localAuthSession?.status === "active" && Date.parse(localAuthSession.expires_at) > Date.now()) {
+    return localAuthSession;
+  }
+
+  const response = await performApiRequest(
+    "/security/session",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    },
+    runtime,
+  );
+  if (!response.ok) {
+    throw new Error(`Local auth session failed: ${response.status}`);
+  }
+  localAuthSession = (await response.json()) as LocalAuthSession;
+  return localAuthSession;
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   let runtime = await getRuntimeConfig();
+  let requestInit = init;
+  if (needsLocalAuthSession(path)) {
+    const session = await ensureLocalAuthSession(runtime);
+    requestInit = mergeSessionHeader(init, session.session_id);
+  }
   let response: Response;
 
   try {
-    response = await performApiRequest(path, init, runtime);
+    response = await performApiRequest(path, requestInit, runtime);
   } catch (error) {
     if (!isTauriRuntime() || !isNetworkRequestError(error)) {
       throw error;
     }
 
     runtime = await refreshRuntimeConfig();
+    if (needsLocalAuthSession(path)) {
+      const session = await ensureLocalAuthSession(runtime);
+      requestInit = mergeSessionHeader(init, session.session_id);
+    }
     if (runtime.sidecarStatus !== "online") {
       throw formatDesktopNetworkError(runtime, false);
     }
 
     try {
-      response = await performApiRequest(path, init, runtime);
+      response = await performApiRequest(path, requestInit, runtime);
     } catch (retryError) {
       if (!isNetworkRequestError(retryError)) {
         throw retryError;
@@ -1260,6 +1370,29 @@ async function jsonRequest<T>(path: string, method: string, body?: unknown): Pro
 
 export const api = {
   getHealth: () => apiFetch<BackendHealth>("/health"),
+  createLocalAuthSession: async (payload?: { accountId?: string; accountLabel?: string; ttlMinutes?: number }) => {
+    localAuthSession = await jsonRequest<LocalAuthSession>("/security/session", "POST", payload ?? {});
+    return localAuthSession;
+  },
+  getLocalAuthSession: async () => {
+    const runtime = await getRuntimeConfig();
+    const session = await ensureLocalAuthSession(runtime);
+    return apiFetch<LocalAuthSession>("/security/session", {
+      headers: { "X-Pengbo-Session": session.session_id },
+    });
+  },
+  revokeLocalAuthSession: async () => {
+    const runtime = await getRuntimeConfig();
+    const session = await ensureLocalAuthSession(runtime);
+    const revoked = await apiFetch<LocalAuthSession>("/security/session", {
+      method: "DELETE",
+      headers: { "X-Pengbo-Session": session.session_id },
+    });
+    localAuthSession = null;
+    return revoked;
+  },
+  getRoutePermissionClassification: () =>
+    apiFetch<RoutePermissionClassification[]>("/security/route-classification"),
   searchAssets: (query: string) => apiFetch<AssetSearchResult[]>(`/search/assets?q=${encodeURIComponent(query)}`),
   getDashboardOverview: () => apiFetch<DashboardOverviewResponse>("/dashboard/overview"),
   getAssetWorkspace: (symbol: string) =>
@@ -1382,8 +1515,37 @@ export const api = {
   getOnboardingState: () => apiFetch<OnboardingState>("/settings/onboarding"),
   updateOnboardingState: (payload: OnboardingState) =>
     jsonRequest<OnboardingState>("/settings/onboarding", "PUT", payload),
+  getLocalSecurityStatus: () => apiFetch<LocalSecurityStatus>("/security/local/status"),
+  initializeLocalSecurity: (unlockSecret: string) =>
+    jsonRequest<LocalSecurityStatus>("/security/local/initialize", "POST", { unlock_secret: unlockSecret }),
+  unlockLocalSecurity: (unlockSecret: string) =>
+    jsonRequest<LocalSecurityStatus>("/security/local/unlock", "POST", { unlock_secret: unlockSecret }),
+  lockLocalSecurity: () => jsonRequest<LocalSecurityStatus>("/security/local/lock", "POST"),
+  idleTimeoutLocalSecurity: () => jsonRequest<LocalSecurityStatus>("/security/local/idle-timeout", "POST"),
+  touchLocalSecurity: (surface?: string | null) =>
+    jsonRequest<LocalSecurityStatus>("/security/local/touch", "POST", { surface: surface ?? null }),
+  getSecurityAudit: (limit = 50, category?: string | null) => {
+    const query = new URLSearchParams({ limit: String(limit) });
+    if (category) {
+      query.set("category", category);
+    }
+    return apiFetch<SecurityAuditEvent[]>(`/security/audit?${query.toString()}`);
+  },
   getConnectionsStatus: () => apiFetch<ConnectionsStatusResponse>("/connections/status"),
   getConnectionsCatalog: () => apiFetch<ConnectionsCatalogResponse>("/connections/catalog"),
+  getConnectionProfiles: () => apiFetch<CredentialProfile[]>("/connections/profiles"),
+  createConnectionProfile: (label: string) =>
+    jsonRequest<CredentialProfile>("/connections/profiles", "POST", { label }),
+  setActiveConnectionProfile: async (profileId: string) => {
+    const profile = await jsonRequest<CredentialProfile>("/connections/profiles/active", "PUT", { profile_id: profileId });
+    if (isTauriRuntime()) {
+      await invoke<RuntimeCommandResponse>("set_active_connection_profile", {
+        payload: { profileId },
+      });
+      invalidateRuntimeConfig();
+    }
+    return profile;
+  },
   getDataSourceStatus: () => apiFetch<DataSourceStatusResponse>("/data-sources/status"),
   getDataSourceProviderStatus: (provider: string) =>
     apiFetch<DataSourceRuntimeStatus>(`/data-sources/sources/${encodeURIComponent(provider)}/status`),
@@ -1483,26 +1645,41 @@ export const api = {
     }
     return invoke<DiagnosticsExportResult>("export_diagnostics_bundle");
   },
-  saveConnectionSecret: async (provider: string, payload: ConnectionSecretPayload) => {
+  saveConnectionSecret: async (provider: string, payload: ConnectionSecretPayload, profileId?: string) => {
     if (!isTauriRuntime()) {
       throw new Error("凭证编辑仅在桌面版中可用。");
     }
-    return invoke<RuntimeCommandResponse>("save_connection_secret", { provider, payload });
+    await ensureLocalAuthSession(await getRuntimeConfig());
+    await ensureLocalSecurityUnlocked("provider_credentials");
+    return invoke<RuntimeCommandResponse>("save_connection_secret", { provider, payload, profileId });
   },
-  clearConnectionSecret: async (provider: string) => {
+  clearConnectionSecret: async (provider: string, profileId?: string) => {
     if (!isTauriRuntime()) {
       throw new Error("凭证编辑仅在桌面版中可用。");
     }
-    return invoke<RuntimeCommandResponse>("clear_connection_secret", { provider });
+    await ensureLocalAuthSession(await getRuntimeConfig());
+    await ensureLocalSecurityUnlocked("provider_credentials");
+    return invoke<RuntimeCommandResponse>("clear_connection_secret", { provider, profileId });
   },
   clearConnectionProfile: (provider: string) =>
     apiFetch<{ ok: boolean }>(`/connections/${encodeURIComponent(provider)}/profile`, {
       method: "DELETE",
     }),
   testConnection: async (provider: string) => {
+    if (["binance", "edgar", "fred", "coingecko"].includes(provider.toLowerCase())) {
+      await ensureLocalSecurityUnlocked("provider_credentials");
+    }
     if (isTauriRuntime()) {
       return invoke<ConnectionTestResponse>("test_connection", { provider });
     }
     return jsonRequest<ConnectionTestResponse>("/connections/test", "POST", { provider });
   },
 };
+
+async function ensureLocalSecurityUnlocked(surface: string) {
+  const status = await apiFetch<LocalSecurityStatus>("/security/local/status");
+  if (!status.initialized || status.locked) {
+    throw new Error(`Local unlock is required before accessing ${surface}.`);
+  }
+  await jsonRequest<LocalSecurityStatus>("/security/local/touch", "POST", { surface });
+}

@@ -9,6 +9,9 @@ from ..models import (
     ConnectionStatusItem,
     ConnectionsCatalogResponse,
     ConnectionsStatusResponse,
+    CreateCredentialProfileRequest,
+    CredentialProfile,
+    SetActiveCredentialProfileRequest,
 )
 from ..providers.binance import BinanceProvider
 from ..providers.catalog import get_asset
@@ -44,7 +47,15 @@ class ConnectionsService:
     def _profile(self, provider: str) -> dict[str, Any]:
         profile = self.sqlite_store.get_connection_profile(provider)
         if profile is None:
-            return {"provider": provider, "is_configured": False, "metadata": {}, "updated_at": None}
+            active = self.sqlite_store.get_active_credential_profile()
+            return {
+                "profile_id": active["profile_id"],
+                "profile_label": active["label"],
+                "provider": provider,
+                "is_configured": False,
+                "metadata": {},
+                "updated_at": None,
+            }
 
         metadata = dict(profile["metadata"])
         if "last_status" not in metadata and metadata.get("last_health"):
@@ -159,10 +170,13 @@ class ConnectionsService:
             last_success_at=metadata.get("last_success_at"),
             cache_updated_at=metadata.get("cache_updated_at"),
             cache_age_seconds=metadata.get("cache_age_seconds"),
+            profile_id=profile["profile_id"],
+            profile_label=profile["profile_label"],
         )
 
     def _build_public_provider_item(self, provider: str) -> ConnectionStatusItem:
         definition = self.capability_service.get_source_definition(provider)
+        profile = self._profile(provider)
         if definition is None:
             return ConnectionStatusItem(
                 provider=provider,
@@ -172,9 +186,10 @@ class ConnectionsService:
                 last_message=f"{provider} is not registered in the provider source catalog.",
                 stale=False,
                 requires_credentials=False,
+                profile_id=profile["profile_id"],
+                profile_label=profile["profile_label"],
             )
 
-        profile = self._profile(provider)
         metadata = profile["metadata"]
         status = metadata.get("last_status")
         if status not in {"ok", "error", "cached", "planned", "unsupported", "missing_credentials", "unavailable"}:
@@ -196,6 +211,8 @@ class ConnectionsService:
             last_success_at=metadata.get("last_success_at"),
             cache_updated_at=metadata.get("cache_updated_at") or (runtime_status.cache_updated_at if runtime_status is not None else None),
             cache_age_seconds=metadata.get("cache_age_seconds") or (runtime_status.cache_age_seconds if runtime_status is not None else None),
+            profile_id=profile["profile_id"],
+            profile_label=profile["profile_label"],
         )
 
     def _persist_connection_result(
@@ -234,6 +251,8 @@ class ConnectionsService:
         response.last_success_at = profile["metadata"].get("last_success_at")
         response.cache_updated_at = profile["metadata"].get("cache_updated_at")
         response.cache_age_seconds = profile["metadata"].get("cache_age_seconds")
+        response.profile_id = profile["profile_id"]
+        response.profile_label = profile["profile_label"]
         return response
 
     def _persist_provider_state(
@@ -286,10 +305,51 @@ class ConnectionsService:
                 default_missing_message="Add Binance API credentials in the desktop app.",
             ),
         ]
-        return ConnectionsStatusResponse(providers=items)
+        profiles = [CredentialProfile.model_validate(item) for item in self.sqlite_store.list_credential_profiles()]
+        active_profile = CredentialProfile.model_validate(self.sqlite_store.get_active_credential_profile())
+        return ConnectionsStatusResponse(providers=items, profiles=profiles, active_profile=active_profile)
 
     def get_catalog(self) -> ConnectionsCatalogResponse:
         return self.capability_service.get_connections_catalog()
+
+    def list_profiles(self) -> list[CredentialProfile]:
+        return [CredentialProfile.model_validate(item) for item in self.sqlite_store.list_credential_profiles()]
+
+    def create_profile(self, payload: CreateCredentialProfileRequest) -> CredentialProfile:
+        normalized_label = " ".join(payload.label.split())
+        profile_id = self._profile_id_from_label(normalized_label)
+        existing = self.sqlite_store.get_credential_profile(profile_id)
+        if existing is not None:
+            suffix = datetime.now(UTC).strftime("%H%M%S")
+            profile_id = f"{profile_id}-{suffix}"
+        profile = self.sqlite_store.upsert_credential_profile(profile_id, label=normalized_label, is_active=False)
+        self._audit_profile_event("credential_profile_created", profile)
+        return CredentialProfile.model_validate(profile)
+
+    def set_active_profile(self, payload: SetActiveCredentialProfileRequest) -> CredentialProfile:
+        profile = self.sqlite_store.set_active_credential_profile(payload.profile_id)
+        self._audit_profile_event("credential_profile_selected", profile)
+        return CredentialProfile.model_validate(profile)
+
+    def _profile_id_from_label(self, label: str) -> str:
+        slug = "".join(character.lower() if character.isalnum() else "-" for character in label)
+        slug = "-".join(part for part in slug.split("-") if part)
+        return f"local_{slug or 'profile'}"[:80]
+
+    def _audit_profile_event(self, event_type: str, profile: dict[str, Any]) -> None:
+        if self.security_audit_service is None:
+            return
+        self.security_audit_service.record(
+            category="credential",
+            event_type=event_type,
+            subject=profile["profile_id"],
+            summary=f"Credential profile {profile['label']} updated.",
+            payload={
+                "profile_id": profile["profile_id"],
+                "profile_label": profile["label"],
+                "is_active": profile["is_active"],
+            },
+        )
 
     def clear_connection_profile(self, provider: str) -> None:
         normalized = provider.lower()
@@ -302,7 +362,11 @@ class ConnectionsService:
                 event_type="connection_profile_cleared",
                 subject=normalized,
                 summary=f"Cleared cached connection profile for {normalized}.",
-                payload={"provider": normalized},
+                payload={
+                    "provider": normalized,
+                    "profile_id": self.sqlite_store.get_active_credential_profile()["profile_id"],
+                    "profile_label": self.sqlite_store.get_active_credential_profile()["label"],
+                },
             )
 
     def test_connection(self, provider: str) -> ConnectionCheckResponse:
@@ -351,6 +415,8 @@ class ConnectionsService:
             summary=f"Connection test for {response.provider} returned {response.status}.",
             payload={
                 "provider": response.provider,
+                "profile_id": response.profile_id,
+                "profile_label": response.profile_label,
                 "status": response.status,
                 "stale": response.stale,
                 "requires_credentials": response.requires_credentials,

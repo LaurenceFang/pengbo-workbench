@@ -438,9 +438,14 @@ class ResearchApiTests(unittest.TestCase):
                 )
                 self.assertEqual(paper_response.status_code, 200)
                 paper_session_id = paper_response.json()["session_id"]
+                session = client.post("/api/v1/security/session", json={}).json()
+                session_headers = {"X-Pengbo-Session": session["session_id"]}
 
+                unlock_response = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock_response.status_code, 200)
                 intent_response = client.post(
                     "/api/v1/execution/binance/intents",
+                    headers=session_headers,
                     json={
                         "symbol": "BTC/USDT",
                         "side": "buy",
@@ -453,7 +458,10 @@ class ResearchApiTests(unittest.TestCase):
                 )
                 self.assertEqual(intent_response.status_code, 200)
                 intent_id = intent_response.json()["intent_id"]
-                submit_response = client.post(f"/api/v1/execution/binance/intents/{intent_id}/submit")
+                submit_response = client.post(
+                    f"/api/v1/execution/binance/intents/{intent_id}/submit",
+                    headers=session_headers,
+                )
                 self.assertEqual(submit_response.status_code, 200)
                 self.assertEqual(submit_response.json()["status"], "blocked")
 

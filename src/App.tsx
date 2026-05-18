@@ -11,6 +11,7 @@ import {
   FlaskConical,
   LayoutDashboard,
   LineChart,
+  Lock,
   RefreshCcw,
   Search,
   Sparkles,
@@ -21,6 +22,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { CommandPalette } from "./components/command-palette";
+import { LocalUnlockGate } from "./components/local-unlock-gate";
 import { InlineState, StatusBadge, type BackendStatus } from "./components/shared";
 import { useAsyncResource } from "./hooks/use-async-resource";
 import { useI18n } from "./i18n";
@@ -31,6 +33,7 @@ import {
   type AssetWorkspaceResponse,
   type DashboardOverviewResponse,
   type DiagnosticsExportResult,
+  type LocalSecurityStatus,
   type OnboardingState,
   type SetupStatus,
 } from "./lib/api";
@@ -69,6 +72,15 @@ const navigation = [
   icon: typeof LayoutDashboard;
 }>;
 
+const sensitiveViews = new Set<ViewKey>(["strategyLab", "workflowStudio", "connections", "settings"]);
+
+const securitySurfaceByView: Partial<Record<ViewKey, string>> = {
+  strategyLab: "execution_risk",
+  workflowStudio: "workflow_sensitive",
+  connections: "provider_credentials",
+  settings: "settings_runtime",
+};
+
 function App() {
   const activeView = useAppStore((state) => state.activeView);
   const selectedAssetId = useAppStore((state) => state.selectedAssetId);
@@ -87,6 +99,7 @@ function App() {
   const [diagnosticsBusy, setDiagnosticsBusy] = useState(false);
   const [diagnosticsExport, setDiagnosticsExport] = useState<DiagnosticsExportResult | null>(null);
   const [onboardingBusy, setOnboardingBusy] = useState(false);
+  const [localSecurityBusy, setLocalSecurityBusy] = useState(false);
   const [onboardingSeenOverride, setOnboardingSeenOverride] = useState<string | null | undefined>(undefined);
   const [shellActionError, setShellActionError] = useState<string | null>(null);
   const [preferencesHydrated, setPreferencesHydrated] = useState(false);
@@ -118,6 +131,9 @@ function App() {
     enabled: sidecarReady,
   });
   const onboarding = useAsyncResource<OnboardingState>(async () => api.getOnboardingState(), [], {
+    enabled: sidecarReady,
+  });
+  const localSecurity = useAsyncResource<LocalSecurityStatus>(async () => api.getLocalSecurityStatus(), [], {
     enabled: sidecarReady,
   });
   const connectionsStatus = useAsyncResource(async () => api.getConnectionsStatus(), [], {
@@ -184,8 +200,9 @@ function App() {
     asset.reload();
     preferences.reload();
     onboarding.reload();
+    localSecurity.reload();
     connectionsStatus.reload();
-  }, [asset, assetUniverse, backendStatus, connectionsStatus, dashboard, onboarding, preferences]);
+  }, [asset, assetUniverse, backendStatus, connectionsStatus, dashboard, localSecurity, onboarding, preferences]);
 
   const selectedAsset =
     dashboard.data?.watchlist.find((item) => item.symbol === selectedAssetId) ??
@@ -194,6 +211,13 @@ function App() {
     null;
   const activeNav = navigation.find((item) => item.key === activeView) ?? navigation[0];
   const isDashboardView = activeView === "dashboard";
+  const activeViewRequiresUnlock = sensitiveViews.has(activeView);
+  const localSecurityStatus = localSecurity.data;
+  const activeViewLocked =
+    sidecarReady &&
+    activeViewRequiresUnlock &&
+    localSecurityStatus !== null &&
+    (!localSecurityStatus.initialized || localSecurityStatus.locked);
 
   const searchableAssets = assetUniverse.data?.length ? assetUniverse.data : (dashboard.data?.watchlist ?? []);
   const searchResults = searchableAssets.filter((assetItem) => {
@@ -250,6 +274,47 @@ function App() {
     connectionsStatus.reload();
   }
 
+  async function handleInitializeLocalSecurity(unlockSecret: string) {
+    setLocalSecurityBusy(true);
+    setShellActionError(null);
+    try {
+      await api.initializeLocalSecurity(unlockSecret);
+      localSecurity.reload();
+    } catch (error) {
+      setShellActionError(error instanceof Error ? error.message : "Failed to initialize local unlock.");
+      throw error;
+    } finally {
+      setLocalSecurityBusy(false);
+    }
+  }
+
+  async function handleUnlockLocalSecurity(unlockSecret: string) {
+    setLocalSecurityBusy(true);
+    setShellActionError(null);
+    try {
+      await api.unlockLocalSecurity(unlockSecret);
+      localSecurity.reload();
+    } catch (error) {
+      setShellActionError(error instanceof Error ? error.message : "Failed to unlock sensitive surfaces.");
+      throw error;
+    } finally {
+      setLocalSecurityBusy(false);
+    }
+  }
+
+  async function handleLockLocalSecurity() {
+    if (!localSecurity.data?.initialized || localSecurity.data.locked) {
+      return;
+    }
+    setLocalSecurityBusy(true);
+    try {
+      await api.lockLocalSecurity();
+      localSecurity.reload();
+    } finally {
+      setLocalSecurityBusy(false);
+    }
+  }
+
   async function handleRestartSidecar() {
     setActionBusy(true);
     setShellActionError(null);
@@ -293,6 +358,55 @@ function App() {
       setOnboardingBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (!sidecarReady || !localSecurity.data?.initialized || localSecurity.data.locked) {
+      return;
+    }
+
+    let idleTimer: number | null = null;
+    let lastTouch = 0;
+    const timeoutMs = Math.max(localSecurity.data.idle_timeout_seconds, 30) * 1000;
+    const touchIntervalMs = 30_000;
+
+    const resetIdleTimer = () => {
+      if (idleTimer !== null) {
+        window.clearTimeout(idleTimer);
+      }
+      idleTimer = window.setTimeout(() => {
+        void api.idleTimeoutLocalSecurity().finally(localSecurity.reload);
+      }, timeoutMs);
+    };
+
+    const handleActivity = () => {
+      resetIdleTimer();
+      if (!activeViewRequiresUnlock) {
+        return;
+      }
+      const now = Date.now();
+      if (now - lastTouch < touchIntervalMs) {
+        return;
+      }
+      lastTouch = now;
+      void api.touchLocalSecurity(securitySurfaceByView[activeView] ?? activeView).catch(() => undefined);
+    };
+
+    resetIdleTimer();
+    window.addEventListener("keydown", handleActivity);
+    window.addEventListener("mousedown", handleActivity);
+    window.addEventListener("mousemove", handleActivity);
+    window.addEventListener("scroll", handleActivity, true);
+
+    return () => {
+      if (idleTimer !== null) {
+        window.clearTimeout(idleTimer);
+      }
+      window.removeEventListener("keydown", handleActivity);
+      window.removeEventListener("mousedown", handleActivity);
+      window.removeEventListener("mousemove", handleActivity);
+      window.removeEventListener("scroll", handleActivity, true);
+    };
+  }, [activeView, activeViewRequiresUnlock, localSecurity, localSecurity.data, sidecarReady]);
 
   return (
       <div className={`app-shell density-${density}`}>
@@ -409,6 +523,18 @@ function App() {
                 exporting: i18n.t("runtime.exporting"),
               }}
             />
+            {localSecurity.data?.initialized && !localSecurity.data.locked ? (
+              <button
+                aria-label="local-security-lock"
+                className="ghost-button"
+                disabled={localSecurityBusy}
+                onClick={() => void handleLockLocalSecurity()}
+                type="button"
+              >
+                <Lock size={16} />
+                {language === "zh-CN" ? "锁定" : "Lock"}
+              </button>
+            ) : null}
           </div>
         </header>
 
@@ -535,7 +661,24 @@ function App() {
             </section>
           ) : null}
 
-          {isDashboardView ? (
+          {activeViewRequiresUnlock && localSecurity.loading && !localSecurity.data ? (
+            <section className="card panel-banner compact">
+              <InlineState label={language === "zh-CN" ? "正在检查本地解锁状态..." : "Checking local unlock state..."} />
+            </section>
+          ) : null}
+
+          {activeViewLocked && localSecurityStatus ? (
+            <LocalUnlockGate
+              status={localSecurityStatus}
+              language={language}
+              viewLabel={i18n.viewLabel(activeView)}
+              busy={localSecurityBusy}
+              onInitialize={handleInitializeLocalSecurity}
+              onUnlock={handleUnlockLocalSecurity}
+            />
+          ) : null}
+
+          {!activeViewLocked && isDashboardView ? (
             <section className="hero-panel">
               <div>
                 <p className="eyebrow">{i18n.t("dashboard.workspaceEyebrow")}</p>
@@ -554,7 +697,7 @@ function App() {
             </section>
           ) : null}
 
-          {activeView === "dashboard" ? (
+          {!activeViewLocked && activeView === "dashboard" ? (
             <DashboardView
               selectedAsset={selectedAsset}
               dashboard={dashboard.data}
@@ -563,7 +706,7 @@ function App() {
               onRetry={dashboard.reload}
             />
           ) : null}
-          {activeView === "asset" ? (
+          {!activeViewLocked && activeView === "asset" ? (
             <AssetView
               asset={asset.data}
               selectedAsset={selectedAsset}
@@ -572,7 +715,7 @@ function App() {
               onRetry={asset.reload}
             />
           ) : null}
-          {activeView === "watchlist" ? (
+          {!activeViewLocked && activeView === "watchlist" ? (
             <WatchlistView
               watchlist={dashboard.data?.watchlist ?? []}
               assetUniverse={assetUniverse.data ?? []}
@@ -593,16 +736,16 @@ function App() {
               }}
             />
           ) : null}
-          {activeView === "research" ? (
+          {!activeViewLocked && activeView === "research" ? (
             <ResearchView onGlobalRefresh={reloadEverything} backendStatus={backendStatus} />
           ) : null}
-          {activeView === "factorLab" ? <FactorLabView backendStatus={backendStatus} /> : null}
-          {activeView === "strategyLab" ? <StrategyLabView backendStatus={backendStatus} /> : null}
-          {activeView === "workflowStudio" ? <WorkflowStudioView backendStatus={backendStatus} /> : null}
-          {activeView === "dataSources" ? <DataSourcesView backendStatus={backendStatus} /> : null}
-          {activeView === "screeners" ? <ScreenersView onGlobalRefresh={reloadEverything} /> : null}
-          {activeView === "manual" ? <ManualView /> : null}
-          {activeView === "portfolio" ? (
+          {!activeViewLocked && activeView === "factorLab" ? <FactorLabView backendStatus={backendStatus} /> : null}
+          {!activeViewLocked && activeView === "strategyLab" ? <StrategyLabView backendStatus={backendStatus} /> : null}
+          {!activeViewLocked && activeView === "workflowStudio" ? <WorkflowStudioView backendStatus={backendStatus} /> : null}
+          {!activeViewLocked && activeView === "dataSources" ? <DataSourcesView backendStatus={backendStatus} /> : null}
+          {!activeViewLocked && activeView === "screeners" ? <ScreenersView onGlobalRefresh={reloadEverything} /> : null}
+          {!activeViewLocked && activeView === "manual" ? <ManualView /> : null}
+          {!activeViewLocked && activeView === "portfolio" ? (
             <PortfolioView
               assetOptions={dashboard.data?.watchlist ?? []}
               assetUniverse={assetUniverse.data ?? []}
@@ -610,10 +753,10 @@ function App() {
               backendStatus={backendStatus}
             />
           ) : null}
-          {activeView === "connections" ? (
+          {!activeViewLocked && activeView === "connections" ? (
             <ConnectionsView onRestart={handleRestartSidecar} onGlobalRefresh={reloadEverything} runtime={runtime.data} />
           ) : null}
-          {activeView === "settings" ? (
+          {!activeViewLocked && activeView === "settings" ? (
             <SettingsView
               appRuntime={runtime.data}
               activeView={activeView}

@@ -249,6 +249,8 @@ class DataSourceServiceTests(unittest.TestCase):
                 self.assertEqual(coingecko["health"], "missing_credentials")
                 self.assertTrue(coingecko["requires_credentials"])
 
+                unlock_response = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock_response.status_code, 200)
                 probe = client.post("/api/v1/connections/test", json={"provider": "fred"}).json()
                 self.assertEqual(probe["status"], "missing_credentials")
                 self.assertTrue(probe["requires_credentials"])
@@ -366,8 +368,10 @@ class DataSourceServiceTests(unittest.TestCase):
                     ]
                 )
 
+                session = client.post("/api/v1/security/session", json={}).json()
                 response = client.post(
                     "/api/v1/data-sources/reports/export",
+                    headers={"X-Pengbo-Session": session["session_id"]},
                     json={
                         "macroProvider": "worldbank",
                         "macroSeriesId": "NY.GDP.MKTP.CD",

@@ -12,12 +12,12 @@ The first target users are independent investors, small research or portfolio te
 
 ## Current Roadmap
 
-The active roadmap is tracked in [IMPLEMENTATION_TASKS.md](IMPLEMENTATION_TASKS.md). The next implementation sequence is:
+The active roadmap is tracked in [IMPLEMENTATION_TASKS.md](IMPLEMENTATION_TASKS.md). The current security-accountability sequence is:
 
-1. `T53 - Local Unlock PIN And Idle Lock`
-2. `T54 - Account-Scoped Provider Credential Model`
-3. `T55 - Future Public Auth And Session Layer`
-4. `T56 - Public Exposure Gateway And Sidecar Hardening`
+1. `T53 - Local Unlock PIN And Idle Lock` remains planned in this checkout.
+2. `T54 - Account-Scoped Provider Credential Model` remains planned in this checkout.
+3. `T55 - Future Public Auth And Session Layer` is implemented as a local-only session, permission, and audit boundary.
+4. `T56 - Public Exposure Gateway And Sidecar Hardening` is the next gateway-hardening input and must reconcile the remaining T53/T54 gaps before any public exposure.
 
 These tasks are intentionally prioritized before broader public, account, remote, team, AI, or China-market connector work. Later planned work from `T57` onward covers open-source readiness, CI, releases, demo mode, research-flow polish, data governance, local AI assistance, China-market connectors, and security packaged signoff.
 
@@ -41,6 +41,7 @@ For the product-team assessment behind this direction, see [docs/product-team-as
 - Non-Binance providers are read-only and must not create live trading paths.
 - Binance live execution remains default-off, risk-gated, kill-switch gated, and user-confirmed.
 - Workflow Studio may create a Binance intent artifact, but submit requires an explicit user-owned confirmation step.
+- Sensitive local sidecar routes now use a desktop auth session header and route-level permission checks; this is not OAuth, hosted identity, remote sync, or a public login system.
 - Provider secrets, Stronghold data, local databases, smoke artifacts, and generated binaries should not be committed to a public repository.
 - API source code can be committed; API keys, tokens, secrets, local identities, and provider credentials must not be committed.
 - Current sensitive values include EDGAR identity, Binance API key/secret, FRED key, CoinGecko key, and `PENGBO_TRANSLATION_API_KEY`.

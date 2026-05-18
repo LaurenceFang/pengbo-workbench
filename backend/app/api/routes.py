@@ -13,7 +13,9 @@ from ..models import (
     ConnectionCheckResponse,
     ConnectionsCatalogResponse,
     ConnectionsStatusResponse,
+    CreateCredentialProfileRequest,
     CreateResearchBriefRequest,
+    CredentialProfile,
     CreateScreenerPresetVariantRequest,
     CryptoMarketsResponse,
     DataSourceReportExportRequest,
@@ -27,6 +29,12 @@ from ..models import (
     FactorRunResponse,
     FundamentalOverview,
     HealthResponse,
+    LocalAuthSessionRequest,
+    LocalAuthSessionResponse,
+    LocalSecurityInitializeRequest,
+    LocalSecurityStatus,
+    LocalSecurityTouchRequest,
+    LocalSecurityUnlockRequest,
     OnboardingState,
     PortfolioHolding,
     PortfolioSummaryResponse,
@@ -41,6 +49,7 @@ from ..models import (
     ResearchEvidenceContext,
     ResearchBriefExportResponse,
     ResearchBriefListItem,
+    RoutePermissionClassification,
     MacroSeriesResponse,
     NewsEventsResponse,
     ScreenerPreset,
@@ -49,6 +58,7 @@ from ..models import (
     ScreenerRunResponse,
     SettingsRuntimeResponse,
     SecurityAuditEvent,
+    SetActiveCredentialProfileRequest,
     StrategyBacktestListItem,
     StrategyBacktestRequest,
     StrategyBacktestResponse,
@@ -73,6 +83,7 @@ from ..models import (
     WorkflowTemplateDefinition,
 )
 from ..providers.catalog import get_asset
+from ..services.auth_session_service import AuthSessionError
 
 
 def _container(request: Request):
@@ -85,6 +96,35 @@ def _value_error_to_http(error: ValueError) -> HTTPException:
     return HTTPException(status_code=status_code, detail=message)
 
 
+def _permission_error_to_http(error: PermissionError) -> HTTPException:
+    return HTTPException(status_code=423, detail=str(error))
+
+
+def _require_unlocked(request: Request, surface: str) -> None:
+    try:
+        _container(request).local_security_service.require_unlocked(surface)
+    except PermissionError as error:
+        raise _permission_error_to_http(error) from error
+    except ValueError as error:
+        raise _permission_error_to_http(PermissionError(str(error))) from error
+
+
+def _session_token(request: Request) -> str | None:
+    return request.headers.get("x-pengbo-session")
+
+
+def _require_permission(request: Request, permission: str, *, surface: str) -> None:
+    try:
+        _container(request).auth_session_service.require_session(
+            _session_token(request),
+            permission,
+            surface=surface,
+            path=request.url.path,
+        )
+    except AuthSessionError as error:
+        raise HTTPException(status_code=error.status_code, detail=str(error)) from error
+
+
 def register_routes(app: FastAPI) -> None:
     @app.get("/api/v1/health", response_model=HealthResponse)
     def health(request: Request) -> HealthResponse:
@@ -93,6 +133,36 @@ def register_routes(app: FastAPI) -> None:
             status="ok",
             message=f"FastAPI sidecar is running (mode={settings.runtime_mode}, port={settings.port})",
         )
+
+    @app.post("/api/v1/security/session", response_model=LocalAuthSessionResponse)
+    def create_local_auth_session(
+        request: Request,
+        payload: LocalAuthSessionRequest | None = None,
+    ) -> LocalAuthSessionResponse:
+        return _container(request).auth_session_service.create_session(payload)
+
+    @app.get("/api/v1/security/session", response_model=LocalAuthSessionResponse)
+    def get_local_auth_session(request: Request) -> LocalAuthSessionResponse:
+        try:
+            return _container(request).auth_session_service.require_session(
+                _session_token(request),
+                "session:read",
+                surface="auth_session",
+                path=request.url.path,
+            )
+        except AuthSessionError as error:
+            raise HTTPException(status_code=error.status_code, detail=str(error)) from error
+
+    @app.delete("/api/v1/security/session", response_model=LocalAuthSessionResponse)
+    def revoke_local_auth_session(request: Request) -> LocalAuthSessionResponse:
+        try:
+            return _container(request).auth_session_service.revoke_session(_session_token(request))
+        except AuthSessionError as error:
+            raise HTTPException(status_code=error.status_code, detail=str(error)) from error
+
+    @app.get("/api/v1/security/route-classification", response_model=list[RoutePermissionClassification])
+    def get_route_permission_classification(request: Request) -> list[RoutePermissionClassification]:
+        return _container(request).auth_session_service.route_classifications()
 
     @app.get("/api/v1/search/assets", response_model=list[AssetSearchResult])
     def search_assets(request: Request, q: str = Query("", min_length=0)) -> list[AssetSearchResult]:
@@ -331,6 +401,7 @@ def register_routes(app: FastAPI) -> None:
 
     @app.post("/api/v1/strategies/reports/{artifact_id}/export", response_model=StrategyReportExportResponse)
     def export_strategy_report(request: Request, artifact_id: str) -> StrategyReportExportResponse:
+        _require_permission(request, "reports:export", surface="strategy_lab")
         try:
             return _container(request).strategy_service.export_report(artifact_id)
         except ValueError as error:
@@ -338,6 +409,7 @@ def register_routes(app: FastAPI) -> None:
 
     @app.get("/api/v1/execution/binance/config", response_model=BinanceExecutionConfig)
     def get_binance_execution_config(request: Request) -> BinanceExecutionConfig:
+        _require_unlocked(request, "execution_risk")
         return _container(request).execution_service.get_config()
 
     @app.put("/api/v1/execution/binance/config", response_model=BinanceExecutionConfig)
@@ -345,6 +417,8 @@ def register_routes(app: FastAPI) -> None:
         request: Request,
         payload: UpdateBinanceExecutionConfigRequest,
     ) -> BinanceExecutionConfig:
+        _require_unlocked(request, "execution_risk")
+        _require_permission(request, "execution:manage", surface="strategy_lab")
         try:
             return _container(request).execution_service.update_config(payload)
         except ValueError as error:
@@ -362,6 +436,8 @@ def register_routes(app: FastAPI) -> None:
         request: Request,
         payload: BinanceExecutionIntentRequest,
     ) -> BinanceExecutionIntentResponse:
+        _require_unlocked(request, "execution_risk")
+        _require_permission(request, "execution:manage", surface="strategy_lab")
         try:
             return _container(request).execution_service.create_intent(payload)
         except ValueError as error:
@@ -369,6 +445,8 @@ def register_routes(app: FastAPI) -> None:
 
     @app.post("/api/v1/execution/binance/intents/{intent_id}/submit", response_model=BinanceExecutionIntentResponse)
     def submit_binance_execution_intent(request: Request, intent_id: str) -> BinanceExecutionIntentResponse:
+        _require_unlocked(request, "execution_risk")
+        _require_permission(request, "execution:manage", surface="strategy_lab")
         try:
             return _container(request).execution_service.submit_intent(intent_id)
         except ValueError as error:
@@ -379,6 +457,8 @@ def register_routes(app: FastAPI) -> None:
         request: Request,
         payload: BinanceKillSwitchRequest,
     ) -> BinanceExecutionConfig:
+        _require_unlocked(request, "execution_risk")
+        _require_permission(request, "execution:manage", surface="strategy_lab")
         return _container(request).execution_service.set_kill_switch(payload)
 
     @app.get("/api/v1/execution/binance/audit", response_model=list[BinanceExecutionAuditEvent])
@@ -386,6 +466,8 @@ def register_routes(app: FastAPI) -> None:
         request: Request,
         limit: int = Query(50, ge=1, le=200),
     ) -> list[BinanceExecutionAuditEvent]:
+        _require_unlocked(request, "execution_risk")
+        _require_permission(request, "execution:manage", surface="strategy_lab")
         return _container(request).execution_service.list_audit_events(limit)
 
     @app.get("/api/v1/security/audit", response_model=list[SecurityAuditEvent])
@@ -394,7 +476,57 @@ def register_routes(app: FastAPI) -> None:
         limit: int = Query(100, ge=1, le=500),
         category: str | None = None,
     ) -> list[SecurityAuditEvent]:
+        _require_unlocked(request, "security_audit")
+        _require_permission(request, "security:audit:read", surface="security_audit")
         return _container(request).security_audit_service.list_events(limit=limit, category=category)
+
+    @app.get("/api/v1/security/local/status", response_model=LocalSecurityStatus)
+    def get_local_security_status(request: Request) -> LocalSecurityStatus:
+        return _container(request).local_security_service.get_status()
+
+    @app.post("/api/v1/security/local/initialize", response_model=LocalSecurityStatus)
+    def initialize_local_security(
+        request: Request,
+        payload: LocalSecurityInitializeRequest,
+    ) -> LocalSecurityStatus:
+        try:
+            return _container(request).local_security_service.initialize(payload)
+        except ValueError as error:
+            raise _value_error_to_http(error) from error
+
+    @app.post("/api/v1/security/local/unlock", response_model=LocalSecurityStatus)
+    def unlock_local_security(
+        request: Request,
+        payload: LocalSecurityUnlockRequest,
+    ) -> LocalSecurityStatus:
+        try:
+            return _container(request).local_security_service.unlock(payload)
+        except ValueError as error:
+            raise _value_error_to_http(error) from error
+
+    @app.post("/api/v1/security/local/lock", response_model=LocalSecurityStatus)
+    def lock_local_security(request: Request) -> LocalSecurityStatus:
+        try:
+            return _container(request).local_security_service.lock()
+        except ValueError as error:
+            raise _value_error_to_http(error) from error
+
+    @app.post("/api/v1/security/local/idle-timeout", response_model=LocalSecurityStatus)
+    def idle_timeout_local_security(request: Request) -> LocalSecurityStatus:
+        try:
+            return _container(request).local_security_service.lock(reason="idle_timeout")
+        except ValueError as error:
+            raise _value_error_to_http(error) from error
+
+    @app.post("/api/v1/security/local/touch", response_model=LocalSecurityStatus)
+    def touch_local_security(
+        request: Request,
+        payload: LocalSecurityTouchRequest,
+    ) -> LocalSecurityStatus:
+        try:
+            return _container(request).local_security_service.touch(payload)
+        except ValueError as error:
+            raise _value_error_to_http(error) from error
 
     @app.get("/api/v1/workflows/templates", response_model=list[WorkflowTemplateDefinition])
     def get_workflow_templates(request: Request) -> list[WorkflowTemplateDefinition]:
@@ -449,8 +581,28 @@ def register_routes(app: FastAPI) -> None:
     def get_connections_catalog(request: Request) -> ConnectionsCatalogResponse:
         return _container(request).connections_service.get_catalog()
 
+    @app.get("/api/v1/connections/profiles", response_model=list[CredentialProfile])
+    def get_connection_profiles(request: Request) -> list[CredentialProfile]:
+        _require_unlocked(request, "provider_credentials")
+        return _container(request).connections_service.list_profiles()
+
+    @app.post("/api/v1/connections/profiles", response_model=CredentialProfile)
+    def create_connection_profile(request: Request, payload: CreateCredentialProfileRequest) -> CredentialProfile:
+        _require_unlocked(request, "provider_credentials")
+        return _container(request).connections_service.create_profile(payload)
+
+    @app.put("/api/v1/connections/profiles/active", response_model=CredentialProfile)
+    def set_active_connection_profile(request: Request, payload: SetActiveCredentialProfileRequest) -> CredentialProfile:
+        _require_unlocked(request, "provider_credentials")
+        try:
+            return _container(request).connections_service.set_active_profile(payload)
+        except ValueError as error:
+            raise _value_error_to_http(error) from error
+
     @app.post("/api/v1/connections/test", response_model=ConnectionCheckResponse)
     def test_connection(request: Request, payload: ConnectionCheckRequest) -> ConnectionCheckResponse:
+        if payload.provider.lower() in {"binance", "edgar", "fred", "coingecko"}:
+            _require_unlocked(request, "provider_credentials")
         return _container(request).connections_service.test_connection(payload.provider)
 
     @app.get("/api/v1/data-sources/status", response_model=DataSourceStatusResponse)
@@ -512,10 +664,13 @@ def register_routes(app: FastAPI) -> None:
         request: Request,
         payload: DataSourceReportExportRequest,
     ) -> DataSourceReportExportResponse:
+        _require_permission(request, "reports:export", surface="data_sources")
         return _container(request).data_source_service.export_report(payload)
 
     @app.delete("/api/v1/connections/{provider}/profile")
     def clear_connection_profile(request: Request, provider: str):
+        _require_unlocked(request, "provider_credentials")
+        _require_permission(request, "credentials:manage", surface="connections")
         try:
             _container(request).connections_service.clear_connection_profile(provider)
         except ValueError as error:
@@ -524,10 +679,13 @@ def register_routes(app: FastAPI) -> None:
 
     @app.post("/api/v1/connections/binance/test", response_model=ConnectionCheckResponse)
     def test_binance_connection(request: Request) -> ConnectionCheckResponse:
+        _require_unlocked(request, "provider_credentials")
         return _container(request).connections_service.test_binance_connection()
 
     @app.get("/api/v1/connections/binance/account")
     def get_binance_account(request: Request):
+        _require_unlocked(request, "provider_credentials")
+        _require_permission(request, "account:read", surface="connections")
         try:
             return _container(request).connections_service.get_binance_account()
         except ValueError as error:

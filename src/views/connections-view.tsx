@@ -1,4 +1,4 @@
-import { RefreshCcw, Save, Trash2 } from "lucide-react";
+import { Plus, RefreshCcw, Save, Trash2, UserCircle } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { useAsyncResource } from "../hooks/use-async-resource";
 import {
@@ -36,6 +36,9 @@ export function ConnectionsView({
   const [savingProvider, setSavingProvider] = useState<string | null>(null);
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
   const [clearingProvider, setClearingProvider] = useState<string | null>(null);
+  const [profileLabel, setProfileLabel] = useState("");
+  const [profileBusy, setProfileBusy] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [latestTests, setLatestTests] = useState<Record<string, ConnectionTestResponse>>({});
 
   const providerMap = useMemo(
@@ -49,6 +52,8 @@ export function ConnectionsView({
 
   const edgarStatus = providerMap.get("edgar");
   const binanceStatus = providerMap.get("binance");
+  const activeProfile = status.data?.active_profile ?? null;
+  const activeProfileId = activeProfile?.profile_id ?? "local_default";
   const binanceAccount = useAsyncResource<BinanceAccountSnapshot>(async () => api.getBinanceAccount(), [], {
     enabled: providerRequestsEnabled && Boolean(binanceStatus?.configured),
   });
@@ -77,7 +82,7 @@ export function ConnectionsView({
         if (!identity) {
           throw new Error("Enter an EDGAR identity before saving.");
         }
-        await api.saveConnectionSecret("edgar", { identity });
+        await api.saveConnectionSecret("edgar", { identity }, activeProfileId);
         setEdgarIdentity("");
         if (edgarIdentityRef.current) {
           edgarIdentityRef.current.value = "";
@@ -87,7 +92,7 @@ export function ConnectionsView({
           apiKey: binanceApiKey.trim(),
           secret: binanceSecret.trim(),
           password: binancePassword.trim() || undefined,
-        });
+        }, activeProfileId);
         setBinanceApiKey("");
         setBinanceSecret("");
         setBinancePassword("");
@@ -128,7 +133,7 @@ export function ConnectionsView({
   async function handleClear(provider: "edgar" | "binance") {
     setClearingProvider(provider);
     try {
-      await api.clearConnectionSecret(provider);
+      await api.clearConnectionSecret(provider, activeProfileId);
       await onRestart();
       await api.clearConnectionProfile(provider);
       clearLatestTest(provider);
@@ -151,6 +156,45 @@ export function ConnectionsView({
     }
   }
 
+  async function handleCreateProfile() {
+    const label = profileLabel.trim();
+    if (!label) {
+      setProfileMessage("Enter a local profile label first.");
+      return;
+    }
+    setProfileBusy(true);
+    try {
+      const profile = await api.createConnectionProfile(label);
+      await api.setActiveConnectionProfile(profile.profile_id);
+      setProfileLabel("");
+      setProfileMessage(`Active profile: ${profile.label}`);
+      await onRestart();
+      await refreshProviderPanels();
+    } catch (error) {
+      setProfileMessage(error instanceof Error ? error.message : "Creating profile failed.");
+    } finally {
+      setProfileBusy(false);
+    }
+  }
+
+  async function handleSelectProfile(profileId: string) {
+    if (!profileId || profileId === activeProfileId) {
+      return;
+    }
+    setProfileBusy(true);
+    try {
+      const profile = await api.setActiveConnectionProfile(profileId);
+      setProfileMessage(`Active profile: ${profile.label}`);
+      setLatestTests({});
+      await onRestart();
+      await refreshProviderPanels();
+    } catch (error) {
+      setProfileMessage(error instanceof Error ? error.message : "Switching profile failed.");
+    } finally {
+      setProfileBusy(false);
+    }
+  }
+
   return (
     <div className="stack-layout">
       {!isTauriRuntime() ? (
@@ -159,6 +203,59 @@ export function ConnectionsView({
           copy="Secrets are stored through the desktop runtime so they do not round-trip through the web preview."
         />
       ) : null}
+
+      <section className="card">
+        <div className="card-header">
+          <div>
+            <p className="eyebrow">Local profile</p>
+            <h3>Provider credentials are scoped to the selected local profile</h3>
+          </div>
+          <span className="mini-pill" aria-label={`connection-active-profile id=${activeProfileId}`}>
+            <UserCircle size={14} />
+            {activeProfile?.label ?? "Local default"}
+          </span>
+        </div>
+        <div className="form-grid two-up">
+          <label className="field">
+            <span>Active profile</span>
+            <select
+              aria-label="connection-profile-select"
+              disabled={profileBusy || !status.data?.profiles.length}
+              onChange={(event) => void handleSelectProfile(event.target.value)}
+              value={activeProfileId}
+            >
+              {(status.data?.profiles ?? []).map((profile) => (
+                <option key={profile.profile_id} value={profile.profile_id}>
+                  {profile.label}
+                </option>
+              ))}
+            </select>
+            <small className="field-note">Switching profiles restarts the local sidecar so readiness follows the selected owner.</small>
+          </label>
+          <label className="field">
+            <span>New local profile</span>
+            <input
+              aria-label="connection-profile-label"
+              onChange={(event) => setProfileLabel(event.target.value)}
+              placeholder="Research account"
+              value={profileLabel}
+            />
+          </label>
+        </div>
+        <div className="form-actions">
+          <button
+            aria-label="connection-profile-create"
+            className="ghost-button"
+            disabled={profileBusy || !profileLabel.trim()}
+            onClick={() => void handleCreateProfile()}
+            type="button"
+          >
+            <Plus size={16} />
+            {profileBusy ? "Updating..." : "Create profile"}
+          </button>
+        </div>
+        {profileMessage ? <InlineState label={profileMessage} /> : null}
+      </section>
 
       <section className="card">
         <div className="card-header">
@@ -382,6 +479,7 @@ function ProviderCard({
       <p>{effective.last_message ?? "No provider message yet."}</p>
       <div className="connection-metrics">
         <StatusMetric label="Configured" value={effective.configured ? "Loaded into sidecar" : "Not loaded"} />
+        <StatusMetric label="Owner" value={effective.profile_label} />
         <StatusMetric label="Last test" value={formatTimestamp(effective.last_tested_at)} />
         <StatusMetric label="Last success" value={formatTimestamp(effective.last_success_at)} />
         <StatusMetric label="Cache freshness" value={formatCacheFreshness(effective)} />
@@ -485,6 +583,8 @@ function buildErrorTest(provider: string, error: unknown, fallbackMessage: strin
     last_success_at: null,
     cache_updated_at: null,
     cache_age_seconds: null,
+    profile_id: "local_default",
+    profile_label: "Local default",
   };
 }
 
@@ -504,6 +604,8 @@ function mergeProviderState(item: ConnectionStatusItem, testResult?: ConnectionT
     last_success_at: testResult.last_success_at ?? item.last_success_at,
     cache_updated_at: testResult.cache_updated_at ?? item.cache_updated_at,
     cache_age_seconds: testResult.cache_age_seconds ?? item.cache_age_seconds,
+    profile_id: testResult.profile_id ?? item.profile_id,
+    profile_label: testResult.profile_label ?? item.profile_label,
   };
 }
 

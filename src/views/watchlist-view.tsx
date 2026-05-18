@@ -1,5 +1,5 @@
 import { ChartCandlestick, Plus, Search, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { InlineState, MiniTrend, PanelState, formatPrice } from "../components/shared";
 import {
   assetCategoryDefinitions,
@@ -35,9 +35,29 @@ export function WatchlistView({
   const [query, setQuery] = useState("");
   const [busySymbol, setBusySymbol] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [localSymbols, setLocalSymbols] = useState<string[]>(() => watchlist.map((asset) => asset.symbol));
+
+  useEffect(() => {
+    if (busySymbol === null) {
+      setLocalSymbols(watchlist.map((asset) => asset.symbol));
+    }
+  }, [busySymbol, watchlist]);
 
   const normalizedUniverse = useMemo(() => normalizeAssetOptions(assetUniverse), [assetUniverse]);
-  const currentSymbols = useMemo(() => new Set(watchlist.map((asset) => asset.symbol)), [watchlist]);
+  const universeMap = useMemo(
+    () => new Map(normalizedUniverse.map((asset) => [asset.symbol, asset] as const)),
+    [normalizedUniverse],
+  );
+  const snapshotMap = useMemo(() => new Map(watchlist.map((asset) => [asset.symbol, asset] as const)), [watchlist]);
+  const displayWatchlist = useMemo(
+    () =>
+      localSymbols
+        .map((symbol) => snapshotMap.get(symbol) ?? snapshotFromSearchResult(universeMap.get(symbol)))
+        .filter(Boolean) as WatchlistAssetSnapshot[],
+    [localSymbols, snapshotMap, universeMap],
+  );
+  const currentSymbols = useMemo(() => new Set(localSymbols), [localSymbols]);
   const availableCandidates = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     return normalizedUniverse.filter((asset) => {
@@ -50,39 +70,53 @@ export function WatchlistView({
       return `${asset.symbol} ${asset.name} ${asset.market}`.toLowerCase().includes(keyword);
     });
   }, [currentSymbols, normalizedUniverse, query, selectedCategory]);
-  const groupedWatchlist = groupAssetOptions(watchlist);
+  const groupedWatchlist = groupAssetOptions(displayWatchlist);
   const activeCandidate =
     availableCandidates.find((asset) => asset.symbol === selectedSymbol) ?? availableCandidates[0] ?? null;
 
+  async function commitSymbols(nextSymbols: string[], successMessage: string, rollbackSymbols: string[]) {
+    setLocalSymbols(nextSymbols);
+    setActionError(null);
+    setActionMessage(null);
+    try {
+      await onWatchlistChange(nextSymbols);
+      setActionMessage(successMessage);
+    } catch (error) {
+      setLocalSymbols(rollbackSymbols);
+      setActionError(error instanceof Error ? error.message : "自选列表更新失败");
+    }
+  }
+
   async function addSymbol(symbol: string) {
-    if (!symbol) {
+    if (!symbol || currentSymbols.has(symbol)) {
       return;
     }
+    const previousSymbols = localSymbols;
+    const nextSymbols = [...localSymbols, symbol];
     setBusySymbol(symbol);
-    setActionError(null);
     try {
-      await onWatchlistChange([...watchlist.map((asset) => asset.symbol), symbol]);
+      await commitSymbols(nextSymbols, `已添加 ${symbol}`, previousSymbols);
       setSelectedSymbol("");
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : "添加自选失败");
     } finally {
       setBusySymbol(null);
     }
   }
 
   async function removeSymbol(symbol: string) {
+    if (!currentSymbols.has(symbol)) {
+      return;
+    }
+    const previousSymbols = localSymbols;
+    const nextSymbols = localSymbols.filter((item) => item !== symbol);
     setBusySymbol(symbol);
-    setActionError(null);
     try {
-      await onWatchlistChange(watchlist.map((asset) => asset.symbol).filter((item) => item !== symbol));
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : "移除自选失败");
+      await commitSymbols(nextSymbols, `已删除 ${symbol}`, previousSymbols);
     } finally {
       setBusySymbol(null);
     }
   }
 
-  if (loading && watchlist.length === 0) {
+  if (loading && displayWatchlist.length === 0) {
     return <PanelState title="自选列表加载中" copy="正在读取本地 watchlist 和可添加资产范围。" />;
   }
 
@@ -94,9 +128,11 @@ export function WatchlistView({
             <p className="eyebrow">Watchlist</p>
             <h3>自选列表</h3>
           </div>
-          <span className="mini-pill">{watchlist.length}</span>
+          <span className="mini-pill">{displayWatchlist.length}</span>
         </div>
         {error ? <InlineState label={error} actionLabel="重试" onAction={onRetry} /> : null}
+        {actionMessage ? <InlineState label={actionMessage} /> : null}
+        {actionError ? <InlineState label={actionError} /> : null}
         <div className="watchlist-page-groups">
           {groupedWatchlist.length === 0 ? (
             <InlineState label="当前没有自选资产，先从右侧添加。" />
@@ -131,15 +167,18 @@ export function WatchlistView({
                         </div>
                         <MiniTrend trend={asset.trend} />
                       </button>
-                      <button
-                        aria-label={`watchlist-remove symbol=${asset.symbol}`}
-                        className="icon-button danger"
-                        disabled={busySymbol === asset.symbol}
-                        onClick={() => void removeSymbol(asset.symbol)}
-                        type="button"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="watchlist-card-actions">
+                        <button
+                          aria-label={`watchlist-remove symbol=${asset.symbol}`}
+                          className="ghost-button danger"
+                          disabled={busySymbol === asset.symbol}
+                          onClick={() => void removeSymbol(asset.symbol)}
+                          type="button"
+                        >
+                          <Trash2 size={16} />
+                          {busySymbol === asset.symbol ? "删除中..." : "删除"}
+                        </button>
+                      </div>
                     </article>
                   ))}
                 </div>
@@ -201,19 +240,29 @@ export function WatchlistView({
         </div>
         <div className="candidate-list">
           {availableCandidates.slice(0, 8).map((asset) => (
-            <button
+            <div
               aria-label={`watchlist-candidate symbol=${asset.symbol}`}
               className={`variant-card ${activeCandidate?.symbol === asset.symbol ? "selected" : ""}`}
               key={asset.symbol}
-              onClick={() => setSelectedSymbol(asset.symbol)}
-              type="button"
             >
-              <div className="variant-card-head">
-                <strong>{asset.symbol}</strong>
-                <span className="mini-pill">{asset.market}</span>
-              </div>
-              <p>{asset.name}</p>
-            </button>
+              <button className="variant-card-main" onClick={() => setSelectedSymbol(asset.symbol)} type="button">
+                <div className="variant-card-head">
+                  <strong>{asset.symbol}</strong>
+                  <span className="mini-pill">{asset.market}</span>
+                </div>
+                <p>{asset.name}</p>
+              </button>
+              <button
+                aria-label={`watchlist-add-option symbol=${asset.symbol}`}
+                className="ghost-button"
+                disabled={busySymbol !== null}
+                onClick={() => void addSymbol(asset.symbol)}
+                type="button"
+              >
+                <Plus size={16} />
+                {busySymbol === asset.symbol ? "添加中..." : "添加"}
+              </button>
+            </div>
           ))}
           {availableCandidates.length === 0 ? <InlineState label="这一类里没有更多可添加资产。" /> : null}
         </div>
@@ -226,11 +275,24 @@ export function WatchlistView({
             type="button"
           >
             <Plus size={16} />
-            添加
+            添加所选
           </button>
         </div>
-        {actionError ? <InlineState label={actionError} /> : null}
       </section>
     </div>
   );
+}
+
+function snapshotFromSearchResult(asset: AssetSearchResult | undefined): WatchlistAssetSnapshot | null {
+  if (!asset) {
+    return null;
+  }
+  return {
+    ...asset,
+    price: 0,
+    change: 0,
+    change_pct: 0,
+    trend: [0, 0, 0, 0, 0, 0],
+    summary: "等待本地服务刷新行情快照。",
+  };
 }

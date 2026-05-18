@@ -241,7 +241,11 @@ class StrategyApiTests(unittest.TestCase):
                 self.assertEqual(paper["execution_mode"], "paper")
                 self.assertTrue(paper["no_live_orders"])
 
-                export_response = client.post(f"/api/v1/strategies/reports/{paper['session_id']}/export")
+                session = client.post("/api/v1/security/session", json={}).json()
+                export_response = client.post(
+                    f"/api/v1/strategies/reports/{paper['session_id']}/export",
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                )
                 self.assertEqual(export_response.status_code, 200)
                 contents = Path(export_response.json()["export_path"]).read_text(encoding="utf-8")
                 self.assertIn("Paper Session", contents)
