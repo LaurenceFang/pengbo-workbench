@@ -7,6 +7,7 @@ import {
   api,
   type AppPreferences,
   type DiagnosticsExportResult,
+  type SecurityAuditEvent,
   type SettingsRuntimeResponse,
   type ViewKey,
 } from "../lib/api";
@@ -51,6 +52,7 @@ export function SettingsView({
   const setDensity = useAppStore((state) => state.setDensity);
   const runtimeInfo = useAsyncResource<SettingsRuntimeResponse>(async () => api.getSettingsRuntime(), []);
   const preferences = useAsyncResource<AppPreferences>(async () => api.getSettingsPreferences(), []);
+  const securityAudit = useAsyncResource<SecurityAuditEvent[]>(async () => api.getSecurityAudit(12, "local_security"), []);
   const [form, setForm] = useState<AppPreferences | null>(null);
   const [saving, setSaving] = useState(false);
   const diagnosticsEnabled = preferences.data?.diagnostics_export_enabled ?? true;
@@ -284,6 +286,35 @@ export function SettingsView({
         ) : (
           <InlineState label={i18n.t("settings.noDiagnosticsYet")} />
         )}
+      </section>
+
+      <section className="card">
+        <div className="card-header">
+          <div>
+            <p className="eyebrow">Security audit</p>
+            <h3>Local unlock and sensitive-surface events</h3>
+          </div>
+          <button className="ghost-button" type="button" onClick={securityAudit.reload}>
+            <RefreshCcw size={16} />
+            Refresh
+          </button>
+        </div>
+        {securityAudit.loading && !securityAudit.data ? <InlineState label="Loading security audit events..." /> : null}
+        {securityAudit.error ? (
+          <InlineState label={securityAudit.error} actionLabel="Retry" onAction={securityAudit.reload} />
+        ) : null}
+        <div className="task-list">
+          {(securityAudit.data ?? []).map((event) => (
+            <div className="task-item security-audit-row" key={event.event_id}>
+              <div>
+                <strong>{event.event_type}</strong>
+                <p>{event.summary}</p>
+              </div>
+              <span className="setting-value mono">{event.created_at}</span>
+            </div>
+          ))}
+          {securityAudit.data?.length === 0 ? <InlineState label="No local security audit events yet." /> : null}
+        </div>
       </section>
     </div>
   );

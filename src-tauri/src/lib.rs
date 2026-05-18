@@ -113,6 +113,12 @@ struct ConnectionSecretPayload {
     identity: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+struct LocalSecurityStatus {
+    initialized: bool,
+    locked: bool,
+}
+
 #[derive(Debug)]
 struct SidecarRuntime {
     status: SidecarStatus,
@@ -215,9 +221,11 @@ fn export_diagnostics_bundle(
 #[tauri::command]
 fn save_connection_secret(
     app: AppHandle,
+    state: State<'_, AppState>,
     provider: String,
     payload: ConnectionSecretPayload,
 ) -> Result<RuntimeCommandResponse, String> {
+    ensure_local_unlocked(&app, state.inner(), "provider_credentials")?;
     let paths = runtime_paths(&app)?;
     let bootstrap_log_path = paths.log_dir.join("sidecar-bootstrap.log");
     let provider_key = provider.to_lowercase();
@@ -264,8 +272,10 @@ fn save_connection_secret(
 #[tauri::command]
 fn clear_connection_secret(
     app: AppHandle,
+    state: State<'_, AppState>,
     provider: String,
 ) -> Result<RuntimeCommandResponse, String> {
+    ensure_local_unlocked(&app, state.inner(), "provider_credentials")?;
     match provider.to_lowercase().as_str() {
         "binance" => {
             save_secret_value(&app, "binance.api_key", None)?;
@@ -294,6 +304,12 @@ fn test_connection(
     state: State<'_, AppState>,
     provider: String,
 ) -> Result<ConnectionTestResponse, String> {
+    if matches!(
+        provider.to_lowercase().as_str(),
+        "binance" | "edgar" | "fred" | "coingecko"
+    ) {
+        ensure_local_unlocked(&app, state.inner(), "provider_credentials")?;
+    }
     if !matches!(state.inner().snapshot().status, SidecarStatus::Online) {
         start_sidecar(&app, state.inner())?;
     }
@@ -315,6 +331,43 @@ fn test_connection(
     response
         .json::<ConnectionTestResponse>()
         .map_err(|error| format!("failed to decode connection test response: {error}"))
+}
+
+fn ensure_local_unlocked(app: &AppHandle, state: &AppState, surface: &str) -> Result<(), String> {
+    if !matches!(state.snapshot().status, SidecarStatus::Online) {
+        start_sidecar(app, state)?;
+    }
+
+    let base_url = runtime_config(app, state)?.base_url;
+    let client = http_client()?;
+    let status_response = client
+        .get(format!("{base_url}/security/local/status"))
+        .send()
+        .map_err(|error| format!("failed to check local unlock state: {error}"))?;
+    if !status_response.status().is_success() {
+        let status = status_response.status();
+        let body = status_response.text().unwrap_or_default();
+        return Err(format!("local unlock status failed with {status}: {body}"));
+    }
+    let status = status_response
+        .json::<LocalSecurityStatus>()
+        .map_err(|error| format!("failed to decode local unlock state: {error}"))?;
+    if !status.initialized || status.locked {
+        return Err(format!("local unlock is required before accessing {surface}"));
+    }
+
+    let touch_response = client
+        .post(format!("{base_url}/security/local/touch"))
+        .json(&serde_json::json!({ "surface": surface }))
+        .send()
+        .map_err(|error| format!("failed to refresh local unlock state: {error}"))?;
+    if !touch_response.status().is_success() {
+        let status = touch_response.status();
+        let body = touch_response.text().unwrap_or_default();
+        return Err(format!("local unlock touch failed with {status}: {body}"));
+    }
+
+    Ok(())
 }
 
 impl AppState {

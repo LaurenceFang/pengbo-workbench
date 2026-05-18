@@ -197,6 +197,18 @@ class SqliteStore:
                     payload_json TEXT NOT NULL
                 );
 
+                CREATE TABLE IF NOT EXISTS local_security_state (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    pin_hash TEXT NOT NULL,
+                    salt TEXT NOT NULL,
+                    initialized_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    unlocked_until TEXT,
+                    locked_at TEXT,
+                    failed_attempts INTEGER NOT NULL DEFAULT 0,
+                    lockout_until TEXT
+                );
+
                 CREATE TABLE IF NOT EXISTS binance_execution_kill_switches (
                     scope_key TEXT PRIMARY KEY,
                     enabled INTEGER NOT NULL,
@@ -363,6 +375,62 @@ class SqliteStore:
                 [(key, json.dumps(value, ensure_ascii=False), now) for key, value in values.items()],
             )
             self.connection.commit()
+
+    def get_local_security_state(self) -> dict[str, Any] | None:
+        with self._lock:
+            row = self.connection.execute(
+                """
+                SELECT pin_hash, salt, initialized_at, updated_at, unlocked_until, locked_at,
+                       failed_attempts, lockout_until
+                FROM local_security_state
+                WHERE id = 1
+                """
+            ).fetchone()
+        if row is None:
+            return None
+        return {
+            "pin_hash": row["pin_hash"],
+            "salt": row["salt"],
+            "initialized_at": row["initialized_at"],
+            "updated_at": row["updated_at"],
+            "unlocked_until": row["unlocked_until"],
+            "locked_at": row["locked_at"],
+            "failed_attempts": row["failed_attempts"],
+            "lockout_until": row["lockout_until"],
+        }
+
+    def upsert_local_security_state(self, payload: dict[str, Any]) -> dict[str, Any]:
+        with self._lock:
+            self.connection.execute(
+                """
+                INSERT INTO local_security_state (
+                    id, pin_hash, salt, initialized_at, updated_at, unlocked_until,
+                    locked_at, failed_attempts, lockout_until
+                )
+                VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    pin_hash = excluded.pin_hash,
+                    salt = excluded.salt,
+                    initialized_at = excluded.initialized_at,
+                    updated_at = excluded.updated_at,
+                    unlocked_until = excluded.unlocked_until,
+                    locked_at = excluded.locked_at,
+                    failed_attempts = excluded.failed_attempts,
+                    lockout_until = excluded.lockout_until
+                """,
+                (
+                    payload["pin_hash"],
+                    payload["salt"],
+                    payload["initialized_at"],
+                    payload["updated_at"],
+                    payload.get("unlocked_until"),
+                    payload.get("locked_at"),
+                    int(payload.get("failed_attempts") or 0),
+                    payload.get("lockout_until"),
+                ),
+            )
+            self.connection.commit()
+        return payload
 
     def get_connection_profile(self, provider: str) -> dict[str, Any] | None:
         with self._lock:

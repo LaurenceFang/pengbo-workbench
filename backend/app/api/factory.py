@@ -24,6 +24,7 @@ from ..services.research_service import ResearchService
 from ..services.screener_service import ScreenerService
 from ..services.settings_service import SettingsService
 from ..services.security_audit_service import SecurityAuditService
+from ..services.local_security_service import LocalSecurityService
 from ..services.strategy_service import StrategyService
 from ..services.translation_service import TranslationService
 from ..services.watchlist_service import WatchlistService
@@ -47,6 +48,7 @@ class AppContainer:
         self.filings_provider = FilingsProvider(settings.edgar_identity)
         self.watchlist_service = WatchlistService(self.sqlite_store)
         self.security_audit_service = SecurityAuditService(self.sqlite_store)
+        self.local_security_service = LocalSecurityService(self.sqlite_store, self.security_audit_service)
         self.capability_service = CapabilityService(
             self.filings_provider,
             self.binance_provider,
@@ -142,6 +144,8 @@ class LazyAppContainer:
         self.sqlite_store = SqliteStore(settings.sqlite_path)
         self.sqlite_store.initialize()
         self.settings_service = SettingsService(settings, self.sqlite_store)
+        self.security_audit_service = SecurityAuditService(self.sqlite_store)
+        self.local_security_service = LocalSecurityService(self.sqlite_store, self.security_audit_service)
         self._container: AppContainer | None = None
         self._lock = Lock()
 

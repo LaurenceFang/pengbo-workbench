@@ -623,6 +623,49 @@ button {
   gap: 1rem;
 }
 
+.local-unlock-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem 1.2rem;
+  max-width: 760px;
+  padding: 1.35rem;
+}
+
+.local-unlock-mark {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-control);
+  color: #06140f;
+  background: linear-gradient(145deg, #70f3c1, #7eb7ff);
+}
+
+.local-unlock-copy,
+.local-unlock-form,
+.local-unlock-card .form-actions,
+.local-unlock-card .panel-note {
+  grid-column: 2;
+}
+
+.local-unlock-copy h3 {
+  margin: 0.2rem 0 0;
+}
+
+.local-unlock-card .panel-note.danger {
+  color: var(--accent-risk);
+}
+
+.security-audit-row {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.security-audit-row p {
+  margin: 0.25rem 0 0;
+  color: var(--text-secondary);
+}
+
 .panel-banner.compact {
   gap: 0.8rem;
 }

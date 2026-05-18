@@ -1348,3 +1348,26 @@ class SecurityAuditEvent(BaseModel):
     subject: str | None = None
     summary: str
     payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class LocalSecurityStatus(BaseModel):
+    initialized: bool
+    locked: bool
+    unlocked_until: str | None = None
+    idle_timeout_seconds: int = 600
+    failed_attempts: int = 0
+    max_failed_attempts: int = 5
+    lockout_until: str | None = None
+    sensitive_surfaces: list[str] = Field(default_factory=list)
+
+
+class LocalSecurityInitializeRequest(BaseModel):
+    unlock_secret: str = Field(min_length=4, max_length=128)
+
+
+class LocalSecurityUnlockRequest(BaseModel):
+    unlock_secret: str = Field(min_length=1, max_length=128)
+
+
+class LocalSecurityTouchRequest(BaseModel):
+    surface: str | None = None

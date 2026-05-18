@@ -46,8 +46,8 @@ Updated: 2026-05-18
 - `T50 - Security Architecture And Global Audit Foundation` is now implemented as the first security-hardening pass: `docs/SECURITY_ARCHITECTURE.md` defines the local-first threat boundary, data classification, secret handling rules, execution gates, and public-exposure prerequisites; the backend now stores redacted `security_audit_events` and exposes `/api/v1/security/audit` for cross-module credential/execution security events.
 - `T51 - Startup Time Reduction` is now implemented and package-smoke validated. The packaged launch path no longer blocks Tauri setup on sidecar health, the Tauri-mode sidecar keeps health/settings startup light before full service initialization, cold-start adopt-existing probes use a short timeout, bundled sidecar shutdown avoids visible console windows, and the latest packaged startup smoke records `health_ready_seconds=2.88s`, `failures=[]`, `single_instance_ok=true`, `adopt_existing_ok=true`, and `shutdown_sidecar_exited_ok=true` in `logs/packaged-startup-smoke-latest.json`.
 - `T52 - Git Upload Readiness And Repository Normalization` is now implemented, security-remediated after independent Claude Code review, and selected for first public GitHub upload. The public-upload boundary is documented in `README.md` and `docs/REPOSITORY_UPLOAD_READINESS.md`, root and Tauri ignore rules exclude generated/runtime/secret artifacts, CORS methods are explicit, generated sidecar build logs are documented as local ignored resources, and no API/runtime contract was changed.
-- `T53 - Local Unlock PIN And Idle Lock` is now selected as the recommended next task; it should add a local unlock factor, lockout behavior, idle auto-lock, and audit events before broader account-sensitive workflows.
-- `T54 - Account-Scoped Provider Credential Model` is sequenced immediately after T53; it should separate account metadata from credential material and prepare provider credentials for future per-account ownership.
+- `T53 - Local Unlock PIN And Idle Lock` is now implemented and package-smoke validated. Sensitive desktop surfaces now require a local unlock factor, failed unlock attempts are tracked with lockout support, idle relock is audited, Tauri credential commands verify unlock state, and packaged evidence is recorded in `logs/local-security-packaged-smoke-latest.json`.
+- `T54 - Account-Scoped Provider Credential Model` is now selected as the recommended next task; it should separate account metadata from credential material and prepare provider credentials for future per-account ownership.
 - `T55 - Future Public Auth And Session Layer` remains blocked behind T53 and T54; it should introduce authenticated users, sessions, permission checks, and account-level audit context before any public deployment.
 - `T56 - Public Exposure Gateway And Sidecar Hardening` remains blocked behind T53, T54, and T55; it should review CORS, bind addresses, API gateway rules, rate limits, CSRF posture, request logging, and deployment topology before any internet-facing mode.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
@@ -58,7 +58,7 @@ Updated: 2026-05-18
 ## Latest Planning Update
 
 - Replanned the post-T52 sequence on 2026-05-18 after reviewing the external product assessments and local task board state.
-- Promoted `T53 - Local Unlock PIN And Idle Lock` as the current recommended next task, followed by `T54`, `T55`, and `T56` in strict order before any public, account, remote, or team-facing mode.
+- Completed `T53 - Local Unlock PIN And Idle Lock` on 2026-05-18 and promoted `T54 - Account-Scoped Provider Credential Model` as the current recommended next task, followed by `T55` and `T56` in strict order before any public, account, remote, or team-facing mode.
 - Added the future product-trust roadmap from `T57` through `T94`; these tasks cover open-source boundary, CI, release, demo mode, research-flow polish, data-source governance, local AI research assistance, China-market connectors, and security packaged signoff.
 - The new `T57+` roadmap is intentionally queued after the security-accountability sequence and should not be implemented before T53-T56 unless the task board is explicitly re-prioritized.
 
@@ -88,6 +88,20 @@ Updated: 2026-05-18
 - Re-read the full local `E:\Fincept Terminal` checkout after the user pointed out the product gap. Fincept's reusable ideas for Pengbo are now ranked as: first, a denser terminal-style page and workspace system; second, Workflow Studio / node-like automation with audit and confirmation boundaries; third, a Data Sources Center with connector catalog, freshness, provenance, credential state, and source testing. Fincept remains a product benchmark rather than a migration target; Pengbo keeps the current `Tauri + React + FastAPI + SQLite/DuckDB` baseline.
 
 ## Latest Execution Update
+
+- Completed `T53 - Local Unlock PIN And Idle Lock`.
+- Added a local-first unlock layer in the sidecar: `/api/v1/security/local/status`, `initialize`, `unlock`, `lock`, `idle-timeout`, and `touch` now track initialized/locked state, salted unlock-factor hash, idle expiry, failed attempts, and lockout metadata without storing raw PIN/passphrase material.
+- Gated sensitive backend routes behind the local unlock boundary: provider credential tests/profile clearing, Binance execution config/intents/kill-switch/audit, and global security audit reads now return a locked response until local unlock succeeds.
+- Added Tauri command-side unlock checks for provider credential save, clear, and desktop connection testing so Stronghold-backed credential operations cannot be triggered from the desktop runtime while the local security layer is locked.
+- Added the desktop unlock UI: sensitive workspaces now show a local initialize/unlock panel, expose a lock action in the shell, refresh activity through `/security/local/touch`, and trigger idle relock through the sidecar.
+- Added the Settings security-audit panel for local unlock and sensitive-surface events after unlock.
+- Added repeatable packaged validation via `scripts/packaged_local_security_smoke.ps1` and `npm run smoke:local-security:packaged`. The latest result in `logs/local-security-packaged-smoke-latest.json` records `health_ready=true`, `locked_blocked_audit=true`, `failed_unlock_recorded=true`, `idle_relock_ok=true`, `restart_restore_ok=true`, `sqlite_plaintext_secret_found=false`, and `failures=[]`.
+- Validation passed:
+  - `py -m pytest backend\tests`
+  - `npm run typecheck`
+  - `npm run tauri:build`
+  - `npm run smoke:local-security:packaged`
+- No new blocker task was discovered. `T54 - Account-Scoped Provider Credential Model` is now promoted as the next recommended task.
 
 - Executed the first public GitHub upload path for `T52 - Git Upload Readiness And Repository Normalization`.
 - Created the public repository `LaurenceFang/pengbo-workbench` for the safe source upload target.
@@ -756,47 +770,46 @@ Updated: 2026-05-18
 
 ## Recommended Next Task
 
-### T53 - Local Unlock PIN And Idle Lock
+### T54 - Account-Scoped Provider Credential Model
 
 Priority: P1
 Status: Planned
 
 Why this is next:
 
-- `T52 - Git Upload Readiness And Repository Normalization` is complete, and the public-upload boundary now documents Pengbo as a local-first desktop app.
-- The next product risk is local sensitive-data access: provider credentials, execution configuration, audit pages, and future account/public modes need a local unlock layer before broader exposure.
-- The user selected the security-accountability sequence as the current priority; T53 must happen before `T54`, `T55`, `T56`, and before the later `T57+` product-trust roadmap.
+- `T53 - Local Unlock PIN And Idle Lock` is complete and package-smoke validated, so sensitive local surfaces now have an initialization/unlock/idle-relock boundary.
+- The next security-accountability gap is credential ownership: provider credentials are still local-machine scoped rather than attached to an explicit local account/profile.
+- T54 must happen before `T55`, `T56`, and before any public, team-facing, remote, or broader account-sensitive workflow.
 
 Scope:
 
-- Add a local unlock PIN or passphrase flow for sensitive desktop surfaces.
-- Add idle timeout behavior that locks sensitive surfaces after inactivity.
-- Add lock/unlock state to the local desktop runtime without introducing hosted accounts, remote sessions, or public API exposure.
-- Gate provider credential management, execution/risk configuration, security audit views, and future account-sensitive workflows behind the local unlock boundary.
-- Record lock, unlock, failed unlock, timeout, and sensitive-surface access events in the global security audit layer with no raw secrets.
+- Introduce local account/profile ownership metadata for provider credentials without adding cloud accounts.
+- Separate account labels, provider capability metadata, credential readiness state, and raw secret storage.
+- Migrate existing provider credential records into an account-scoped local model while preserving `/api/v1/...` compatibility.
+- Add UI affordances for selecting the active local profile and seeing credential readiness per provider.
+- Extend audit events for credential create, update, rotate, disable, and provider-readiness checks.
 
 Acceptance:
 
-- First launch can initialize the local unlock factor without sending anything to a remote service.
-- Sensitive surfaces are locked until the local unlock succeeds.
-- Idle timeout relocks sensitive surfaces and shows a clear desktop UI state.
-- Failed unlock attempts are rate-limited or lockout-protected enough to prevent trivial repeated guessing.
-- Security audit events are redacted and visible through the existing audit surface.
-- Packaged EXE validation proves initialization, unlock, failed unlock, idle relock, restart restore, and audit evidence.
+- A local user can understand which profile owns each provider credential.
+- Existing provider workflows continue to work through compatibility APIs.
+- Secret material remains in the existing Stronghold/secret bridge pattern.
+- Security audit output stays redacted and includes local profile/account context.
+- Packaged EXE validation covers migration, profile switching, provider readiness, and redacted audit output.
 
 Implementation notes:
 
-- Preserve the local-first boundary and avoid adding hosted identity, OAuth, cloud sync, or multi-user semantics in T53.
-- Treat the local unlock factor as a desktop safety layer, not as a complete defense against same-user malware or higher-privilege processes.
-- Keep all credential material in the existing Stronghold/secret bridge pattern; T53 should not move raw secrets into SQLite, DuckDB, logs, diagnostics, screenshots, or exports.
-- After T53 closes, promote `T54 - Account-Scoped Provider Credential Model`.
+- Preserve the local-first boundary and avoid adding hosted identity, OAuth, cloud sync, or remote multi-user semantics in T54.
+- Build on the T53 unlock boundary; do not weaken local unlock checks for credential surfaces.
+- Keep all raw credential material in the existing Stronghold/secret bridge pattern; T54 should only add ownership/readiness metadata outside Stronghold.
+- After T54 closes, promote `T55 - Future Public Auth And Session Layer`.
 
 ## Priority Order
 
 ### T53 - Local Unlock PIN And Idle Lock
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-05-18 to 2026-05-31
 Depends on: T52
 
@@ -814,6 +827,13 @@ Done when:
 - Failed unlock attempts have basic rate-limit or lockout protection.
 - No raw secret, PIN, passphrase, or unlock material appears in SQLite, DuckDB, logs, diagnostics, screenshots, or exports.
 - T54 is promoted as the next task after packaged signoff.
+
+Completion:
+
+- Added local security status, initialize, unlock, lock, idle-timeout, and touch endpoints backed by salted hash storage and redacted security audit events.
+- Gated provider credential operations, Binance execution/risk routes, Binance execution audit, and global security audit behind local unlock.
+- Added desktop shell unlock UI, idle relock, manual lock, Settings local-security audit visibility, and Tauri command-side unlock checks for credential save/clear/test.
+- Packaged signoff passed in `logs/local-security-packaged-smoke-latest.json` with `locked_blocked_audit=true`, `failed_unlock_recorded=true`, `idle_relock_ok=true`, `restart_restore_ok=true`, `sqlite_plaintext_secret_found=false`, and `failures=[]`.
 
 ### T54 - Account-Scoped Provider Credential Model
 

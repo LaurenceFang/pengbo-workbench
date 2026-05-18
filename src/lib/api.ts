@@ -357,6 +357,29 @@ export type OnboardingState = {
   onboarding_seen_at: string | null;
 };
 
+export type LocalSecurityStatus = {
+  initialized: boolean;
+  locked: boolean;
+  unlocked_until: string | null;
+  idle_timeout_seconds: number;
+  failed_attempts: number;
+  max_failed_attempts: number;
+  lockout_until: string | null;
+  sensitive_surfaces: string[];
+};
+
+export type SecurityAuditEvent = {
+  event_id: string;
+  created_at: string;
+  category: string;
+  event_type: string;
+  actor: string;
+  surface: string;
+  subject: string | null;
+  summary: string;
+  payload: Record<string, unknown>;
+};
+
 export type SetupStatus = {
   firstRun: boolean;
   needsSetup: boolean;
@@ -1382,6 +1405,22 @@ export const api = {
   getOnboardingState: () => apiFetch<OnboardingState>("/settings/onboarding"),
   updateOnboardingState: (payload: OnboardingState) =>
     jsonRequest<OnboardingState>("/settings/onboarding", "PUT", payload),
+  getLocalSecurityStatus: () => apiFetch<LocalSecurityStatus>("/security/local/status"),
+  initializeLocalSecurity: (unlockSecret: string) =>
+    jsonRequest<LocalSecurityStatus>("/security/local/initialize", "POST", { unlock_secret: unlockSecret }),
+  unlockLocalSecurity: (unlockSecret: string) =>
+    jsonRequest<LocalSecurityStatus>("/security/local/unlock", "POST", { unlock_secret: unlockSecret }),
+  lockLocalSecurity: () => jsonRequest<LocalSecurityStatus>("/security/local/lock", "POST"),
+  idleTimeoutLocalSecurity: () => jsonRequest<LocalSecurityStatus>("/security/local/idle-timeout", "POST"),
+  touchLocalSecurity: (surface?: string | null) =>
+    jsonRequest<LocalSecurityStatus>("/security/local/touch", "POST", { surface: surface ?? null }),
+  getSecurityAudit: (limit = 50, category?: string | null) => {
+    const query = new URLSearchParams({ limit: String(limit) });
+    if (category) {
+      query.set("category", category);
+    }
+    return apiFetch<SecurityAuditEvent[]>(`/security/audit?${query.toString()}`);
+  },
   getConnectionsStatus: () => apiFetch<ConnectionsStatusResponse>("/connections/status"),
   getConnectionsCatalog: () => apiFetch<ConnectionsCatalogResponse>("/connections/catalog"),
   getDataSourceStatus: () => apiFetch<DataSourceStatusResponse>("/data-sources/status"),
@@ -1487,12 +1526,14 @@ export const api = {
     if (!isTauriRuntime()) {
       throw new Error("凭证编辑仅在桌面版中可用。");
     }
+    await ensureLocalSecurityUnlocked("provider_credentials");
     return invoke<RuntimeCommandResponse>("save_connection_secret", { provider, payload });
   },
   clearConnectionSecret: async (provider: string) => {
     if (!isTauriRuntime()) {
       throw new Error("凭证编辑仅在桌面版中可用。");
     }
+    await ensureLocalSecurityUnlocked("provider_credentials");
     return invoke<RuntimeCommandResponse>("clear_connection_secret", { provider });
   },
   clearConnectionProfile: (provider: string) =>
@@ -1500,9 +1541,20 @@ export const api = {
       method: "DELETE",
     }),
   testConnection: async (provider: string) => {
+    if (["binance", "edgar", "fred", "coingecko"].includes(provider.toLowerCase())) {
+      await ensureLocalSecurityUnlocked("provider_credentials");
+    }
     if (isTauriRuntime()) {
       return invoke<ConnectionTestResponse>("test_connection", { provider });
     }
     return jsonRequest<ConnectionTestResponse>("/connections/test", "POST", { provider });
   },
 };
+
+async function ensureLocalSecurityUnlocked(surface: string) {
+  const status = await apiFetch<LocalSecurityStatus>("/security/local/status");
+  if (!status.initialized || status.locked) {
+    throw new Error(`Local unlock is required before accessing ${surface}.`);
+  }
+  await jsonRequest<LocalSecurityStatus>("/security/local/touch", "POST", { surface });
+}

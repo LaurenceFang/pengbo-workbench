@@ -439,6 +439,8 @@ class ResearchApiTests(unittest.TestCase):
                 self.assertEqual(paper_response.status_code, 200)
                 paper_session_id = paper_response.json()["session_id"]
 
+                unlock_response = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock_response.status_code, 200)
                 intent_response = client.post(
                     "/api/v1/execution/binance/intents",
                     json={

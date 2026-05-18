@@ -276,6 +276,11 @@ class ExecutionApiTests(unittest.TestCase):
                 container.execution_service.asset_service = container.asset_service
                 container.execution_service.binance_provider = FakeProvider()
 
+                blocked_response = client.get("/api/v1/execution/binance/config")
+                self.assertEqual(blocked_response.status_code, 423)
+                unlock_response = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock_response.status_code, 200)
+
                 config_response = client.get("/api/v1/execution/binance/config")
                 self.assertEqual(config_response.status_code, 200)
                 self.assertFalse(config_response.json()["live_enabled"])
