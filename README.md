@@ -21,7 +21,7 @@ The active roadmap is tracked in [IMPLEMENTATION_TASKS.md](IMPLEMENTATION_TASKS.
 
 These tasks were intentionally prioritized before broader public, account, remote, team, AI, or China-market connector work. The next roadmap lane begins at `T57 - License And Open Source Boundary`, followed by open-source readiness, CI, releases, demo mode, research-flow polish, data governance, local AI assistance, China-market connectors, and security packaged signoff.
 
-`T58 - Version Governance Cleanup`, `T59 - GitHub Actions CI Baseline`, and `T60 - Demo Mode And No-Key Startup` are implemented. The next product-trust task is `T61 - First Release Packaging`.
+`T58 - Version Governance Cleanup`, `T59 - GitHub Actions CI Baseline`, `T60 - Demo Mode And No-Key Startup`, and `T61 - First Release Packaging` are implemented. The next product-trust task is `T62 - README Product Proof Upgrade`.
 
 For the product-team assessment behind this direction, see [docs/product-team-assessment-2026-05-17.md](docs/product-team-assessment-2026-05-17.md).
 
@@ -113,6 +113,8 @@ Build the packaged desktop app:
 npm run tauri:build
 ```
 
+For the local unsigned release-artifact checklist, see [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md).
+
 ## Validation
 
 Common validation commands:
@@ -125,6 +127,9 @@ npm audit --audit-level=moderate
 npm run typecheck
 npm run build
 npm run smoke:demo-no-key
+npm run smoke:packaged-startup
+npm run smoke:installed-startup
+npm run smoke:installed-startup:nsis
 ```
 
 ## Continuous Integration

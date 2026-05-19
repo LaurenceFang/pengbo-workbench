@@ -58,8 +58,9 @@ The active product-trust sequence is:
 - T58: version governance cleanup. Completed.
 - T59: no-secret GitHub Actions CI baseline. Completed.
 - T60: demo mode and no-key startup. Completed.
-- T61: release artifact naming and checklist.
-- T62+: research-flow polish, data-source governance, local AI assistance,
+- T61: release artifact naming and checklist. Completed.
+- T62: README product proof upgrade.
+- T63+: contributor entry kit, research-flow polish, data-source governance, local AI assistance,
   China-market connectors, packaged signoff, and broader public-trust work.
 
 ## Validation Principle
@@ -68,3 +69,6 @@ Pengbo is desktop software, so important release-readiness claims should be
 validated against the real packaged executable when the task touches packaged
 runtime behavior. Browser-only checks are useful for fast UI feedback but are
 not sufficient for packaged desktop signoff.
+
+The current local unsigned packaging checklist is tracked in
+[docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md).

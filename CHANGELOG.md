@@ -24,8 +24,11 @@ release channel yet.
 - T60 adds a no-key demo evaluation path, explicit `/settings/demo-mode`
   readiness state, sample guidance for key surfaces, Vite dev origin allowance,
   and a repeatable `npm run smoke:demo-no-key` validation script.
+- T61 refreshes the local unsigned Windows packaging baseline, documents the
+  first-reviewer release checklist, and hardens MSI/NSIS installed startup
+  validation around the onedir sidecar layout.
 
 ## Upcoming
 
-- T61 will define local release artifact naming, release checklist evidence, and
-  first external reviewer packaging.
+- T62 will upgrade README product proof with verified packaged screenshots and
+  a practical reviewer journey.

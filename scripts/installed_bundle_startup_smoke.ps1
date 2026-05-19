@@ -32,6 +32,7 @@ $result = [ordered]@{
     install_log_path = ""
     installed_exe_path = ""
     installed_sidecar_path = $null
+    root_sidecar_absent_ok = $false
     started_at = (Get-Date).ToString("o")
     finished_at = $null
     health_ready = $false
@@ -210,10 +211,25 @@ function Resolve-InstalledSidecarPath {
         return $preferredResolved
     }
 
+    $exeDir = Split-Path -Parent $ResolvedExePath
+    $preferredCandidates = @(
+        (Join-Path $exeDir "binaries\pengbo-sidecar\pengbo-sidecar.exe"),
+        (Join-Path $exeDir "resources\binaries\pengbo-sidecar\pengbo-sidecar.exe"),
+        (Join-Path $exeDir "resources\pengbo-sidecar\pengbo-sidecar.exe"),
+        (Join-Path $exeDir "_up_\binaries\pengbo-sidecar\pengbo-sidecar.exe"),
+        (Join-Path $exeDir "_up_\pengbo-sidecar\pengbo-sidecar.exe")
+    )
+
+    foreach ($candidate in $preferredCandidates) {
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            return [System.IO.Path]::GetFullPath($candidate)
+        }
+    }
+
     $searchRoots = @(
-        Split-Path -Parent $ResolvedExePath,
-        (Join-Path (Split-Path -Parent $ResolvedExePath) "resources"),
-        (Join-Path (Split-Path -Parent $ResolvedExePath) "_up_")
+        $exeDir,
+        (Join-Path $exeDir "resources"),
+        (Join-Path $exeDir "_up_")
     ) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) }
 
     foreach ($root in $searchRoots) {
@@ -224,6 +240,24 @@ function Resolve-InstalledSidecarPath {
     }
 
     return $null
+}
+
+function Remove-StaleRootSidecar {
+    param([string]$ResolvedExePath)
+
+    $exeDir = Split-Path -Parent $ResolvedExePath
+    $rootSidecarPath = Join-Path $exeDir "pengbo-sidecar.exe"
+    if (Test-Path -LiteralPath $rootSidecarPath -PathType Leaf) {
+        Remove-Item -LiteralPath $rootSidecarPath -Force
+    }
+}
+
+function Test-RootSidecarAbsent {
+    param([string]$ResolvedExePath)
+
+    $exeDir = Split-Path -Parent $ResolvedExePath
+    $rootSidecarPath = Join-Path $exeDir "pengbo-sidecar.exe"
+    return -not (Test-Path -LiteralPath $rootSidecarPath -PathType Leaf)
 }
 
 function Get-ProcessNameFromPath {
@@ -463,6 +497,9 @@ try {
     Stop-MatchingProcesses -ProcessName "pengbo-workbench" -ResolvedPath $null
     Stop-MatchingProcesses -ProcessName "Pengbo Workbench" -ResolvedPath $null
     Stop-MatchingProcesses -ProcessName "pengbo-sidecar" -ResolvedPath $null
+    foreach ($existingExePath in @(Get-InstalledExeCandidates)) {
+        Remove-StaleRootSidecar -ResolvedExePath $existingExePath
+    }
 
     $installExitCode = Install-Installer -InstallerType $InstallerType -ResolvedInstallerPath $stagedInstallerPath -InstallLogPath $installLogPath
     $result.install_exit_code = $installExitCode
@@ -480,6 +517,11 @@ try {
     $result.installed_sidecar_path = $resolvedInstalledSidecarPath
     $result.scenarios.install.installed_exe_path = $resolvedInstalledExePath
     $result.scenarios.install.installed_sidecar_path = $resolvedInstalledSidecarPath
+    $result.root_sidecar_absent_ok = Test-RootSidecarAbsent -ResolvedExePath $resolvedInstalledExePath
+    $result.scenarios.install.root_sidecar_absent_ok = $result.root_sidecar_absent_ok
+    if (-not $result.root_sidecar_absent_ok) {
+        throw "Installed bundle unexpectedly contains a root pengbo-sidecar.exe; expected the onedir sidecar under binaries\pengbo-sidecar."
+    }
 
     Stop-MatchingProcesses -ProcessName $installedProcessName -ResolvedPath $resolvedInstalledExePath
     if ($resolvedInstalledSidecarPath) {

@@ -1,6 +1,6 @@
 # Pengbo Workbench Task Board
 
-Updated: 2026-05-19
+Updated: 2026-05-20
 
 ## Current Assessment
 
@@ -54,6 +54,7 @@ Updated: 2026-05-19
 - `T58 - Version Governance Cleanup` is now implemented. Version metadata is aligned across package, package-lock, Tauri, Cargo, backend sidecar constants, `/health`, `/settings/runtime`, Settings UI, README, CHANGELOG, and the cleaned public `PLAN.md`; `npm run check:version` now enforces the source/runtime version story, and the prior transitive `postcss` audit advisory is resolved.
 - `T59 - GitHub Actions CI Baseline` is now implemented as a no-secret source-level CI workflow. The workflow covers version consistency, public-boundary scanning, npm audit, frontend typecheck/build, and backend unit tests without provider credentials, packaged EXE smoke, Tauri release builds, signing, or live-trading permissions.
 - `T60 - Demo Mode And No-Key Startup` is now implemented. Fresh no-key runtimes expose `/api/v1/settings/demo-mode`, dashboard/sample evaluation guidance, portfolio and data-source sample states, visible missing-credential boundaries, Vite dev-origin allowance, and repeatable no-key smoke evidence in `logs/demo-no-key-smoke-latest.json`.
+- `T61 - First Release Packaging` is now implemented as a local unsigned Windows packaging baseline. The refreshed EXE, MSI, and NSIS artifacts are produced locally, `docs/RELEASE_CHECKLIST.md` records the validation sequence, and MSI/NSIS installed startup smokes now verify the onedir sidecar path without the root `pengbo-sidecar.exe` DLL-loading trap.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -118,6 +119,12 @@ Updated: 2026-05-19
 - Updated README, CHANGELOG, and PLAN with the no-key demo evaluation path and T61 release-packaging handoff.
 - Validation passed: `py -m pytest backend/tests`, `npm run check:version`, `npm run check:public-boundary`, `npm audit --audit-level=moderate`, `npm run typecheck`, `npm run build`, `npm run smoke:demo-no-key`, Playwright dashboard screenshot check, and `git diff --check`. The frontend build still reports the existing large-chunk warning but completes successfully.
 - No new blocker was found. `T61 - First Release Packaging` is now promoted as the next recommended task.
+- Executed `T61 - First Release Packaging` on 2026-05-20 against the current checkout.
+- Refreshed the local release EXE, MSI, and NSIS outputs without uploading a GitHub Release.
+- Fixed the installed-bundle sidecar packaging trap exposed by the first T61 smoke: Tauri no longer installs a root `pengbo-sidecar.exe` copied without its `_internal` directory, and installed smoke now prefers and asserts the onedir sidecar under `binaries\pengbo-sidecar`.
+- Added `docs/RELEASE_CHECKLIST.md` so the first reviewer packaging path, smoke evidence, unsigned/local status, and repo boundary are documented in one place.
+- Validation passed for T61 packaging: `npm run tauri:build`, `npm run smoke:packaged-startup`, `npm run smoke:installed-startup`, and `npm run smoke:installed-startup:nsis`.
+- `T62 - README Product Proof Upgrade` is now the next recommended task.
 
 - Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
 - Treated `FinceptTerminal` as a product-pattern reference rather than a migration target; the local `Pengbo Workbench` stack remains the implementation baseline.
@@ -843,34 +850,32 @@ Updated: 2026-05-19
 
 ## Recommended Next Task
 
-### T61 - First Release Packaging
+### T62 - README Product Proof Upgrade
 
-Priority: P1
+Priority: P2
 Status: Planned
 
 Why this is next:
 
-- `T60` made a fresh no-key checkout evaluable without provider credentials while preserving local unlock, session, gateway, and live-trading boundaries.
-- The next public-trust gap is producing a clearly documented local release artifact path for the first external reviewer.
-- T61 should turn the current source/demo readiness into a reproducible Windows packaging checklist before broader README screenshots or contributor onboarding work.
+- `T61` now produces and documents a local unsigned Windows packaging baseline for the first external reviewer.
+- The next public-trust gap is making the README show the real packaged product experience rather than only engineering readiness.
+- T62 should use verified packaged screenshots and practical workflow copy while keeping local data, generated logs, and credentials out of the public source boundary.
 
 Scope:
 
-- Produce or refresh a local Windows desktop artifact with documented build inputs.
-- Record release checklist steps for sidecar build, Tauri build, installer startup, no-key startup, demo-mode startup, and security-boundary evidence.
-- Keep the release path local and unsigned/clearly documented unless signing is explicitly selected later.
-- Preserve public-repo boundaries so generated binaries, installers, runtime data, logs, diagnostics, Stronghold vaults, and provider credentials stay out of source control.
+- Add real or freshly verified packaged screenshots.
+- Describe the core reviewer journey in practical product language: data status, research evidence, portfolio/strategy context, exports, and safety boundaries.
+- Link the release checklist and validation entry points without exposing local runtime artifacts.
 
 Acceptance:
 
-- The first external reviewer can install or run Pengbo from a documented local artifact path without source-build guesswork.
-- Release evidence covers packaged startup, no-key startup, demo-mode startup, and security-boundary checks.
-- The artifact story is honest about unsigned/local build status and does not imply hosted update, signing, or production distribution support.
-- Any release-packaging blocker is written back before T62+ product-proof work proceeds.
+- README presents a credible product walkthrough, not only a build skeleton.
+- Screenshots or visual proof come from the real packaged desktop path or are clearly marked as regenerated local evidence.
+- Public boundary language remains aligned with README, CHANGELOG, PLAN, and `docs/RELEASE_CHECKLIST.md`.
 
 Implementation notes:
 
-- Do not add hosted accounts, public network exposure, CI secrets, live provider credentials, live-trading expansion, auto-update, or signing infrastructure in T61 unless explicitly re-scoped.
+- Do not upload generated screenshots/logs/binaries by default unless a source-safe screenshot artifact is explicitly selected.
 
 ## Priority Order
 
@@ -1112,7 +1117,7 @@ Completion notes:
 ### T61 - First Release Packaging
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-07-29 to 2026-08-01
 Depends on: T60
 
@@ -1125,6 +1130,18 @@ Task:
 Done when:
 
 - The first external reviewer can install and run Pengbo without source-build knowledge.
+
+Completion notes:
+
+- Refreshed local Windows artifacts with `npm run tauri:build`:
+  - `src-tauri/target/release/pengbo-workbench.exe`
+  - `src-tauri/target/release/bundle/msi/Pengbo Workbench_0.1.0_x64_en-US.msi`
+  - `src-tauri/target/release/bundle/nsis/Pengbo Workbench_0.1.0_x64-setup.exe`
+- Added `docs/RELEASE_CHECKLIST.md` with the first-reviewer artifact paths, validation commands, unsigned/local status, and public-repo boundary.
+- Fixed installed-bundle packaging after the first MSI smoke exposed `Failed to load Python DLL ... _internal\python311.dll`: removed the duplicate Tauri `externalBin` sidecar path and hardened installed smoke to resolve the onedir sidecar under `binaries\pengbo-sidecar`.
+- MSI and NSIS installed smokes now assert `root_sidecar_absent_ok=true`, preventing the root `pengbo-sidecar.exe` regression from returning.
+- Validation passed: `npm run tauri:build`, `npm run smoke:packaged-startup`, `npm run smoke:installed-startup`, and `npm run smoke:installed-startup:nsis`.
+- No GitHub Release upload, signing, auto-update, hosted account, public network exposure, CI secret, or live-trading expansion was added.
 
 ### T62 - README Product Proof Upgrade
 
