@@ -21,7 +21,7 @@ The active roadmap is tracked in [IMPLEMENTATION_TASKS.md](IMPLEMENTATION_TASKS.
 
 These tasks were intentionally prioritized before broader public, account, remote, team, AI, or China-market connector work. The next roadmap lane begins at `T57 - License And Open Source Boundary`, followed by open-source readiness, CI, releases, demo mode, research-flow polish, data governance, local AI assistance, China-market connectors, and security packaged signoff.
 
-`T58 - Version Governance Cleanup` is implemented. The next product-trust task is `T59 - GitHub Actions CI Baseline`.
+`T58 - Version Governance Cleanup` and `T59 - GitHub Actions CI Baseline` are implemented. The next product-trust task is `T60 - Demo Mode And No-Key Startup`.
 
 For the product-team assessment behind this direction, see [docs/product-team-assessment-2026-05-17.md](docs/product-team-assessment-2026-05-17.md).
 
@@ -113,9 +113,18 @@ Common validation commands:
 
 ```powershell
 py -m unittest discover -s backend/tests -p "test_*.py"
+npm run check:version
+npm run check:public-boundary
+npm audit --audit-level=moderate
 npm run typecheck
 npm run build
 ```
+
+## Continuous Integration
+
+GitHub Actions runs a no-secret source baseline on pushes to `main`, pull requests, and manual dispatches. The CI workflow installs dependencies, checks version consistency, scans the public repository boundary, runs `npm audit --audit-level=moderate`, typechecks, builds the frontend, and runs backend unit tests.
+
+CI does not use provider credentials, GitHub secrets, live trading permissions, packaged desktop smoke tests, Tauri release builds, installer validation, signing, or hosted update checks. Packaged EXE smoke evidence remains a local Windows release-readiness step until a dedicated release workflow is selected.
 
 Packaged smoke checks should be run serially because they start and stop the same release executable and may backup/restore the same AppData-backed runtime directory:
 

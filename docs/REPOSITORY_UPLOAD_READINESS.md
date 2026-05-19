@@ -37,10 +37,15 @@ Pengbo Workbench source and documentation are licensed under Apache-2.0. The lic
 3. Confirm `README.md`, `LICENSE`, package metadata, and `src-tauri/Cargo.toml` agree on the public source license.
 4. Confirm `docs/SECURITY_ARCHITECTURE.md` remains aligned with the public-upload boundary and the T53-T56 local-security posture.
 5. Confirm `npm run check:version` passes so `package.json`, `package-lock.json`, Tauri, Cargo, and backend sidecar metadata tell the same version story.
-6. Confirm no raw secrets appear in committed docs or source comments.
-7. Confirm `PENGBO_TRANSLATION_API_KEY` and any future translation provider keys are handled as secrets.
-8. Confirm `logs/*.json` is ignored and not staged or tracked before the first public commit.
-9. If initializing Git locally, inspect `git status --short --ignored` before the first commit and remove any accidental generated artifacts from the candidate set.
+6. Confirm `npm run check:public-boundary` passes before publishing source changes.
+7. Confirm no raw secrets appear in committed docs or source comments.
+8. Confirm `PENGBO_TRANSLATION_API_KEY` and any future translation provider keys are handled as secrets.
+9. Confirm `logs/*.json` is ignored and not staged or tracked before the first public commit.
+10. If initializing Git locally, inspect `git status --short --ignored` before the first commit and remove any accidental generated artifacts from the candidate set.
+
+## CI Boundary
+
+The GitHub Actions baseline is no-secret and source-level. It may run version consistency checks, public-boundary scans, npm audit, frontend typecheck/build, and backend unit tests. It must not require provider credentials, local Stronghold state, AppData runtime data, packaged EXE smoke, Tauri installer builds, release signing, or live-trading permissions.
 
 ## Dependency And Binary Release Note
 

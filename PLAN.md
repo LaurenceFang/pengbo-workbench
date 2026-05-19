@@ -55,10 +55,10 @@ Apache-2.0 source license and public repository boundary.
 
 The active product-trust sequence is:
 
-- T58: version governance cleanup.
-- T59: no-secret GitHub Actions CI baseline.
-- T60: release artifact naming and checklist.
-- T61: no-key demo/sample mode.
+- T58: version governance cleanup. Completed.
+- T59: no-secret GitHub Actions CI baseline. Completed.
+- T60: demo mode and no-key startup.
+- T61: release artifact naming and checklist.
 - T62+: research-flow polish, data-source governance, local AI assistance,
   China-market connectors, packaged signoff, and broader public-trust work.
 

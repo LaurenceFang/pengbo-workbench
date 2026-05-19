@@ -52,6 +52,7 @@ Updated: 2026-05-19
 - `T56 - Public Exposure Gateway And Sidecar Hardening` is now implemented and package-smoke validated. The sidecar refuses non-loopback bind addresses, CORS origins are centralized, unsafe origins and invalid methods are rejected before route handling, sensitive gateway failures are audited with redaction, rate-limit hooks are present, and the public-exposure posture is documented in `docs/public-exposure-gateway-t56.md`.
 - `T57 - License And Open Source Boundary` is now implemented as the first product-trust task after T56. The repository now has an Apache-2.0 source license, README and security/upload docs describe the public source boundary, package and Tauri metadata agree on `Apache-2.0`, generated runtime/log/secret/build artifacts remain outside the public source set, and no API/runtime/trading behavior changed.
 - `T58 - Version Governance Cleanup` is now implemented. Version metadata is aligned across package, package-lock, Tauri, Cargo, backend sidecar constants, `/health`, `/settings/runtime`, Settings UI, README, CHANGELOG, and the cleaned public `PLAN.md`; `npm run check:version` now enforces the source/runtime version story, and the prior transitive `postcss` audit advisory is resolved.
+- `T59 - GitHub Actions CI Baseline` is now implemented as a no-secret source-level CI workflow. The workflow covers version consistency, public-boundary scanning, npm audit, frontend typecheck/build, and backend unit tests without provider credentials, packaged EXE smoke, Tauri release builds, signing, or live-trading permissions.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -95,6 +96,15 @@ Updated: 2026-05-19
 - Updated the lockfile so transitive `postcss` resolves to `8.5.14`; `npm audit --json` now reports zero vulnerabilities.
 - Validation passed: `npm run check:version`, `npm audit --json`, `npm run typecheck`, `py -m pytest backend\tests`, and `npm run build`. The frontend build still reports the existing large-chunk warning but completes successfully.
 - No new blocker was found. `T59 - GitHub Actions CI Baseline` is now promoted as the next recommended task.
+
+- Executed `T59 - GitHub Actions CI Baseline` on 2026-05-19 against the current checkout.
+- Added `.github/workflows/ci.yml` with push-to-main, pull request, and manual dispatch triggers. The workflow runs separate source/frontend and backend jobs on `ubuntu-latest`.
+- Added `scripts/check_public_boundary.mjs` plus `npm run check:public-boundary` to reject tracked runtime data, logs, diagnostics, generated frontend/Tauri artifacts, Stronghold/credential/secret files, installers, binaries, private keys, and obvious assigned provider secrets.
+- The frontend/source CI job runs `npm ci --ignore-scripts`, `npm run check:version`, `npm run check:public-boundary`, `npm audit --audit-level=moderate`, `npm run typecheck`, and `npm run build`.
+- The backend CI job installs `backend/requirements.txt` with Python 3.11 and runs `python -m pytest backend/tests`.
+- Updated `README.md`, `CHANGELOG.md`, `PLAN.md`, and `docs/REPOSITORY_UPLOAD_READINESS.md` to document the no-secret CI boundary and keep packaged EXE smoke, Tauri release builds, installer validation, signing, hosted update checks, provider credentials, and live trading out of T59.
+- Validation passed locally: `npm run check:version`, `npm run check:public-boundary`, `npm audit --audit-level=moderate`, `npm run typecheck`, `npm run build`, `py -m pytest backend\tests`, and `git diff --check`. The frontend build still reports the existing large-chunk warning but completes successfully.
+- No new blocker was found. `T60 - Demo Mode And No-Key Startup` is now promoted as the next recommended task.
 
 - Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
 - Treated `FinceptTerminal` as a product-pattern reference rather than a migration target; the local `Pengbo Workbench` stack remains the implementation baseline.
@@ -820,34 +830,34 @@ Updated: 2026-05-19
 
 ## Recommended Next Task
 
-### T59 - GitHub Actions CI Baseline
+### T60 - Demo Mode And No-Key Startup
 
-Priority: P2
+Priority: P1
 Status: Planned
 
 Why this is next:
 
-- `T58` closed the version/changelog/public-plan consistency gap and resolved the known `postcss` audit advisory.
-- The next public-trust gap is proving the repository can run repeatable no-secret checks on GitHub before release packaging, demo mode, or contributor-facing workflows.
-- T59 should make typecheck, build, backend tests, version consistency, audit, and public-boundary scans visible in CI without requiring local credentials or packaged Windows smoke.
+- `T59` added no-secret CI for source-level quality, version consistency, public-boundary scanning, dependency audit, frontend build/typecheck, and backend unit tests.
+- The next public-trust gap is letting new users launch and evaluate Pengbo without provider keys, Stronghold setup, or private runtime state.
+- T60 should make no-key startup intentional instead of a collection of empty states and missing-credential warnings.
 
 Scope:
 
-- Add a no-secret GitHub Actions workflow for source-level checks.
-- Include `npm run check:version`, frontend typecheck/build, backend unit tests, npm audit, and public-boundary scans that can run without provider credentials.
-- Document which packaged EXE smokes remain local Windows-only after CI lands.
+- Add a demo/sample startup path that works without EDGAR, FRED, CoinGecko, Binance, or translation credentials.
+- Seed non-sensitive sample watchlist/research/data-source/portfolio context where useful.
+- Keep all demo data clearly labeled as sample/simulated/cached and never promote demo mode into live trading.
 - Preserve existing API/runtime behavior and avoid product-scope expansion.
 
 Acceptance:
 
-- Public GitHub checks can validate the source tree without secrets.
-- CI failures are understandable to outside contributors before release work begins.
-- Packaged Windows smoke checks remain documented as local-only evidence until a dedicated Windows release workflow is selected.
-- Any CI blocker is written back before T60+ release work proceeds.
+- A fresh no-key checkout can show useful product surfaces without private credentials.
+- Demo mode cannot submit live orders, read real private account state, or hide missing-provider limits.
+- The README and in-app copy make the no-key evaluation path clear before release work begins.
+- Any demo-mode blocker is written back before T61+ release artifact work proceeds.
 
 Implementation notes:
 
-- Do not introduce signing, installer release automation, hosted update checks, package publishing, or live provider credentials in T59.
+- Do not add hosted accounts, public network exposure, CI secrets, live provider credentials, or new live-trading paths in T60.
 
 ## Priority Order
 
@@ -1030,7 +1040,7 @@ Completion notes:
 ### T59 - GitHub Actions CI Baseline
 
 Priority: P2
-Status: Planned
+Status: Completed (2026-05-19)
 Target Window: 2026-07-21 to 2026-07-24
 Depends on: T58
 
@@ -1043,6 +1053,18 @@ Task:
 Done when:
 
 - A pull request can prove baseline quality without credentials or private runtime data.
+
+Completion notes:
+
+- Added `.github/workflows/ci.yml` with push, pull request, and manual dispatch triggers.
+- Added `scripts/check_public_boundary.mjs` and `npm run check:public-boundary`.
+- CI source checks run `npm ci --ignore-scripts`, `npm run check:version`, `npm run check:public-boundary`, `npm audit --audit-level=moderate`, `npm run typecheck`, and `npm run build`.
+- CI backend checks install Python 3.11 dependencies from `backend/requirements.txt` and run `python -m pytest backend/tests`.
+- Documented the CI boundary in README, CHANGELOG, PLAN, and repository-upload readiness docs.
+- Kept packaged EXE smoke, Tauri release builds, installer validation, signing, hosted update checks, provider credentials, and live trading out of T59.
+- Local validation passed: `npm run check:version`, `npm run check:public-boundary`, `npm audit --audit-level=moderate`, `npm run typecheck`, `npm run build`, `py -m pytest backend\tests`, and `git diff --check`.
+- The frontend build still emits the existing large-chunk warning; it is not a T59 blocker because the production build succeeds.
+- T60 is the next recommended task.
 
 ### T60 - Demo Mode And No-Key Startup
 

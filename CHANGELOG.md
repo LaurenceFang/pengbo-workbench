@@ -19,9 +19,10 @@ release channel yet.
 - T57 added the Apache-2.0 source license and public repository boundary.
 - T58 makes version metadata visible and consistent before CI, release, and demo
   mode work begins.
+- T59 adds a no-secret GitHub Actions CI baseline for version consistency,
+  public-boundary scanning, dependency audit, frontend checks, and backend tests.
 
 ## Upcoming
 
-- T59 will add a no-secret GitHub Actions CI baseline.
 - T60 will define local release artifact naming and release checklist evidence.
 - T61 will add a no-key demo/sample mode suitable for public evaluation.
