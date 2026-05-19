@@ -23,6 +23,14 @@ These tasks were intentionally prioritized before broader public, account, remot
 
 For the product-team assessment behind this direction, see [docs/product-team-assessment-2026-05-17.md](docs/product-team-assessment-2026-05-17.md).
 
+## License And Public Boundary
+
+Pengbo Workbench source and documentation are licensed under the [Apache License 2.0](LICENSE).
+
+The public repository boundary is intentionally source-first. It includes application source, tests, rebuildable configuration, and curated documentation. It does not include local runtime databases, Stronghold vaults, provider credentials, `.env*` files, diagnostics, generated smoke logs, packaged desktop bundles, generated sidecar payloads, installers, or machine-local automation state.
+
+The license does not change the product safety boundary: Pengbo is currently a local desktop research terminal. It is not a hosted service, not a public API, not a multi-user account system, and not a remote trading service.
+
 ## Workspaces
 
 - Dashboard: runtime readiness, market pulse, watchlist, and handoffs into the main workflows.
@@ -113,6 +121,8 @@ Run only the smoke checks relevant to the files changed in a given task. Documen
 ## Repository Upload Notes
 
 This repository should be uploaded as source plus documentation, not as a packaged release directory. Generated outputs such as `dist/`, `src-tauri/target/`, `src-tauri/binaries/`, local runtime data, logs, diagnostics, secrets, and Stronghold stores are intentionally ignored for public upload.
+
+The repository is licensed under Apache-2.0. Third-party dependencies keep their own licenses; verify dependency redistribution obligations before publishing packaged binaries or app-store style releases.
 
 `src-tauri/tauri.conf.json` references `../logs/sidecar-build-latest.json` as a local package resource. That file is produced by `npm run sidecar:build`, may contain machine-local build paths, and should be regenerated locally rather than committed as source.
 

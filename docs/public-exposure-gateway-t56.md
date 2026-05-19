@@ -82,3 +82,10 @@ The canonical sensitive-route map is exposed at
 - T55 local auth sessions remain the permission boundary for account-sensitive
   routes.
 - T56 adds the gateway boundary around those layers without weakening them.
+
+## T57 Open Source Boundary
+
+T57 adds an explicit Apache-2.0 source license and public repository boundary.
+That boundary does not reclassify any route as public. Generated runtime data,
+credentials, Stronghold state, smoke logs, diagnostics, packaged bundles, and
+sidecar binaries remain outside the public source set.

@@ -1,6 +1,6 @@
 # Pengbo Security Architecture
 
-Updated: 2026-05-15
+Updated: 2026-05-19
 
 ## Scope
 
@@ -11,7 +11,7 @@ Pengbo Workbench is currently a local-first desktop terminal. The expected runti
 - Local SQLite and DuckDB stores under the user runtime directory.
 - Local secret handling through the desktop credential bridge and process environment injection.
 
-This document treats public network exposure, multi-account access, and hosted operation as future work. Those modes are not safe until the deferred tasks in `IMPLEMENTATION_TASKS.md` are completed and validated.
+This document treats public network exposure, multi-account access, and hosted operation as future work. T53 through T56 established local unlock, local credential scoping, local session permissions, and sidecar gateway hardening, but those layers do not turn Pengbo into a hosted service or public API.
 
 ## Security Goals
 
@@ -128,6 +128,9 @@ Current categories:
 
 - `credential`: connection tests and cleared credential profiles.
 - `execution`: Binance config, intent, block, submit, and kill switch events.
+- `local_security`: local unlock, lockout, idle relock, and sensitive-surface checks.
+- `session`: local desktop session creation, expiry, revocation, and permission failures.
+- `gateway`: sidecar gateway rejections and failed sensitive-route attempts.
 
 Redaction:
 
@@ -147,13 +150,19 @@ The local Fincept Terminal checkout is useful as an architecture reference:
 
 Pengbo should borrow these boundaries and product patterns without migrating stacks or copying Qt/C++ implementation details.
 
-## Deferred Before Public Or Account Mode
+## Implemented Local Security Layers
 
-The following items are intentionally recorded but not implemented in this pass:
+The following local-only layers are now implemented and validated through the task board evidence:
 
-- Local unlock PIN and idle lock.
-- Account-scoped provider credential model.
-- Future public auth and session layer.
-- Public exposure gateway and sidecar hardening.
+- T53 local unlock PIN and idle lock for sensitive desktop surfaces.
+- T54 account-scoped provider credential metadata while keeping raw secret material outside SQLite.
+- T55 local desktop auth sessions and route-level permission checks.
+- T56 sidecar gateway hardening with loopback-only binding, trusted local origins, method checks, rate-limit hooks, and redacted gateway audit events.
 
-Until those are implemented and validated, Pengbo should remain a local-first desktop application and should not be exposed as an internet-facing service.
+These layers are local accountability controls. They are not OAuth, hosted identity, remote sync, team permissions, or internet-facing access control.
+
+## Still Deferred Before Public Or Hosted Mode
+
+Before any hosted, LAN-exposed, remote-account, team, or public API mode is attempted, Pengbo still needs a separate public-mode design covering authentication, CSRF, deployment topology, monitoring, secret rotation, abuse controls, data governance, release signing, and dependency/license review.
+
+Until that future work is explicitly implemented and validated, Pengbo should remain a local-first desktop application and should not be exposed as an internet-facing service.

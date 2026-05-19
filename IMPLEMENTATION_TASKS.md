@@ -1,6 +1,6 @@
 # Pengbo Workbench Task Board
 
-Updated: 2026-05-18
+Updated: 2026-05-19
 
 ## Current Assessment
 
@@ -50,7 +50,7 @@ Updated: 2026-05-18
 - `T54 - Account-Scoped Provider Credential Model` is now implemented and package-smoke validated. Provider credential readiness metadata is scoped to explicit local profiles, the existing `/api/v1/...` compatibility routes still work, Stronghold secret material remains outside SQLite, and packaged evidence is recorded in `logs/account-scoped-credentials-smoke-latest.json`.
 - `T55 - Future Public Auth And Session Layer` is now implemented as a local-only session boundary: the backend persists redacted session metadata, the desktop API client attaches `X-Pengbo-Session`, sensitive credential/execution/export/audit routes require session-bound permissions, and `/api/v1/security/route-classification` gives T56 a route-level exposure map.
 - `T56 - Public Exposure Gateway And Sidecar Hardening` is now implemented and package-smoke validated. The sidecar refuses non-loopback bind addresses, CORS origins are centralized, unsafe origins and invalid methods are rejected before route handling, sensitive gateway failures are audited with redaction, rate-limit hooks are present, and the public-exposure posture is documented in `docs/public-exposure-gateway-t56.md`.
-- `T57 - License And Open Source Boundary` is now the recommended next task.
+- `T57 - License And Open Source Boundary` is now implemented as the first product-trust task after T56. The repository now has an Apache-2.0 source license, README and security/upload docs describe the public source boundary, package and Tauri metadata agree on `Apache-2.0`, generated runtime/log/secret/build artifacts remain outside the public source set, and no API/runtime/trading behavior changed.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -76,6 +76,14 @@ Updated: 2026-05-18
 - Added packaged gateway evidence in `logs/gateway-hardening-packaged-smoke-latest.json` with `health_ready=true`, `loopback_listener_only=true`, `unsafe_origin_rejected=true`, `invalid_method_rejected=true`, `sensitive_route_requires_session=true`, `allowed_origin_ok=true`, `redacted_gateway_audit_ok=true`, and `failures=[]`.
 - Packaged startup evidence also remains green in `logs/packaged-startup-smoke-latest.json` with `health_ready=true`, `settings_runtime_ok=true`, `connections_status_ok=true`, `single_instance_ok=true`, `adopt_existing_ok=true`, `shutdown_sidecar_exited_ok=true`, and `failures=[]`.
 - Validation passed: `py -m pytest backend\tests`, `npm run typecheck`, `npm run build`, `npm run tauri:build`, `npm run smoke:gateway-hardening:packaged`, and `npm run smoke:packaged-startup`.
+
+- Executed `T57 - License And Open Source Boundary` on 2026-05-19 against the current checkout.
+- Added `LICENSE` using Apache-2.0 and aligned `package.json` plus `src-tauri/Cargo.toml` license metadata to `Apache-2.0`.
+- Updated `README.md`, `docs/SECURITY_ARCHITECTURE.md`, `docs/REPOSITORY_UPLOAD_READINESS.md`, and `docs/public-exposure-gateway-t56.md` so public readers can distinguish checked-in source/docs from local runtime data, credentials, Stronghold vaults, generated smoke logs, diagnostics, sidecar binaries, installers, and packaged bundles.
+- Reconciled the security architecture doc with the implemented T53-T56 local security posture while preserving the current boundary: no hosted service, public API, OAuth, multi-user account system, remote sync, or new live-trading path.
+- Validation passed: license metadata scan, public-boundary tracked-file scan, ignore coverage review, `git diff --check`, and `npm run typecheck`.
+- No unresolved license/upload-boundary blocker was found. `npm audit --json` reports one existing moderate transitive `postcss < 8.5.10` advisory (`GHSA-qx2v-qp2m-jg93`); this is recorded as a public-trust follow-up for dependency audit triage before release/CI hardening is considered complete.
+- `T58 - Version Governance Cleanup` is now promoted as the next recommended task.
 
 - Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
 - Treated `FinceptTerminal` as a product-pattern reference rather than a migration target; the local `Pengbo Workbench` stack remains the implementation baseline.
@@ -801,34 +809,34 @@ Updated: 2026-05-18
 
 ## Recommended Next Task
 
-### T57 - License And Open Source Boundary
+### T58 - Version Governance Cleanup
 
 Priority: P2
 Status: Planned
 
 Why this is next:
 
-- `T53` through `T56` are now implemented and package-smoke validated as the local security-accountability base.
-- The next public-trust gap is making the repository boundary explicit before broader open-source, CI, release, demo, or contributor work.
-- T57 should clarify what is safe to publish, what remains local-only, and how license/readme/security notices represent the current product honestly.
+- `T57` closed the public source/license boundary without changing runtime behavior.
+- The next public-trust gap is version consistency before CI, release packaging, demo mode, or contributor-facing workflows.
+- T58 should make app version, package version, sidecar version, diagnostics, and release notes tell one coherent story.
 
 Scope:
 
-- Add or verify the project license and public-use boundary.
-- Review README, security docs, packaged artifacts, ignore rules, and generated/runtime paths for open-source consistency.
-- Document the local-first/non-hosted boundary and the no-secret/no-runtime-artifact publishing rules.
+- Normalize version metadata across package, Tauri, sidecar, docs, and diagnostics.
+- Add a lightweight changelog or release-history file.
+- Make version evidence visible without requiring packaged artifact inspection.
 - Preserve existing API/runtime behavior and avoid product-scope expansion.
 
 Acceptance:
 
-- The repository has an explicit license/public-use boundary.
-- README and security docs match the implemented T53-T56 local-security posture.
-- Generated runtime, credentials, logs, packaged build output, and local diagnostics are still excluded from publication.
-- Any unresolved public-repo risk is written back as a blocker task before T58+ work proceeds.
+- Build artifacts, docs, diagnostics, and release notes report the same version story.
+- The version story is understandable to a public reader before CI/release tasks begin.
+- Any inconsistency that cannot be safely resolved in T58 is written back as a blocker task before T59+ work proceeds.
+- The known moderate transitive `postcss < 8.5.10` audit advisory is either resolved in dependency metadata or explicitly carried into T59 CI/security-audit scope before release work proceeds.
 
 Implementation notes:
 
-- Do not change live trading behavior, provider credentials, sidecar networking, hosted account semantics, or release packaging in this task unless needed to make the public boundary accurate.
+- Do not introduce CI, signing, installer release automation, hosted update checks, or product feature scope in T58 unless needed to make version evidence accurate.
 
 ## Priority Order
 
@@ -953,7 +961,7 @@ Completion notes:
 ### T57 - License And Open Source Boundary
 
 Priority: P2
-Status: Planned
+Status: Completed (2026-05-19)
 Target Window: 2026-07-15 to 2026-07-17
 Depends on: T56
 
@@ -966,6 +974,17 @@ Task:
 Done when:
 
 - A public reader can understand legal usage and source boundaries before installing or contributing.
+
+Completion notes:
+
+- Added `LICENSE` with Apache-2.0 terms and aligned `package.json` plus `src-tauri/Cargo.toml` license metadata to `Apache-2.0`.
+- Updated README and public-boundary docs to distinguish checked-in source/docs from local runtime databases, Stronghold vaults, provider credentials, `.env*` files, diagnostics, generated smoke logs, generated sidecar payloads, installers, and packaged bundles.
+- Updated `docs/SECURITY_ARCHITECTURE.md` so it no longer describes T53-T56 as deferred; it now records them as local-only protection layers while hosted/public mode remains deferred.
+- Updated `docs/public-exposure-gateway-t56.md` to state that T57's open-source boundary does not reclassify any route as public.
+- Validation passed: license metadata scan, public-boundary tracked-file scan, ignore coverage review, `git diff --check`, and `npm run typecheck`.
+- No unresolved license/upload-boundary blocker was found.
+- `npm audit --json` reports one existing moderate transitive `postcss < 8.5.10` advisory (`GHSA-qx2v-qp2m-jg93`); carry this into dependency-audit triage before release/CI hardening is considered complete.
+- T58 is the next recommended task.
 
 ### T58 - Version Governance Cleanup
 
