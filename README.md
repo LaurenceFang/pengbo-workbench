@@ -122,7 +122,7 @@ npm run build
 
 ## Continuous Integration
 
-GitHub Actions runs a no-secret source baseline on pushes to `main`, pull requests, and manual dispatches. The CI workflow installs dependencies, checks version consistency, scans the public repository boundary, runs `npm audit --audit-level=moderate`, typechecks, builds the frontend, and runs backend unit tests.
+GitHub Actions runs a no-secret source baseline on pushes to `main`, pull requests, and manual dispatches. The CI workflow installs dependencies, checks version consistency, scans the public repository boundary, runs `npm audit --audit-level=moderate`, typechecks, builds the frontend, and runs backend unit tests. Backend CI dependencies come from `backend/requirements.txt`.
 
 CI does not use provider credentials, GitHub secrets, live trading permissions, packaged desktop smoke tests, Tauri release builds, installer validation, signing, or hosted update checks. Packaged EXE smoke evidence remains a local Windows release-readiness step until a dedicated release workflow is selected.
 
