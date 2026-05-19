@@ -1524,6 +1524,13 @@ export const api = {
     jsonRequest<LocalSecurityStatus>("/security/local/initialize", "POST", { unlock_secret: unlockSecret }),
   unlockLocalSecurity: (unlockSecret: string) =>
     jsonRequest<LocalSecurityStatus>("/security/local/unlock", "POST", { unlock_secret: unlockSecret }),
+  changeLocalSecuritySecret: (currentUnlockSecret: string, newUnlockSecret: string) =>
+    jsonRequest<LocalSecurityStatus>("/security/local/change-secret", "POST", {
+      current_unlock_secret: currentUnlockSecret,
+      new_unlock_secret: newUnlockSecret,
+    }),
+  resetLocalSecurity: (confirmation: string) =>
+    jsonRequest<LocalSecurityStatus>("/security/local/reset", "POST", { confirmation }),
   lockLocalSecurity: () => jsonRequest<LocalSecurityStatus>("/security/local/lock", "POST"),
   idleTimeoutLocalSecurity: () => jsonRequest<LocalSecurityStatus>("/security/local/idle-timeout", "POST"),
   touchLocalSecurity: (surface?: string | null) =>

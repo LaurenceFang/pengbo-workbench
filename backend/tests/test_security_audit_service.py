@@ -105,6 +105,54 @@ class SecurityAuditServiceTests(unittest.TestCase):
                 self.assertIsNotNone(stored)
                 self.assertNotIn("2468", str(stored))
 
+    def test_local_unlock_change_secret_and_reset_do_not_store_plaintext(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
+            app = create_app(make_settings(Path(temp_dir)))
+            with TestClient(app) as client:
+                initialized = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "old-pin"})
+                self.assertEqual(initialized.status_code, 200)
+
+                changed = client.post(
+                    "/api/v1/security/local/change-secret",
+                    json={"current_unlock_secret": "old-pin", "new_unlock_secret": "new-pin"},
+                )
+                self.assertEqual(changed.status_code, 200)
+                self.assertFalse(changed.json()["locked"])
+
+                client.post("/api/v1/security/local/lock")
+                old_unlock = client.post("/api/v1/security/local/unlock", json={"unlock_secret": "old-pin"})
+                self.assertEqual(old_unlock.status_code, 400)
+                new_unlock = client.post("/api/v1/security/local/unlock", json={"unlock_secret": "new-pin"})
+                self.assertEqual(new_unlock.status_code, 200)
+                self.assertFalse(new_unlock.json()["locked"])
+
+                stored = app.state.container.sqlite_store.get_local_security_state()
+                self.assertNotIn("old-pin", str(stored))
+                self.assertNotIn("new-pin", str(stored))
+
+                reset = client.post(
+                    "/api/v1/security/local/reset",
+                    json={"confirmation": "RESET LOCAL UNLOCK"},
+                )
+                self.assertEqual(reset.status_code, 200)
+                self.assertFalse(reset.json()["initialized"])
+                self.assertTrue(reset.json()["locked"])
+                self.assertIsNone(app.state.container.sqlite_store.get_local_security_state())
+
+                reinitialized = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "fresh-pin"})
+                self.assertEqual(reinitialized.status_code, 200)
+
+                session = client.post("/api/v1/security/session", json={}).json()
+                audit = client.get(
+                    "/api/v1/security/audit?category=local_security",
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                )
+                payloads = str(audit.json())
+                self.assertIn("local_unlock_secret_changed", payloads)
+                self.assertIn("local_unlock_reset", payloads)
+                self.assertNotIn("old-pin", payloads)
+                self.assertNotIn("new-pin", payloads)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -515,6 +515,11 @@ class SqliteStore:
             self.connection.commit()
         return payload
 
+    def delete_local_security_state(self) -> None:
+        with self._lock:
+            self.connection.execute("DELETE FROM local_security_state WHERE id = 1")
+            self.connection.commit()
+
     def list_credential_profiles(self) -> list[dict[str, Any]]:
         with self._lock:
             rows = self.connection.execute(

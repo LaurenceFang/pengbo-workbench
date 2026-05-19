@@ -7,6 +7,7 @@ import {
   api,
   type AppPreferences,
   type DiagnosticsExportResult,
+  type LocalSecurityStatus,
   type SecurityAuditEvent,
   type SettingsRuntimeResponse,
   type ViewKey,
@@ -48,14 +49,23 @@ export function SettingsView({
   onExportDiagnostics: () => Promise<void>;
 }) {
   const i18n = useI18n();
+  const language = useAppStore((state) => state.language);
   const setLanguage = useAppStore((state) => state.setLanguage);
   const setDensity = useAppStore((state) => state.setDensity);
   const runtimeInfo = useAsyncResource<SettingsRuntimeResponse>(async () => api.getSettingsRuntime(), []);
   const preferences = useAsyncResource<AppPreferences>(async () => api.getSettingsPreferences(), []);
+  const localSecurity = useAsyncResource<LocalSecurityStatus>(async () => api.getLocalSecurityStatus(), []);
   const securityAudit = useAsyncResource<SecurityAuditEvent[]>(async () => api.getSecurityAudit(12, "local_security"), []);
   const [form, setForm] = useState<AppPreferences | null>(null);
   const [saving, setSaving] = useState(false);
+  const [securityBusy, setSecurityBusy] = useState(false);
+  const [currentUnlockSecret, setCurrentUnlockSecret] = useState("");
+  const [newUnlockSecret, setNewUnlockSecret] = useState("");
+  const [confirmUnlockSecret, setConfirmUnlockSecret] = useState("");
+  const [resetConfirmation, setResetConfirmation] = useState("");
+  const [securityMessage, setSecurityMessage] = useState<string | null>(null);
   const diagnosticsEnabled = preferences.data?.diagnostics_export_enabled ?? true;
+  const securityCopy = localSecuritySettingsCopy(language);
 
   useEffect(() => {
     if (preferences.data) {
@@ -80,6 +90,54 @@ export function SettingsView({
       await onGlobalRefresh();
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function refreshSecurityState() {
+    localSecurity.reload();
+    securityAudit.reload();
+  }
+
+  async function handleChangeUnlockSecret() {
+    setSecurityMessage(null);
+    if (newUnlockSecret.trim().length < 4) {
+      setSecurityMessage(securityCopy.shortSecret);
+      return;
+    }
+    if (newUnlockSecret.trim() !== confirmUnlockSecret.trim()) {
+      setSecurityMessage(securityCopy.mismatch);
+      return;
+    }
+    setSecurityBusy(true);
+    try {
+      await api.changeLocalSecuritySecret(currentUnlockSecret.trim(), newUnlockSecret.trim());
+      setCurrentUnlockSecret("");
+      setNewUnlockSecret("");
+      setConfirmUnlockSecret("");
+      setSecurityMessage(securityCopy.changed);
+      await refreshSecurityState();
+    } catch (error) {
+      setSecurityMessage(error instanceof Error ? error.message : securityCopy.changeFailed);
+    } finally {
+      setSecurityBusy(false);
+    }
+  }
+
+  async function handleResetUnlockSecret() {
+    setSecurityMessage(null);
+    setSecurityBusy(true);
+    try {
+      await api.resetLocalSecurity(resetConfirmation.trim());
+      setResetConfirmation("");
+      setCurrentUnlockSecret("");
+      setNewUnlockSecret("");
+      setConfirmUnlockSecret("");
+      setSecurityMessage(securityCopy.resetDone);
+      await refreshSecurityState();
+    } catch (error) {
+      setSecurityMessage(error instanceof Error ? error.message : securityCopy.resetFailed);
+    } finally {
+      setSecurityBusy(false);
     }
   }
 
@@ -116,6 +174,92 @@ export function SettingsView({
           <SettingRow label={i18n.t("settings.bootstrapLog")} value={runtimeInfo.data?.sidecar_bootstrap_path ?? appRuntime?.bootstrapLogPath ?? "--"} helper={i18n.t("settings.bootstrapLogHelper")} />
           <SettingRow label={i18n.t("settings.buildSummary")} value={runtimeInfo.data?.build_summary_path ?? appRuntime?.buildSummaryPath ?? "--"} helper={i18n.t("settings.buildSummaryHelper")} />
         </div>
+      </section>
+
+      <section className="card">
+        <div className="card-header">
+          <div>
+            <p className="eyebrow">{securityCopy.eyebrow}</p>
+            <h3>{securityCopy.title}</h3>
+          </div>
+          <button className="ghost-button" type="button" onClick={refreshSecurityState}>
+            <RefreshCcw size={16} />
+            {securityCopy.refresh}
+          </button>
+        </div>
+        {localSecurity.loading && !localSecurity.data ? <InlineState label={securityCopy.loading} /> : null}
+        {localSecurity.error ? (
+          <InlineState label={localSecurity.error} actionLabel={securityCopy.retry} onAction={localSecurity.reload} />
+        ) : null}
+        {localSecurity.data ? (
+          <div className="setting-list">
+            <SettingRow label={securityCopy.initialized} value={localSecurity.data.initialized ? securityCopy.yes : securityCopy.no} helper={securityCopy.initializedHelper} />
+            <SettingRow label={securityCopy.lockState} value={localSecurity.data.locked ? securityCopy.locked : securityCopy.unlocked} helper={securityCopy.lockHelper} />
+            <SettingRow label={securityCopy.failedAttempts} value={`${localSecurity.data.failed_attempts}/${localSecurity.data.max_failed_attempts}`} helper={securityCopy.failedHelper} />
+            <SettingRow label={securityCopy.idleTimeout} value={`${Math.round(localSecurity.data.idle_timeout_seconds / 60)} min`} helper={securityCopy.idleHelper} />
+          </div>
+        ) : null}
+
+        <div className="form-grid three-up local-security-form">
+          <label className="field">
+            <span>{securityCopy.currentSecret}</span>
+            <input
+              autoComplete="current-password"
+              type="password"
+              value={currentUnlockSecret}
+              onChange={(event) => setCurrentUnlockSecret(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>{securityCopy.newSecret}</span>
+            <input
+              autoComplete="new-password"
+              type="password"
+              value={newUnlockSecret}
+              onChange={(event) => setNewUnlockSecret(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>{securityCopy.confirmSecret}</span>
+            <input
+              autoComplete="new-password"
+              type="password"
+              value={confirmUnlockSecret}
+              onChange={(event) => setConfirmUnlockSecret(event.target.value)}
+            />
+          </label>
+        </div>
+        <div className="form-actions">
+          <button
+            className="primary-button"
+            disabled={securityBusy || !localSecurity.data?.initialized}
+            type="button"
+            onClick={() => void handleChangeUnlockSecret()}
+          >
+            {securityCopy.changeAction}
+          </button>
+        </div>
+
+        <div className="local-reset-box">
+          <p className="panel-note">{securityCopy.resetCopy}</p>
+          <div className="form-grid two-up">
+            <label className="field">
+              <span>{securityCopy.resetLabel}</span>
+              <input value={resetConfirmation} onChange={(event) => setResetConfirmation(event.target.value)} />
+            </label>
+          </div>
+          <div className="form-actions">
+            <button
+              className="danger-button"
+              disabled={securityBusy || resetConfirmation.trim() !== "RESET LOCAL UNLOCK"}
+              type="button"
+              onClick={() => void handleResetUnlockSecret()}
+            >
+              {securityCopy.resetAction}
+            </button>
+          </div>
+        </div>
+        {securityMessage ? <p className="panel-note">{securityMessage}</p> : null}
       </section>
 
       <section className="card">
@@ -336,4 +480,74 @@ function formatRuntimeMode(value: string | null): string {
   }
 
   return value;
+}
+
+function localSecuritySettingsCopy(language: LanguagePreference) {
+  if (language === "zh-CN") {
+    return {
+      eyebrow: "本地安全",
+      title: "本地解锁管理",
+      refresh: "刷新",
+      loading: "正在加载本地解锁状态...",
+      retry: "重试",
+      yes: "已初始化",
+      no: "未初始化",
+      locked: "已锁定",
+      unlocked: "已解锁",
+      initialized: "初始化状态",
+      initializedHelper: "未初始化时，进入敏感工作区会要求设置新的本机 PIN 或口令。",
+      lockState: "锁定状态",
+      lockHelper: "敏感工作区会在空闲后自动锁定。",
+      failedAttempts: "失败次数",
+      failedHelper: "连续失败过多会临时锁定。",
+      idleTimeout: "空闲锁定",
+      idleHelper: "解锁后无操作达到该时间会自动重新锁定。",
+      currentSecret: "当前 PIN 或口令",
+      newSecret: "新 PIN 或口令",
+      confirmSecret: "确认新 PIN 或口令",
+      changeAction: "修改 PIN/口令",
+      shortSecret: "新 PIN 或口令至少需要 4 个字符。",
+      mismatch: "两次新 PIN 或口令不一致。",
+      changed: "本地解锁 PIN/口令已修改。",
+      changeFailed: "修改本地解锁 PIN/口令失败。",
+      resetCopy: "忘记 PIN 时可以重置本地解锁。它只清除本机解锁口令，不删除凭证、组合、研究记录或本地数据库。重置后下一次进入敏感区需要设置新的 PIN。",
+      resetLabel: "输入 RESET LOCAL UNLOCK 确认",
+      resetAction: "重置本地解锁",
+      resetDone: "本地解锁已重置，请设置新的 PIN 或口令。",
+      resetFailed: "重置本地解锁失败。",
+    };
+  }
+  return {
+    eyebrow: "Local security",
+    title: "Local unlock management",
+    refresh: "Refresh",
+    loading: "Loading local unlock status...",
+    retry: "Retry",
+    yes: "Initialized",
+    no: "Not initialized",
+    locked: "Locked",
+    unlocked: "Unlocked",
+    initialized: "Initialization",
+    initializedHelper: "When not initialized, sensitive workspaces will ask you to set a new local PIN or passphrase.",
+    lockState: "Lock state",
+    lockHelper: "Sensitive workspaces relock after idle time.",
+    failedAttempts: "Failed attempts",
+    failedHelper: "Too many failed attempts temporarily lock local unlock.",
+    idleTimeout: "Idle timeout",
+    idleHelper: "Unlocked sensitive surfaces relock after this idle period.",
+    currentSecret: "Current PIN or passphrase",
+    newSecret: "New PIN or passphrase",
+    confirmSecret: "Confirm new PIN or passphrase",
+    changeAction: "Change PIN/passphrase",
+    shortSecret: "The new PIN or passphrase needs at least 4 characters.",
+    mismatch: "The two new entries do not match.",
+    changed: "Local unlock PIN/passphrase changed.",
+    changeFailed: "Failed to change local unlock PIN/passphrase.",
+    resetCopy:
+      "If you forgot the PIN, reset local unlock. This only clears the local unlock secret; it does not delete credentials, portfolios, research, or local databases. You will set a new PIN next time you enter a sensitive area.",
+    resetLabel: "Type RESET LOCAL UNLOCK to confirm",
+    resetAction: "Reset local unlock",
+    resetDone: "Local unlock reset. Set a new PIN or passphrase next.",
+    resetFailed: "Failed to reset local unlock.",
+  };
 }

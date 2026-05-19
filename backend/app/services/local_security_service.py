@@ -7,7 +7,9 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from ..models import (
+    LocalSecurityChangeSecretRequest,
     LocalSecurityInitializeRequest,
+    LocalSecurityResetRequest,
     LocalSecurityStatus,
     LocalSecurityTouchRequest,
     LocalSecurityUnlockRequest,
@@ -19,6 +21,7 @@ from .security_audit_service import SecurityAuditService
 IDLE_TIMEOUT_SECONDS = 10 * 60
 LOCKOUT_SECONDS = 5 * 60
 MAX_FAILED_ATTEMPTS = 5
+RESET_CONFIRMATION = "RESET LOCAL UNLOCK"
 SENSITIVE_SURFACES = [
     "connections",
     "provider_credentials",
@@ -152,6 +155,49 @@ class LocalSecurityService:
         )
         return self._status_from_record(record)
 
+    def change_secret(self, payload: LocalSecurityChangeSecretRequest) -> LocalSecurityStatus:
+        record = self._require_initialized()
+        self._verify_secret_or_raise(record, payload.current_unlock_secret)
+        now = _utc_now()
+        salt_hex = secrets.token_hex(16)
+        record.update(
+            {
+                "pin_hash": _hash_secret(payload.new_unlock_secret, salt_hex),
+                "salt": salt_hex,
+                "updated_at": now.isoformat(),
+                "unlocked_until": (now + timedelta(seconds=IDLE_TIMEOUT_SECONDS)).isoformat(),
+                "locked_at": None,
+                "failed_attempts": 0,
+                "lockout_until": None,
+            }
+        )
+        self.sqlite_store.upsert_local_security_state(record)
+        self.audit_service.record(
+            category="local_security",
+            event_type="local_unlock_secret_changed",
+            summary="Local unlock PIN or passphrase changed.",
+            surface="sidecar",
+            payload={"idle_timeout_seconds": IDLE_TIMEOUT_SECONDS},
+        )
+        return self._status_from_record(record)
+
+    def reset(self, payload: LocalSecurityResetRequest) -> LocalSecurityStatus:
+        if payload.confirmation.strip() != RESET_CONFIRMATION:
+            raise ValueError(f'Type "{RESET_CONFIRMATION}" to reset the local unlock PIN or passphrase.')
+        existed = self.sqlite_store.get_local_security_state() is not None
+        self.sqlite_store.delete_local_security_state()
+        self.audit_service.record(
+            category="local_security",
+            event_type="local_unlock_reset",
+            summary="Local unlock PIN or passphrase reset on this device.",
+            surface="sidecar",
+            payload={
+                "previously_initialized": existed,
+                "requires_reinitialize": True,
+            },
+        )
+        return self._status_from_record(None)
+
     def lock(self, reason: str = "manual") -> LocalSecurityStatus:
         record = self._require_initialized()
         now = _utc_now_iso()
@@ -219,6 +265,21 @@ class LocalSecurityService:
         if record is None:
             raise ValueError("Local unlock has not been initialized.")
         return record
+
+    def _verify_secret_or_raise(self, record: dict[str, Any], unlock_secret: str) -> None:
+        lockout_until = _parse_dt(record.get("lockout_until"))
+        if lockout_until and lockout_until > _utc_now():
+            raise ValueError("Local unlock is temporarily locked out.")
+        actual = _hash_secret(unlock_secret, record["salt"])
+        if not hmac.compare_digest(record["pin_hash"], actual):
+            self.audit_service.record(
+                category="local_security",
+                event_type="local_unlock_secret_change_failed",
+                summary="Local unlock PIN or passphrase change failed.",
+                surface="sidecar",
+                payload={"reason": "current_secret_mismatch"},
+            )
+            raise ValueError("Current local unlock PIN or passphrase is incorrect.")
 
     def _expire_if_idle(self, record: dict[str, Any]) -> dict[str, Any]:
         unlocked_until = _parse_dt(record.get("unlocked_until"))

@@ -1403,6 +1403,15 @@ class LocalSecurityUnlockRequest(BaseModel):
     unlock_secret: str = Field(min_length=1, max_length=128)
 
 
+class LocalSecurityChangeSecretRequest(BaseModel):
+    current_unlock_secret: str = Field(min_length=1, max_length=128)
+    new_unlock_secret: str = Field(min_length=4, max_length=128)
+
+
+class LocalSecurityResetRequest(BaseModel):
+    confirmation: str = Field(min_length=1, max_length=64)
+
+
 class LocalSecurityTouchRequest(BaseModel):
     surface: str | None = None
 

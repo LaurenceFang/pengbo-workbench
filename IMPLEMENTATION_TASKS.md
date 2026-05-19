@@ -70,6 +70,7 @@ Updated: 2026-05-19
 - Added `/api/v1/security/route-classification` so T56 has a concrete route/surface/exposure/permission map before sidecar gateway hardening.
 - Validation passed: `py -m pytest backend\tests`, `npm run typecheck`, and `npm run build`.
 - Merged the completed `codex/t53-local-unlock-idle-lock` branch into `main` before closing T55, so the current `main` line now contains T53 local unlock, T54 account-scoped credentials, and T55 local session permissions together.
+- Added a T53/T55 local-unlock UX repair on 2026-05-19 after packaged smoke initialized the real desktop runtime with an automation passphrase. Users can now change the local PIN/passphrase from Settings, reset local unlock from Settings or the lock screen without deleting credentials/portfolio/research data, and reinitialize a new PIN immediately after reset. Validation passed: `py -m pytest backend\tests`, `npm run typecheck`, and `npm run build`.
 
 - Executed `T56 - Public Exposure Gateway And Sidecar Hardening` on 2026-05-19 against the current checkout.
 - Added a gateway hardening middleware with loopback bind validation, centralized allowed CORS origins, unsafe-origin rejection, invalid-method rejection, sensitive-prefix rate-limit hooks, and redacted gateway audit events.
@@ -937,6 +938,7 @@ Completion notes:
 - Added `/api/v1/security/route-classification` for the T56 route exposure map.
 - Updated the frontend API client to create and attach a local `X-Pengbo-Session` automatically for normal desktop API calls while preserving the T53 local unlock checks for credential and execution-sensitive surfaces.
 - Validation passed: `py -m pytest backend\tests`, `npm run typecheck`, and `npm run build`.
+- Follow-up UX repair: added local unlock PIN/passphrase change and reset flows so a packaged-smoke passphrase or forgotten PIN no longer traps the user. Reset clears only `local_security_state`; credentials, provider profiles, portfolio data, research records, and local databases are left intact.
 
 ### T56 - Public Exposure Gateway And Sidecar Hardening
 

@@ -315,6 +315,20 @@ function App() {
     }
   }
 
+  async function handleResetLocalSecurity(confirmation: string) {
+    setLocalSecurityBusy(true);
+    setShellActionError(null);
+    try {
+      await api.resetLocalSecurity(confirmation);
+      localSecurity.reload();
+    } catch (error) {
+      setShellActionError(error instanceof Error ? error.message : "Failed to reset local unlock.");
+      throw error;
+    } finally {
+      setLocalSecurityBusy(false);
+    }
+  }
+
   async function handleRestartSidecar() {
     setActionBusy(true);
     setShellActionError(null);
@@ -675,6 +689,7 @@ function App() {
               busy={localSecurityBusy}
               onInitialize={handleInitializeLocalSecurity}
               onUnlock={handleUnlockLocalSecurity}
+              onReset={handleResetLocalSecurity}
             />
           ) : null}
 

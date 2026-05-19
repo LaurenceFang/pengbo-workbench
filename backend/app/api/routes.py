@@ -31,7 +31,9 @@ from ..models import (
     HealthResponse,
     LocalAuthSessionRequest,
     LocalAuthSessionResponse,
+    LocalSecurityChangeSecretRequest,
     LocalSecurityInitializeRequest,
+    LocalSecurityResetRequest,
     LocalSecurityStatus,
     LocalSecurityTouchRequest,
     LocalSecurityUnlockRequest,
@@ -504,6 +506,26 @@ def register_routes(app: FastAPI) -> None:
     ) -> LocalSecurityStatus:
         try:
             return _container(request).local_security_service.unlock(payload)
+        except ValueError as error:
+            raise _value_error_to_http(error) from error
+
+    @app.post("/api/v1/security/local/change-secret", response_model=LocalSecurityStatus)
+    def change_local_security_secret(
+        request: Request,
+        payload: LocalSecurityChangeSecretRequest,
+    ) -> LocalSecurityStatus:
+        try:
+            return _container(request).local_security_service.change_secret(payload)
+        except ValueError as error:
+            raise _value_error_to_http(error) from error
+
+    @app.post("/api/v1/security/local/reset", response_model=LocalSecurityStatus)
+    def reset_local_security(
+        request: Request,
+        payload: LocalSecurityResetRequest,
+    ) -> LocalSecurityStatus:
+        try:
+            return _container(request).local_security_service.reset(payload)
         except ValueError as error:
             raise _value_error_to_http(error) from error
 

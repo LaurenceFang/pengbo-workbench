@@ -3,6 +3,8 @@ import { useState } from "react";
 import type { LocalSecurityStatus } from "../lib/api";
 import type { LanguagePreference } from "../store/app-store";
 
+const RESET_CONFIRMATION = "RESET LOCAL UNLOCK";
+
 type LocalUnlockGateProps = {
   status: LocalSecurityStatus;
   language: LanguagePreference;
@@ -10,6 +12,7 @@ type LocalUnlockGateProps = {
   busy: boolean;
   onInitialize: (unlockSecret: string) => Promise<void>;
   onUnlock: (unlockSecret: string) => Promise<void>;
+  onReset: (confirmation: string) => Promise<void>;
 };
 
 export function LocalUnlockGate({
@@ -19,9 +22,12 @@ export function LocalUnlockGate({
   busy,
   onInitialize,
   onUnlock,
+  onReset,
 }: LocalUnlockGateProps) {
   const [secret, setSecret] = useState("");
   const [confirmSecret, setConfirmSecret] = useState("");
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetConfirmation, setResetConfirmation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const copy = localSecurityCopy(language);
   const initializing = !status.initialized;
@@ -50,6 +56,19 @@ export function LocalUnlockGate({
     }
   }
 
+  async function submitReset() {
+    setError(null);
+    try {
+      await onReset(resetConfirmation.trim());
+      setSecret("");
+      setConfirmSecret("");
+      setResetConfirmation("");
+      setResetOpen(false);
+    } catch (resetError) {
+      setError(resetError instanceof Error ? resetError.message : copy.resetFailed);
+    }
+  }
+
   return (
     <section className="card local-unlock-card" aria-label="local-unlock-gate">
       <div className="local-unlock-mark">{initializing ? <Unlock size={22} /> : <Lock size={22} />}</div>
@@ -65,7 +84,7 @@ export function LocalUnlockGate({
           <span>{copy.secretLabel}</span>
           <input
             aria-label="local-unlock-secret"
-            autoComplete="current-password"
+            autoComplete={initializing ? "new-password" : "current-password"}
             type="password"
             value={secret}
             onChange={(event) => setSecret(event.target.value)}
@@ -114,6 +133,34 @@ export function LocalUnlockGate({
             .replace("{max}", String(status.max_failed_attempts))}
         </p>
       ) : null}
+      {!initializing ? (
+        <div className="local-reset-box">
+          <button className="ghost-button" type="button" onClick={() => setResetOpen((current) => !current)}>
+            {copy.forgotAction}
+          </button>
+          {resetOpen ? (
+            <div className="stack-layout compact">
+              <p className="panel-note">{copy.resetCopy}</p>
+              <label className="field">
+                <span>{copy.resetLabel}</span>
+                <input
+                  aria-label="local-unlock-reset-confirmation"
+                  value={resetConfirmation}
+                  onChange={(event) => setResetConfirmation(event.target.value)}
+                />
+              </label>
+              <button
+                className="danger-button"
+                disabled={busy || resetConfirmation.trim() !== RESET_CONFIRMATION}
+                type="button"
+                onClick={() => void submitReset()}
+              >
+                {copy.resetAction}
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       {error ? <p className="panel-note danger">{error}</p> : null}
     </section>
   );
@@ -123,13 +170,13 @@ function localSecurityCopy(language: LanguagePreference) {
   if (language === "zh-CN") {
     return {
       eyebrow: "本地解锁",
-      initializeTitle: "初始化本机解锁 PIN 或口令",
+      initializeTitle: "设置新的本机 PIN 或口令",
       unlockTitle: "敏感工作区已锁定",
-      initializeCopy: "此口令只保存在本机 sidecar 的 salted hash 中，不会发送到远程服务，也不会写入日志或诊断包。",
-      unlockCopy: "打开 {view} 前需要先完成本机解锁。",
+      initializeCopy: "请设置一个新的本机 PIN 或口令。它只会以 salted hash 保存在本机 sidecar，不会发送到远程服务，也不会写入日志或诊断包。",
+      unlockCopy: "打开 {view} 前需要输入你之前设置的本机 PIN 或口令。",
       secretLabel: "PIN 或口令",
       confirmLabel: "再次输入",
-      initializeAction: "初始化并解锁",
+      initializeAction: "设置并解锁",
       unlockAction: "解锁",
       working: "处理中...",
       shortSecret: "至少输入 4 个字符。",
@@ -138,18 +185,23 @@ function localSecurityCopy(language: LanguagePreference) {
       timeout: "空闲 {minutes} 分钟后自动锁定",
       lockout: "临时锁定至 {time}",
       failedAttempts: "失败次数 {count}/{max}",
+      forgotAction: "忘记 PIN？重置本地解锁",
+      resetCopy: "这只会重置本机解锁 PIN，不会删除凭证、组合、研究记录或本地数据库。重置后需要立刻设置新的 PIN。",
+      resetLabel: `输入 ${RESET_CONFIRMATION} 确认`,
+      resetAction: "重置并重新设置 PIN",
+      resetFailed: "本地解锁重置失败。",
     };
   }
   return {
     eyebrow: "Local unlock",
-    initializeTitle: "Initialize a local PIN or passphrase",
+    initializeTitle: "Set a new local PIN or passphrase",
     unlockTitle: "Sensitive workspace locked",
     initializeCopy:
-      "This unlock factor stays local as a salted hash in the sidecar. It is not sent remotely or written to logs.",
-    unlockCopy: "Unlock locally before opening {view}.",
+      "Set a new local PIN or passphrase. It stays local as a salted hash in the sidecar and is not sent remotely or written to logs.",
+    unlockCopy: "Enter the local PIN or passphrase you set earlier before opening {view}.",
     secretLabel: "PIN or passphrase",
     confirmLabel: "Confirm",
-    initializeAction: "Initialize and unlock",
+    initializeAction: "Set and unlock",
     unlockAction: "Unlock",
     working: "Working...",
     shortSecret: "Enter at least 4 characters.",
@@ -158,5 +210,11 @@ function localSecurityCopy(language: LanguagePreference) {
     timeout: "Auto-locks after {minutes} minutes idle",
     lockout: "Temporarily locked until {time}",
     failedAttempts: "Failed attempts {count}/{max}",
+    forgotAction: "Forgot PIN? Reset local unlock",
+    resetCopy:
+      "This only resets the local unlock PIN. It does not delete credentials, portfolios, research, or local databases. You will set a new PIN next.",
+    resetLabel: `Type ${RESET_CONFIRMATION} to confirm`,
+    resetAction: "Reset and set a new PIN",
+    resetFailed: "Local unlock reset failed.",
   };
 }
