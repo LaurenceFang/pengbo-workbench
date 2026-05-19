@@ -84,6 +84,8 @@ SessionPermission = Literal[
 class HealthResponse(BaseModel):
     status: Literal["ok"]
     message: str
+    app_version: str
+    sidecar_version: str
 
 
 class TranslationStatusResponse(BaseModel):
@@ -755,6 +757,8 @@ class BinanceAccountSnapshot(BaseModel):
 
 
 class SettingsRuntimeResponse(BaseModel):
+    app_version: str
+    sidecar_version: str
     base_url: str
     runtime_mode: str
     data_dir: str

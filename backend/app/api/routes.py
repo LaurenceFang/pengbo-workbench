@@ -84,6 +84,7 @@ from ..models import (
 )
 from ..providers.catalog import get_asset
 from ..services.auth_session_service import AuthSessionError
+from ..version import APP_VERSION, SIDECAR_VERSION
 
 
 def _container(request: Request):
@@ -132,6 +133,8 @@ def register_routes(app: FastAPI) -> None:
         return HealthResponse(
             status="ok",
             message=f"FastAPI sidecar is running (mode={settings.runtime_mode}, port={settings.port})",
+            app_version=APP_VERSION,
+            sidecar_version=SIDECAR_VERSION,
         )
 
     @app.post("/api/v1/security/session", response_model=LocalAuthSessionResponse)

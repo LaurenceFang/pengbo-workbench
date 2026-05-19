@@ -102,6 +102,8 @@ export function SettingsView({
             value={formatRuntimeMode(runtimeInfo.data?.runtime_mode ?? appRuntime?.mode ?? null)}
             helper={i18n.t("settings.runtimeModeHelper")}
           />
+          <SettingRow label="App version" value={runtimeInfo.data?.app_version ?? "--"} helper="Current source and desktop package version." />
+          <SettingRow label="Sidecar version" value={runtimeInfo.data?.sidecar_version ?? "--"} helper="Current local sidecar version." />
           <SettingRow label={i18n.t("settings.baseUrl")} value={runtimeInfo.data?.base_url ?? appRuntime?.baseUrl ?? "--"} helper={i18n.t("settings.baseUrlHelper")} />
           <SettingRow label={i18n.t("settings.dataDirectory")} value={runtimeInfo.data?.data_dir ?? appRuntime?.dataDir ?? "--"} helper={i18n.t("settings.dataDirectoryHelper")} />
           <SettingRow label={i18n.t("settings.logDirectory")} value={runtimeInfo.data?.log_dir ?? appRuntime?.logDir ?? "--"} helper={i18n.t("settings.logDirectoryHelper")} />

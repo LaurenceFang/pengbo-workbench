@@ -51,6 +51,7 @@ Updated: 2026-05-19
 - `T55 - Future Public Auth And Session Layer` is now implemented as a local-only session boundary: the backend persists redacted session metadata, the desktop API client attaches `X-Pengbo-Session`, sensitive credential/execution/export/audit routes require session-bound permissions, and `/api/v1/security/route-classification` gives T56 a route-level exposure map.
 - `T56 - Public Exposure Gateway And Sidecar Hardening` is now implemented and package-smoke validated. The sidecar refuses non-loopback bind addresses, CORS origins are centralized, unsafe origins and invalid methods are rejected before route handling, sensitive gateway failures are audited with redaction, rate-limit hooks are present, and the public-exposure posture is documented in `docs/public-exposure-gateway-t56.md`.
 - `T57 - License And Open Source Boundary` is now implemented as the first product-trust task after T56. The repository now has an Apache-2.0 source license, README and security/upload docs describe the public source boundary, package and Tauri metadata agree on `Apache-2.0`, generated runtime/log/secret/build artifacts remain outside the public source set, and no API/runtime/trading behavior changed.
+- `T58 - Version Governance Cleanup` is now implemented. Version metadata is aligned across package, package-lock, Tauri, Cargo, backend sidecar constants, `/health`, `/settings/runtime`, Settings UI, README, CHANGELOG, and the cleaned public `PLAN.md`; `npm run check:version` now enforces the source/runtime version story, and the prior transitive `postcss` audit advisory is resolved.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -82,8 +83,17 @@ Updated: 2026-05-19
 - Updated `README.md`, `docs/SECURITY_ARCHITECTURE.md`, `docs/REPOSITORY_UPLOAD_READINESS.md`, and `docs/public-exposure-gateway-t56.md` so public readers can distinguish checked-in source/docs from local runtime data, credentials, Stronghold vaults, generated smoke logs, diagnostics, sidecar binaries, installers, and packaged bundles.
 - Reconciled the security architecture doc with the implemented T53-T56 local security posture while preserving the current boundary: no hosted service, public API, OAuth, multi-user account system, remote sync, or new live-trading path.
 - Validation passed: license metadata scan, public-boundary tracked-file scan, ignore coverage review, `git diff --check`, and `npm run typecheck`.
-- No unresolved license/upload-boundary blocker was found. `npm audit --json` reports one existing moderate transitive `postcss < 8.5.10` advisory (`GHSA-qx2v-qp2m-jg93`); this is recorded as a public-trust follow-up for dependency audit triage before release/CI hardening is considered complete.
+- No unresolved license/upload-boundary blocker was found. `npm audit --json` reported one existing moderate transitive `postcss < 8.5.10` advisory (`GHSA-qx2v-qp2m-jg93`), which was recorded as a public-trust follow-up and later resolved during T58.
 - `T58 - Version Governance Cleanup` is now promoted as the next recommended task.
+
+- Executed `T58 - Version Governance Cleanup` on 2026-05-19 against the current checkout.
+- Added `backend/app/version.py` as the backend version source, exposed `app_version` and `sidecar_version` through `/api/v1/health` and `/api/v1/settings/runtime`, and surfaced the values in the Settings runtime panel.
+- Added `scripts/check_version_consistency.mjs` plus `npm run check:version` to verify `package.json`, `package-lock.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and backend sidecar metadata all report `0.1.0`.
+- Added `CHANGELOG.md` and rewrote the previously garbled `PLAN.md` into a current public product plan aligned with the local-first, security-accountable roadmap.
+- Updated `README.md` and `docs/REPOSITORY_UPLOAD_READINESS.md` so version governance and changelog evidence are part of the public source boundary.
+- Updated the lockfile so transitive `postcss` resolves to `8.5.14`; `npm audit --json` now reports zero vulnerabilities.
+- Validation passed: `npm run check:version`, `npm audit --json`, `npm run typecheck`, `py -m pytest backend\tests`, and `npm run build`. The frontend build still reports the existing large-chunk warning but completes successfully.
+- No new blocker was found. `T59 - GitHub Actions CI Baseline` is now promoted as the next recommended task.
 
 - Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
 - Treated `FinceptTerminal` as a product-pattern reference rather than a migration target; the local `Pengbo Workbench` stack remains the implementation baseline.
@@ -809,34 +819,34 @@ Updated: 2026-05-19
 
 ## Recommended Next Task
 
-### T58 - Version Governance Cleanup
+### T59 - GitHub Actions CI Baseline
 
 Priority: P2
 Status: Planned
 
 Why this is next:
 
-- `T57` closed the public source/license boundary without changing runtime behavior.
-- The next public-trust gap is version consistency before CI, release packaging, demo mode, or contributor-facing workflows.
-- T58 should make app version, package version, sidecar version, diagnostics, and release notes tell one coherent story.
+- `T58` closed the version/changelog/public-plan consistency gap and resolved the known `postcss` audit advisory.
+- The next public-trust gap is proving the repository can run repeatable no-secret checks on GitHub before release packaging, demo mode, or contributor-facing workflows.
+- T59 should make typecheck, build, backend tests, version consistency, audit, and public-boundary scans visible in CI without requiring local credentials or packaged Windows smoke.
 
 Scope:
 
-- Normalize version metadata across package, Tauri, sidecar, docs, and diagnostics.
-- Add a lightweight changelog or release-history file.
-- Make version evidence visible without requiring packaged artifact inspection.
+- Add a no-secret GitHub Actions workflow for source-level checks.
+- Include `npm run check:version`, frontend typecheck/build, backend unit tests, npm audit, and public-boundary scans that can run without provider credentials.
+- Document which packaged EXE smokes remain local Windows-only after CI lands.
 - Preserve existing API/runtime behavior and avoid product-scope expansion.
 
 Acceptance:
 
-- Build artifacts, docs, diagnostics, and release notes report the same version story.
-- The version story is understandable to a public reader before CI/release tasks begin.
-- Any inconsistency that cannot be safely resolved in T58 is written back as a blocker task before T59+ work proceeds.
-- The known moderate transitive `postcss < 8.5.10` audit advisory is either resolved in dependency metadata or explicitly carried into T59 CI/security-audit scope before release work proceeds.
+- Public GitHub checks can validate the source tree without secrets.
+- CI failures are understandable to outside contributors before release work begins.
+- Packaged Windows smoke checks remain documented as local-only evidence until a dedicated Windows release workflow is selected.
+- Any CI blocker is written back before T60+ release work proceeds.
 
 Implementation notes:
 
-- Do not introduce CI, signing, installer release automation, hosted update checks, or product feature scope in T58 unless needed to make version evidence accurate.
+- Do not introduce signing, installer release automation, hosted update checks, package publishing, or live provider credentials in T59.
 
 ## Priority Order
 
@@ -983,13 +993,13 @@ Completion notes:
 - Updated `docs/public-exposure-gateway-t56.md` to state that T57's open-source boundary does not reclassify any route as public.
 - Validation passed: license metadata scan, public-boundary tracked-file scan, ignore coverage review, `git diff --check`, and `npm run typecheck`.
 - No unresolved license/upload-boundary blocker was found.
-- `npm audit --json` reports one existing moderate transitive `postcss < 8.5.10` advisory (`GHSA-qx2v-qp2m-jg93`); carry this into dependency-audit triage before release/CI hardening is considered complete.
+- `npm audit --json` reported one existing moderate transitive `postcss < 8.5.10` advisory (`GHSA-qx2v-qp2m-jg93`); T58 resolved it by updating `postcss` to `8.5.14`.
 - T58 is the next recommended task.
 
 ### T58 - Version Governance Cleanup
 
 Priority: P2
-Status: Planned
+Status: Completed (2026-05-19)
 Target Window: 2026-07-18 to 2026-07-20
 Depends on: T57
 
@@ -1002,6 +1012,18 @@ Task:
 Done when:
 
 - Build artifacts, docs, diagnostics, and release notes report the same version story.
+
+Completion notes:
+
+- Added `backend/app/version.py` and exposed version metadata through `/api/v1/health` and `/api/v1/settings/runtime`.
+- Added Settings runtime UI rows for app and sidecar versions.
+- Added `scripts/check_version_consistency.mjs` and `npm run check:version` to enforce consistency across package, lockfile, Tauri, Cargo, and backend version metadata.
+- Added `CHANGELOG.md` and replaced the garbled legacy `PLAN.md` with the current local-first product plan.
+- Updated README and repository-upload readiness docs so version governance, changelog, and current plan are public entrypoints.
+- Updated `postcss` to `8.5.14` in the lockfile and local install; `npm audit --json` now reports zero vulnerabilities.
+- Validation passed: `npm run check:version`, `npm audit --json`, `npm run typecheck`, `py -m pytest backend\tests`, and `npm run build`.
+- The frontend build still emits the existing large-chunk warning; it is not a T58 blocker because the production build succeeds.
+- T59 is the next recommended task.
 
 ### T59 - GitHub Actions CI Baseline
 

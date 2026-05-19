@@ -10,6 +10,7 @@
     "build": "npm run web:build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "check:version": "node ./scripts/check_version_consistency.mjs",
     "backend:dev": "py -m backend.app.cli --host 127.0.0.1 --port 8765 --runtime-mode web-dev --data-dir ./.pengbo-runtime/data --log-dir ./.pengbo-runtime/logs",
     "sidecar:build": "py scripts/build_sidecar.py --target x86_64-pc-windows-msvc",
     "smoke:packaged-startup": "powershell -ExecutionPolicy Bypass -File ./scripts/packaged_startup_smoke.ps1",

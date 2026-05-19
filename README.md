@@ -21,7 +21,15 @@ The active roadmap is tracked in [IMPLEMENTATION_TASKS.md](IMPLEMENTATION_TASKS.
 
 These tasks were intentionally prioritized before broader public, account, remote, team, AI, or China-market connector work. The next roadmap lane begins at `T57 - License And Open Source Boundary`, followed by open-source readiness, CI, releases, demo mode, research-flow polish, data governance, local AI assistance, China-market connectors, and security packaged signoff.
 
+`T58 - Version Governance Cleanup` is implemented. The next product-trust task is `T59 - GitHub Actions CI Baseline`.
+
 For the product-team assessment behind this direction, see [docs/product-team-assessment-2026-05-17.md](docs/product-team-assessment-2026-05-17.md).
+
+## Versioning
+
+The current pre-release baseline is `0.1.0`. Version metadata is kept aligned across `package.json`, `package-lock.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and `backend/app/version.py`.
+
+Use `npm run check:version` before release or CI work to confirm the source, desktop package, and sidecar version story remains consistent. See [CHANGELOG.md](CHANGELOG.md) for the public-facing change history.
 
 ## License And Public Boundary
 
@@ -83,6 +91,7 @@ Build the web shell:
 
 ```powershell
 npm run typecheck
+npm run check:version
 npm run build
 ```
 

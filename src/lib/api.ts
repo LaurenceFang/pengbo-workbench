@@ -10,6 +10,8 @@ import {
 export type BackendHealth = {
   status: "ok";
   message: string;
+  app_version: string;
+  sidecar_version: string;
 };
 
 export type DashboardMarketPulse = {
@@ -329,6 +331,8 @@ export type ConnectionSecretPayload = {
 };
 
 export type SettingsRuntimeResponse = {
+  app_version: string;
+  sidecar_version: string;
   base_url: string;
   runtime_mode: string;
   data_dir: string;

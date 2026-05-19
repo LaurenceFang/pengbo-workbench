@@ -10,7 +10,7 @@ Pengbo Workbench source and documentation are licensed under Apache-2.0. The lic
 
 - Source code under `src/`, `backend/app/`, `backend/tests/`, `scripts/`, and `src-tauri/src/`.
 - Configuration and manifests needed to rebuild locally: `package.json`, `package-lock.json`, TypeScript configs, Vite config source, `backend/requirements.txt`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, Tauri capabilities, and icons.
-- Product and engineering documentation: `README.md`, `IMPLEMENTATION_TASKS.md`, `PLAN.md`, `open-source-bloomberg-terminal-report.md`, and curated files under `docs/`.
+- Product and engineering documentation: `README.md`, `CHANGELOG.md`, `IMPLEMENTATION_TASKS.md`, `PLAN.md`, `open-source-bloomberg-terminal-report.md`, and curated files under `docs/`.
 - License metadata: `LICENSE`, package metadata, and rebuildable manifest fields that identify the checked-in source license.
 - Small checked-in fixtures or seed definitions that are required by tests or local demo flows.
 
@@ -36,10 +36,11 @@ Pengbo Workbench source and documentation are licensed under Apache-2.0. The lic
 2. Confirm `README.md` describes the local-first architecture, workspace map, safety boundaries, and rebuild commands.
 3. Confirm `README.md`, `LICENSE`, package metadata, and `src-tauri/Cargo.toml` agree on the public source license.
 4. Confirm `docs/SECURITY_ARCHITECTURE.md` remains aligned with the public-upload boundary and the T53-T56 local-security posture.
-5. Confirm no raw secrets appear in committed docs or source comments.
-6. Confirm `PENGBO_TRANSLATION_API_KEY` and any future translation provider keys are handled as secrets.
-7. Confirm `logs/*.json` is ignored and not staged or tracked before the first public commit.
-8. If initializing Git locally, inspect `git status --short --ignored` before the first commit and remove any accidental generated artifacts from the candidate set.
+5. Confirm `npm run check:version` passes so `package.json`, `package-lock.json`, Tauri, Cargo, and backend sidecar metadata tell the same version story.
+6. Confirm no raw secrets appear in committed docs or source comments.
+7. Confirm `PENGBO_TRANSLATION_API_KEY` and any future translation provider keys are handled as secrets.
+8. Confirm `logs/*.json` is ignored and not staged or tracked before the first public commit.
+9. If initializing Git locally, inspect `git status --short --ignored` before the first commit and remove any accidental generated artifacts from the candidate set.
 
 ## Dependency And Binary Release Note
 

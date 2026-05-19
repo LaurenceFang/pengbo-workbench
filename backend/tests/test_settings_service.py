@@ -26,6 +26,20 @@ def make_settings(runtime_root: Path) -> RuntimeSettings:
 
 
 class SettingsPreferencesTests(unittest.TestCase):
+    def test_runtime_and_health_include_version_metadata(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
+            app = create_app(make_settings(Path(temp_dir)))
+            with TestClient(app) as client:
+                health = client.get("/api/v1/health")
+                self.assertEqual(health.status_code, 200)
+                self.assertEqual(health.json()["app_version"], "0.1.0")
+                self.assertEqual(health.json()["sidecar_version"], "0.1.0")
+
+                runtime = client.get("/api/v1/settings/runtime")
+                self.assertEqual(runtime.status_code, 200)
+                self.assertEqual(runtime.json()["app_version"], "0.1.0")
+                self.assertEqual(runtime.json()["sidecar_version"], "0.1.0")
+
     def test_preferences_default_and_persist_language_density(self) -> None:
         with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
             app = create_app(make_settings(Path(temp_dir)))

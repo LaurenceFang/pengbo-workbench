@@ -11,6 +11,7 @@ from ..models import (
 )
 from ..runtime import RuntimeSettings
 from ..storage.sqlite_store import SqliteStore
+from ..version import APP_VERSION, SIDECAR_VERSION
 
 
 DEFAULT_PREFERENCES = AppPreferences(
@@ -30,6 +31,8 @@ class SettingsService:
 
     def get_runtime(self) -> SettingsRuntimeResponse:
         return SettingsRuntimeResponse(
+            app_version=APP_VERSION,
+            sidecar_version=SIDECAR_VERSION,
             base_url=self.settings.base_url,
             runtime_mode=self.settings.runtime_mode,
             data_dir=str(self.settings.data_dir),
