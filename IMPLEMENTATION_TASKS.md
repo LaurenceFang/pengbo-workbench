@@ -106,6 +106,7 @@ Updated: 2026-05-19
 - Validation passed locally: `npm run check:version`, `npm run check:public-boundary`, `npm audit --audit-level=moderate`, `npm run typecheck`, `npm run build`, `py -m pytest backend\tests`, and `git diff --check`. The frontend build still reports the existing large-chunk warning but completes successfully.
 - Remote CI follow-up on 2026-05-20 fixed the first backend CI failure: GitHub Actions installed `backend/requirements.txt`, but `pytest` was not listed, so `python -m pytest backend/tests` failed with `No module named pytest`. Added `pytest==8.4.2`, kept backend CI dependencies in `backend/requirements.txt`, and opted the workflow into the Node 24 action runtime with `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`.
 - Follow-up validation passed locally: `py -m pip install -r backend/requirements.txt`, `py -m pytest backend/tests`, `npm run check:version`, `npm run check:public-boundary`, `npm audit --audit-level=moderate`, `npm run typecheck`, `npm run build`, and `git diff --check`. `python` is not on the local Windows PATH, so local Python validation used the Windows `py` launcher; CI remains on Linux `python -m ...`.
+- Remote validation passed on GitHub Actions run #2 for commit `f83caf8`: `Backend unit tests` and `Frontend and source checks` completed successfully.
 - No new blocker was found. `T60 - Demo Mode And No-Key Startup` is now promoted as the next recommended task.
 
 - Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
@@ -1068,6 +1069,7 @@ Completion notes:
 - The frontend build still emits the existing large-chunk warning; it is not a T59 blocker because the production build succeeds.
 - Remote CI follow-up on 2026-05-20 fixed the first backend CI failure by adding the missing `pytest==8.4.2` test dependency to `backend/requirements.txt`. The workflow also opts into Node 24 action runtime with `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` to reduce the GitHub Actions Node.js 20 deprecation warning.
 - Follow-up local validation passed: `py -m pip install -r backend/requirements.txt`, `py -m pytest backend/tests`, `npm run check:version`, `npm run check:public-boundary`, `npm audit --audit-level=moderate`, `npm run typecheck`, `npm run build`, and `git diff --check`.
+- Remote validation passed on GitHub Actions run #2 for commit `f83caf8`: `Backend unit tests` and `Frontend and source checks` both completed successfully.
 - T60 is the next recommended task.
 
 ### T60 - Demo Mode And No-Key Startup
