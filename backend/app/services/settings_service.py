@@ -4,6 +4,7 @@ import json
 
 from ..models import (
     AppPreferences,
+    DemoModeStatus,
     OnboardingState,
     SettingsRuntimeResponse,
     UpdateAppPreferencesRequest,
@@ -81,3 +82,48 @@ class SettingsService:
     def update_onboarding(self, payload: UpdateOnboardingStateRequest) -> OnboardingState:
         self.sqlite_store.upsert_app_settings(payload.model_dump())
         return self.get_onboarding()
+
+    def get_demo_mode(self) -> DemoModeStatus:
+        missing_credentials: list[str] = []
+        if not self.settings.edgar_identity:
+            missing_credentials.append("EDGAR identity")
+        if not self.settings.fred_api_key:
+            missing_credentials.append("FRED API key")
+        if not (self.settings.coingecko_demo_api_key or self.settings.coingecko_pro_api_key):
+            missing_credentials.append("CoinGecko key")
+        if not (self.settings.binance_api_key and self.settings.binance_secret):
+            missing_credentials.append("Binance account credentials")
+
+        return DemoModeStatus(
+            enabled=True,
+            no_key_evaluation_ready=True,
+            mode="sample_no_key_evaluation",
+            sample_surfaces=[
+                "dashboard market pulse",
+                "seeded watchlist",
+                "asset workspace",
+                "screeners",
+                "research templates",
+                "portfolio sample guidance",
+                "data-source previews",
+                "workflow templates",
+            ],
+            credential_gated_surfaces=[
+                "EDGAR filings",
+                "FRED keyed macro series",
+                "CoinGecko market preview",
+                "Binance private account state",
+                "Binance live execution",
+            ],
+            missing_credentials=missing_credentials,
+            safety_boundaries=[
+                "Demo mode is read-only for provider data and uses sample or cached context where live credentials are absent.",
+                "Missing credentials stay visible as credential_required or missing_credentials states.",
+                "Live Binance submission remains disabled unless the user explicitly configures credentials, acknowledges risk, and confirms submission.",
+                "Local unlock, session, and gateway checks still protect sensitive surfaces.",
+            ],
+            notes=[
+                "No hosted account, CI secret, provider key, or live trading permission is required for first evaluation.",
+                "Sample data is intentionally labeled and must not be treated as real account performance.",
+            ],
+        )

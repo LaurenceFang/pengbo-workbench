@@ -494,6 +494,16 @@ function CryptoPreview({
           <span className="mini-pill status-missing_credentials">{i18n.t("dataSources.credentialRequired")}</span>
         </div>
         <p>{coingeckoStatus.message}</p>
+        <div className="sample-state-grid">
+          <div>
+            <strong>BTC / ETH / SOL</strong>
+            <span>{i18n.t("dataSources.cryptoSampleCopy")}</span>
+          </div>
+          <div>
+            <strong>Boundary</strong>
+            <span>{i18n.t("dataSources.cryptoSampleBoundary")}</span>
+          </div>
+        </div>
       </div>
     );
   }

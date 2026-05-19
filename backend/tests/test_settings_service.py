@@ -67,6 +67,24 @@ class SettingsPreferencesTests(unittest.TestCase):
                 self.assertEqual(restored.json()["language"], "en-US")
                 self.assertEqual(restored.json()["density"], "compact")
 
+    def test_demo_mode_status_is_no_key_safe_and_keeps_boundaries_visible(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
+            app = create_app(make_settings(Path(temp_dir)))
+            with TestClient(app) as client:
+                response = client.get("/api/v1/settings/demo-mode")
+                self.assertEqual(response.status_code, 200)
+                payload = response.json()
+
+                self.assertTrue(payload["enabled"])
+                self.assertTrue(payload["no_key_evaluation_ready"])
+                self.assertEqual(payload["mode"], "sample_no_key_evaluation")
+                self.assertIn("seeded watchlist", payload["sample_surfaces"])
+                self.assertIn("portfolio sample guidance", payload["sample_surfaces"])
+                self.assertIn("EDGAR identity", payload["missing_credentials"])
+                self.assertIn("CoinGecko key", payload["missing_credentials"])
+                self.assertIn("Binance private account state", payload["credential_gated_surfaces"])
+                self.assertTrue(any("Live Binance submission remains disabled" in note for note in payload["safety_boundaries"]))
+
 
 if __name__ == "__main__":
     unittest.main()

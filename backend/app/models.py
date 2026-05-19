@@ -794,6 +794,17 @@ class UpdateOnboardingStateRequest(OnboardingState):
     pass
 
 
+class DemoModeStatus(BaseModel):
+    enabled: bool
+    no_key_evaluation_ready: bool
+    mode: str
+    sample_surfaces: list[str]
+    credential_gated_surfaces: list[str]
+    missing_credentials: list[str]
+    safety_boundaries: list[str]
+    notes: list[str]
+
+
 class PortfolioTransactionBase(BaseModel):
     symbol: str
     side: Literal["buy", "sell"]

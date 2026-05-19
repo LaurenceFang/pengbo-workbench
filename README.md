@@ -21,7 +21,7 @@ The active roadmap is tracked in [IMPLEMENTATION_TASKS.md](IMPLEMENTATION_TASKS.
 
 These tasks were intentionally prioritized before broader public, account, remote, team, AI, or China-market connector work. The next roadmap lane begins at `T57 - License And Open Source Boundary`, followed by open-source readiness, CI, releases, demo mode, research-flow polish, data governance, local AI assistance, China-market connectors, and security packaged signoff.
 
-`T58 - Version Governance Cleanup` and `T59 - GitHub Actions CI Baseline` are implemented. The next product-trust task is `T60 - Demo Mode And No-Key Startup`.
+`T58 - Version Governance Cleanup`, `T59 - GitHub Actions CI Baseline`, and `T60 - Demo Mode And No-Key Startup` are implemented. The next product-trust task is `T61 - First Release Packaging`.
 
 For the product-team assessment behind this direction, see [docs/product-team-assessment-2026-05-17.md](docs/product-team-assessment-2026-05-17.md).
 
@@ -65,6 +65,12 @@ The license does not change the product safety boundary: Pengbo is currently a l
 - Public network exposure, multi-user accounts, sessions, and hosted operation are deferred until the relevant security tasks are explicitly selected and implemented.
 
 See [docs/SECURITY_ARCHITECTURE.md](docs/SECURITY_ARCHITECTURE.md) and [docs/REPOSITORY_UPLOAD_READINESS.md](docs/REPOSITORY_UPLOAD_READINESS.md) for the current local-first boundary.
+
+## No-Key Demo Evaluation
+
+A fresh checkout can be evaluated without EDGAR, FRED, CoinGecko, Binance, or translation credentials. The app exposes a no-key demo readiness state through `/api/v1/settings/demo-mode`, shows seeded/sample context on the dashboard, portfolio, data-source, screener, research, and workflow surfaces, and keeps credential-gated capabilities visibly marked as `credential_required` or `missing_credentials`.
+
+Demo mode is not a live-trading shortcut. It cannot read private Binance account state, submit live orders, store provider secrets, or bypass local unlock, session, and gateway checks. Use `npm run smoke:demo-no-key` to validate the source-level no-key startup path.
 
 ## Local Development
 
@@ -118,6 +124,7 @@ npm run check:public-boundary
 npm audit --audit-level=moderate
 npm run typecheck
 npm run build
+npm run smoke:demo-no-key
 ```
 
 ## Continuous Integration

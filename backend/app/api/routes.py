@@ -23,6 +23,7 @@ from ..models import (
     DashboardOverviewResponse,
     DataSourceRuntimeStatus,
     DataSourceStatusResponse,
+    DemoModeStatus,
     FactorFamilyDefinition,
     FactorRunListItem,
     FactorRunRequest,
@@ -597,6 +598,10 @@ def register_routes(app: FastAPI) -> None:
     @app.put("/api/v1/settings/onboarding", response_model=OnboardingState)
     def put_settings_onboarding(request: Request, payload: UpdateOnboardingStateRequest) -> OnboardingState:
         return _container(request).settings_service.update_onboarding(payload)
+
+    @app.get("/api/v1/settings/demo-mode", response_model=DemoModeStatus)
+    def get_settings_demo_mode(request: Request) -> DemoModeStatus:
+        return _container(request).settings_service.get_demo_mode()
 
     @app.get("/api/v1/connections/status", response_model=ConnectionsStatusResponse)
     def get_connections_status(request: Request) -> ConnectionsStatusResponse:

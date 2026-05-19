@@ -228,6 +228,40 @@ button {
   background: linear-gradient(120deg, #70f3c1, #ffe48b);
 }
 
+.demo-mode-banner {
+  border-color: rgba(87, 214, 166, 0.24);
+}
+
+.demo-mode-grid,
+.sample-state-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.demo-mode-grid > div,
+.sample-state-grid > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(166, 183, 205, 0.12);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.demo-mode-grid strong,
+.sample-state-grid strong {
+  color: var(--text-primary);
+}
+
+.demo-mode-grid span,
+.sample-state-grid span {
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
 .watchlist-card,
 .pulse-card,
 .preset-card,

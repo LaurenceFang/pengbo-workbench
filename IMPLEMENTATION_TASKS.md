@@ -53,6 +53,7 @@ Updated: 2026-05-19
 - `T57 - License And Open Source Boundary` is now implemented as the first product-trust task after T56. The repository now has an Apache-2.0 source license, README and security/upload docs describe the public source boundary, package and Tauri metadata agree on `Apache-2.0`, generated runtime/log/secret/build artifacts remain outside the public source set, and no API/runtime/trading behavior changed.
 - `T58 - Version Governance Cleanup` is now implemented. Version metadata is aligned across package, package-lock, Tauri, Cargo, backend sidecar constants, `/health`, `/settings/runtime`, Settings UI, README, CHANGELOG, and the cleaned public `PLAN.md`; `npm run check:version` now enforces the source/runtime version story, and the prior transitive `postcss` audit advisory is resolved.
 - `T59 - GitHub Actions CI Baseline` is now implemented as a no-secret source-level CI workflow. The workflow covers version consistency, public-boundary scanning, npm audit, frontend typecheck/build, and backend unit tests without provider credentials, packaged EXE smoke, Tauri release builds, signing, or live-trading permissions.
+- `T60 - Demo Mode And No-Key Startup` is now implemented. Fresh no-key runtimes expose `/api/v1/settings/demo-mode`, dashboard/sample evaluation guidance, portfolio and data-source sample states, visible missing-credential boundaries, Vite dev-origin allowance, and repeatable no-key smoke evidence in `logs/demo-no-key-smoke-latest.json`.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -108,6 +109,15 @@ Updated: 2026-05-19
 - Follow-up validation passed locally: `py -m pip install -r backend/requirements.txt`, `py -m pytest backend/tests`, `npm run check:version`, `npm run check:public-boundary`, `npm audit --audit-level=moderate`, `npm run typecheck`, `npm run build`, and `git diff --check`. `python` is not on the local Windows PATH, so local Python validation used the Windows `py` launcher; CI remains on Linux `python -m ...`.
 - Remote validation passed on GitHub Actions run #2 for commit `f83caf8`: `Backend unit tests` and `Frontend and source checks` completed successfully.
 - No new blocker was found. `T60 - Demo Mode And No-Key Startup` is now promoted as the next recommended task.
+
+- Executed `T60 - Demo Mode And No-Key Startup` on 2026-05-20 against the current checkout.
+- Added `/api/v1/settings/demo-mode` so source, desktop, and smoke validation can distinguish sample/no-key evaluation surfaces from credential-gated surfaces.
+- Added dashboard no-key demo guidance, portfolio sample-only empty-state guidance, and Data Sources credential-missing sample context while keeping `credential_required` and `missing_credentials` visible.
+- Allowed the Vite dev origins `http://127.0.0.1:5173` and `http://localhost:5173` through the local gateway so a fresh web-dev checkout can evaluate the no-key path without session-origin 403s; loopback-only and unsafe-origin rejection remain in place.
+- Added `scripts/demo_no_key_smoke.ps1` plus `npm run smoke:demo-no-key`; the smoke starts a temporary no-key runtime, verifies dashboard seeded context, demo readiness, FRED/CoinGecko missing-credential visibility, empty real portfolio transactions, and blocked Binance private-account access.
+- Updated README, CHANGELOG, and PLAN with the no-key demo evaluation path and T61 release-packaging handoff.
+- Validation passed: `py -m pytest backend/tests`, `npm run check:version`, `npm run check:public-boundary`, `npm audit --audit-level=moderate`, `npm run typecheck`, `npm run build`, `npm run smoke:demo-no-key`, Playwright dashboard screenshot check, and `git diff --check`. The frontend build still reports the existing large-chunk warning but completes successfully.
+- No new blocker was found. `T61 - First Release Packaging` is now promoted as the next recommended task.
 
 - Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
 - Treated `FinceptTerminal` as a product-pattern reference rather than a migration target; the local `Pengbo Workbench` stack remains the implementation baseline.
@@ -833,34 +843,34 @@ Updated: 2026-05-19
 
 ## Recommended Next Task
 
-### T60 - Demo Mode And No-Key Startup
+### T61 - First Release Packaging
 
 Priority: P1
 Status: Planned
 
 Why this is next:
 
-- `T59` added no-secret CI for source-level quality, version consistency, public-boundary scanning, dependency audit, frontend build/typecheck, and backend unit tests.
-- The next public-trust gap is letting new users launch and evaluate Pengbo without provider keys, Stronghold setup, or private runtime state.
-- T60 should make no-key startup intentional instead of a collection of empty states and missing-credential warnings.
+- `T60` made a fresh no-key checkout evaluable without provider credentials while preserving local unlock, session, gateway, and live-trading boundaries.
+- The next public-trust gap is producing a clearly documented local release artifact path for the first external reviewer.
+- T61 should turn the current source/demo readiness into a reproducible Windows packaging checklist before broader README screenshots or contributor onboarding work.
 
 Scope:
 
-- Add a demo/sample startup path that works without EDGAR, FRED, CoinGecko, Binance, or translation credentials.
-- Seed non-sensitive sample watchlist/research/data-source/portfolio context where useful.
-- Keep all demo data clearly labeled as sample/simulated/cached and never promote demo mode into live trading.
-- Preserve existing API/runtime behavior and avoid product-scope expansion.
+- Produce or refresh a local Windows desktop artifact with documented build inputs.
+- Record release checklist steps for sidecar build, Tauri build, installer startup, no-key startup, demo-mode startup, and security-boundary evidence.
+- Keep the release path local and unsigned/clearly documented unless signing is explicitly selected later.
+- Preserve public-repo boundaries so generated binaries, installers, runtime data, logs, diagnostics, Stronghold vaults, and provider credentials stay out of source control.
 
 Acceptance:
 
-- A fresh no-key checkout can show useful product surfaces without private credentials.
-- Demo mode cannot submit live orders, read real private account state, or hide missing-provider limits.
-- The README and in-app copy make the no-key evaluation path clear before release work begins.
-- Any demo-mode blocker is written back before T61+ release artifact work proceeds.
+- The first external reviewer can install or run Pengbo from a documented local artifact path without source-build guesswork.
+- Release evidence covers packaged startup, no-key startup, demo-mode startup, and security-boundary checks.
+- The artifact story is honest about unsigned/local build status and does not imply hosted update, signing, or production distribution support.
+- Any release-packaging blocker is written back before T62+ product-proof work proceeds.
 
 Implementation notes:
 
-- Do not add hosted accounts, public network exposure, CI secrets, live provider credentials, or new live-trading paths in T60.
+- Do not add hosted accounts, public network exposure, CI secrets, live provider credentials, live-trading expansion, auto-update, or signing infrastructure in T61 unless explicitly re-scoped.
 
 ## Priority Order
 
@@ -1075,7 +1085,7 @@ Completion notes:
 ### T60 - Demo Mode And No-Key Startup
 
 Priority: P1
-Status: Planned
+Status: Completed (2026-05-20)
 Target Window: 2026-07-25 to 2026-07-28
 Depends on: T59
 
@@ -1088,6 +1098,16 @@ Task:
 Done when:
 
 - A new user can open the app, explore the main product flow, and understand what credentials would unlock.
+
+Completion notes:
+
+- Added `/api/v1/settings/demo-mode` with explicit sample surfaces, credential-gated surfaces, missing credential list, and safety-boundary notes.
+- Added frontend no-key demo guidance on the dashboard plus sample-only Portfolio and Data Sources states for reviewers without provider credentials.
+- Kept demo mode read-only and boundary-aware: Binance private account access remains blocked without local unlock/session/credentials, and missing provider limits remain visible.
+- Added Vite dev origin allowance for `127.0.0.1:5173` and `localhost:5173` without relaxing loopback bind enforcement or unsafe-origin rejection.
+- Added `npm run smoke:demo-no-key`, producing `logs/demo-no-key-smoke-latest.json` with `no_key_startup_ok=true`, `demo_mode_ok=true`, `dashboard_sample_ok=true`, `data_sources_missing_credentials_visible=true`, `portfolio_empty_sample_ok=true`, `private_account_blocked=true`, and `failures=[]`.
+- Validation passed: `py -m pytest backend/tests`, `npm run check:version`, `npm run check:public-boundary`, `npm audit --audit-level=moderate`, `npm run typecheck`, `npm run build`, `npm run smoke:demo-no-key`, Playwright dashboard screenshot check, and `git diff --check`.
+- T61 is the next recommended task.
 
 ### T61 - First Release Packaging
 

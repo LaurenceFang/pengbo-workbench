@@ -83,6 +83,8 @@ export type TranslationKey =
   | "dataSources.retryMacro"
   | "dataSources.cryptoContext"
   | "dataSources.credentialRequired"
+  | "dataSources.cryptoSampleCopy"
+  | "dataSources.cryptoSampleBoundary"
   | "dataSources.loadingCrypto"
   | "dataSources.retryCrypto"
   | "dataSources.eventQuery"
@@ -137,6 +139,9 @@ export type TranslationKey =
   | "portfolio.connectingCopy"
   | "portfolio.emptyTitle"
   | "portfolio.emptyCopy"
+  | "portfolio.sampleTitle"
+  | "portfolio.sampleCopy"
+  | "portfolio.sampleBoundary"
   | "portfolio.currentValue"
   | "portfolio.totalPnl"
   | "portfolio.dailyPnl"
@@ -333,6 +338,8 @@ const dictionary: Dictionary = {
     "dataSources.retryMacro": "重试宏观",
     "dataSources.cryptoContext": "CoinGecko 市场上下文",
     "dataSources.credentialRequired": "需要凭证",
+    "dataSources.cryptoSampleCopy": "No-key demo sample: BTC, ETH, and SOL remain visible as simulated context so reviewers can inspect the layout before adding a CoinGecko key.",
+    "dataSources.cryptoSampleBoundary": "Sample only; the real CoinGecko preview stays credential-gated.",
     "dataSources.loadingCrypto": "正在加载加密市场上下文...",
     "dataSources.retryCrypto": "重试加密",
     "dataSources.eventQuery": "事件查询",
@@ -387,6 +394,9 @@ const dictionary: Dictionary = {
     "portfolio.connectingCopy": "运行时健康检查完成后，桌面端会自动加载投资组合数据。",
     "portfolio.emptyTitle": "还没有投资组合交易",
     "portfolio.emptyCopy": "保存第一条手动交易后，这里会显示持仓、收益、风险和配置。",
+    "portfolio.sampleTitle": "Sample portfolio preview",
+    "portfolio.sampleCopy": "Use the sample asset mix to understand holdings, allocation, and risk before saving real local transactions.",
+    "portfolio.sampleBoundary": "Sample only; no private account state, provider credentials, or live orders are used.",
     "portfolio.currentValue": "当前市值",
     "portfolio.totalPnl": "总盈亏",
     "portfolio.dailyPnl": "当日盈亏",
@@ -580,6 +590,8 @@ const dictionary: Dictionary = {
     "dataSources.retryMacro": "Retry macro",
     "dataSources.cryptoContext": "CoinGecko market context",
     "dataSources.credentialRequired": "credential required",
+    "dataSources.cryptoSampleCopy": "No-key demo sample: BTC, ETH, and SOL remain visible as simulated context so reviewers can inspect the layout before adding a CoinGecko key.",
+    "dataSources.cryptoSampleBoundary": "Sample only; the real CoinGecko preview stays credential-gated.",
     "dataSources.loadingCrypto": "Loading crypto context...",
     "dataSources.retryCrypto": "Retry crypto",
     "dataSources.eventQuery": "Event query",
@@ -634,6 +646,9 @@ const dictionary: Dictionary = {
     "portfolio.connectingCopy": "Portfolio data will load automatically after the runtime health check completes.",
     "portfolio.emptyTitle": "No portfolio transactions yet",
     "portfolio.emptyCopy": "Save the first manual transaction to unlock holdings, returns, risk, and allocation.",
+    "portfolio.sampleTitle": "Sample portfolio preview",
+    "portfolio.sampleCopy": "Use the sample asset mix to understand holdings, allocation, and risk before saving real local transactions.",
+    "portfolio.sampleBoundary": "Sample only; no private account state, provider credentials, or live orders are used.",
     "portfolio.currentValue": "Current value",
     "portfolio.totalPnl": "Total PnL",
     "portfolio.dailyPnl": "Daily PnL",

@@ -32,6 +32,7 @@ import {
   type AssetSearchResult,
   type AssetWorkspaceResponse,
   type DashboardOverviewResponse,
+  type DemoModeStatus,
   type DiagnosticsExportResult,
   type LocalSecurityStatus,
   type OnboardingState,
@@ -133,6 +134,9 @@ function App() {
   const onboarding = useAsyncResource<OnboardingState>(async () => api.getOnboardingState(), [], {
     enabled: sidecarReady,
   });
+  const demoMode = useAsyncResource<DemoModeStatus>(async () => api.getDemoModeStatus(), [], {
+    enabled: sidecarReady,
+  });
   const localSecurity = useAsyncResource<LocalSecurityStatus>(async () => api.getLocalSecurityStatus(), [], {
     enabled: sidecarReady,
   });
@@ -200,9 +204,10 @@ function App() {
     asset.reload();
     preferences.reload();
     onboarding.reload();
+    demoMode.reload();
     localSecurity.reload();
     connectionsStatus.reload();
-  }, [asset, assetUniverse, backendStatus, connectionsStatus, dashboard, localSecurity, onboarding, preferences]);
+  }, [asset, assetUniverse, backendStatus, connectionsStatus, dashboard, demoMode, localSecurity, onboarding, preferences]);
 
   const selectedAsset =
     dashboard.data?.watchlist.find((item) => item.symbol === selectedAssetId) ??
@@ -237,6 +242,10 @@ function App() {
     sidecarOffline: backendStatus === "offline",
     missingProviders,
   };
+  const noKeyDemoReady =
+    sidecarReady &&
+    demoMode.data?.no_key_evaluation_ready === true &&
+    (demoMode.data.missing_credentials.length > 0 || missingProviders.length > 0);
 
   const backendNote =
     backendStatus === "offline"
@@ -271,6 +280,7 @@ function App() {
     asset.reload();
     preferences.reload();
     onboarding.reload();
+    demoMode.reload();
     connectionsStatus.reload();
   }
 
@@ -671,6 +681,45 @@ function App() {
               <div className="task-item">
                 <TriangleAlert size={16} />
                 <span>{shellActionError}</span>
+              </div>
+            </section>
+          ) : null}
+
+          {isDashboardView && noKeyDemoReady && demoMode.data ? (
+            <section
+              aria-label={`demo-mode-banner mode=${demoMode.data.mode} missing=${demoMode.data.missing_credentials.length}`}
+              className="card panel-banner compact demo-mode-banner"
+            >
+              <div className="panel-banner-head">
+                <div>
+                  <p className="eyebrow">NO-KEY DEMO</p>
+                  <h3>{language === "zh-CN" ? "无 key 也可以先评估产品" : "Evaluate Pengbo without provider keys"}</h3>
+                </div>
+                <span className="mini-pill accent">sample</span>
+              </div>
+              <p className="body-copy">
+                {language === "zh-CN"
+                  ? "当前启动路径使用本地 seed、sample 和缓存友好的状态展示产品主流程；需要凭证的能力仍会明确显示为 credential_required 或 missing_credentials。"
+                  : "This startup path uses local seed, sample, and cache-friendly states for product evaluation; credential-gated capabilities remain visible as credential_required or missing_credentials."}
+              </p>
+              <div className="demo-mode-grid">
+                <div>
+                  <strong>{language === "zh-CN" ? "可先查看" : "Available now"}</strong>
+                  <span>{demoMode.data.sample_surfaces.slice(0, 5).join(", ")}</span>
+                </div>
+                <div>
+                  <strong>{language === "zh-CN" ? "仍需凭证" : "Still gated"}</strong>
+                  <span>{demoMode.data.credential_gated_surfaces.slice(0, 4).join(", ")}</span>
+                </div>
+              </div>
+              <div className="hero-actions">
+                <button className="primary-button" type="button" onClick={() => setActiveView("dataSources")}>
+                  {language === "zh-CN" ? "查看数据源边界" : "Review data-source boundaries"}
+                  <ArrowRight size={16} />
+                </button>
+                <button className="ghost-button" type="button" onClick={() => setActiveView("portfolio")}>
+                  {language === "zh-CN" ? "查看组合 sample" : "View portfolio sample"}
+                </button>
               </div>
             </section>
           ) : null}

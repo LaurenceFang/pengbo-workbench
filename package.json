@@ -14,6 +14,7 @@
     "check:public-boundary": "node ./scripts/check_public_boundary.mjs",
     "backend:dev": "py -m backend.app.cli --host 127.0.0.1 --port 8765 --runtime-mode web-dev --data-dir ./.pengbo-runtime/data --log-dir ./.pengbo-runtime/logs",
     "sidecar:build": "py scripts/build_sidecar.py --target x86_64-pc-windows-msvc",
+    "smoke:demo-no-key": "powershell -ExecutionPolicy Bypass -File ./scripts/demo_no_key_smoke.ps1",
     "smoke:packaged-startup": "powershell -ExecutionPolicy Bypass -File ./scripts/packaged_startup_smoke.ps1",
     "smoke:installed-startup": "powershell -ExecutionPolicy Bypass -File ./scripts/installed_bundle_startup_smoke.ps1",
     "smoke:installed-startup:nsis": "powershell -ExecutionPolicy Bypass -File ./scripts/installed_bundle_startup_smoke.ps1 -InstallerType nsis",

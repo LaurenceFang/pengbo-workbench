@@ -322,10 +322,22 @@ export function PortfolioView({
             copy={i18n.t("portfolio.connectingCopy")}
           />
         ) : portfolioState === "empty" ? (
-          <PanelState
-            title={i18n.t("portfolio.emptyTitle")}
-            copy={i18n.t("portfolio.emptyCopy")}
-          />
+          <>
+            <PanelState
+              title={i18n.t("portfolio.emptyTitle")}
+              copy={i18n.t("portfolio.emptyCopy")}
+            />
+            <div className="sample-state-grid" aria-label="portfolio-demo-sample state=sample-only">
+              <div>
+                <strong>{i18n.t("portfolio.sampleTitle")}</strong>
+                <span>{i18n.t("portfolio.sampleCopy")}</span>
+              </div>
+              <div>
+                <strong>AAPL / SPY / BTC</strong>
+                <span>{i18n.t("portfolio.sampleBoundary")}</span>
+              </div>
+            </div>
+          </>
         ) : summary.data ? (
           <>
             {summary.data.notes.map((note) => (

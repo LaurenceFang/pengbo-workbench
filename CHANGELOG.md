@@ -21,8 +21,11 @@ release channel yet.
   mode work begins.
 - T59 adds a no-secret GitHub Actions CI baseline for version consistency,
   public-boundary scanning, dependency audit, frontend checks, and backend tests.
+- T60 adds a no-key demo evaluation path, explicit `/settings/demo-mode`
+  readiness state, sample guidance for key surfaces, Vite dev origin allowance,
+  and a repeatable `npm run smoke:demo-no-key` validation script.
 
 ## Upcoming
 
-- T60 will define local release artifact naming and release checklist evidence.
-- T61 will add a no-key demo/sample mode suitable for public evaluation.
+- T61 will define local release artifact naming, release checklist evidence, and
+  first external reviewer packaging.

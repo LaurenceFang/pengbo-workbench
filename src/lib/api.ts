@@ -375,6 +375,17 @@ export type OnboardingState = {
   onboarding_seen_at: string | null;
 };
 
+export type DemoModeStatus = {
+  enabled: boolean;
+  no_key_evaluation_ready: boolean;
+  mode: string;
+  sample_surfaces: string[];
+  credential_gated_surfaces: string[];
+  missing_credentials: string[];
+  safety_boundaries: string[];
+  notes: string[];
+};
+
 export type LocalSecurityStatus = {
   initialized: boolean;
   locked: boolean;
@@ -1519,6 +1530,7 @@ export const api = {
   getOnboardingState: () => apiFetch<OnboardingState>("/settings/onboarding"),
   updateOnboardingState: (payload: OnboardingState) =>
     jsonRequest<OnboardingState>("/settings/onboarding", "PUT", payload),
+  getDemoModeStatus: () => apiFetch<DemoModeStatus>("/settings/demo-mode"),
   getLocalSecurityStatus: () => apiFetch<LocalSecurityStatus>("/security/local/status"),
   initializeLocalSecurity: (unlockSecret: string) =>
     jsonRequest<LocalSecurityStatus>("/security/local/initialize", "POST", { unlock_secret: unlockSecret }),
