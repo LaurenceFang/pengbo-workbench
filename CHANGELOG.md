@@ -27,8 +27,11 @@ release channel yet.
 - T61 refreshes the local unsigned Windows packaging baseline, documents the
   first-reviewer release checklist, and hardens MSI/NSIS installed startup
   validation around the onedir sidecar layout.
+- T62 upgrades README product proof with source-safe screenshots and a practical
+  reviewer journey across Dashboard, Research, Data Sources, Workflow Studio,
+  and Manual local-security boundaries.
 
 ## Upcoming
 
-- T62 will upgrade README product proof with verified packaged screenshots and
-  a practical reviewer journey.
+- T63 will add a contributor entry kit with setup expectations, safe
+  contribution boundaries, and first-issue candidates.

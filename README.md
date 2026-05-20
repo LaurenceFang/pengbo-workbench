@@ -25,6 +25,30 @@ These tasks were intentionally prioritized before broader public, account, remot
 
 For the product-team assessment behind this direction, see [docs/product-team-assessment-2026-05-17.md](docs/product-team-assessment-2026-05-17.md).
 
+## Product Proof
+
+Pengbo is already a usable local desktop research workspace, not just a backend demo. A no-key reviewer can launch the app, inspect seeded market context, review data-source provenance, run template-driven workflow setup, and read the local safety manual without provider credentials.
+
+![Dashboard showing runtime readiness, market context, and workspace handoffs](docs/product-screenshots/dashboard.png)
+
+The core loop is designed around evidence and boundaries:
+
+- Start from the dashboard and choose an asset, data source, screener, or workflow.
+- Use Research to create a durable local brief with notes, analysis modules, source context, and export handoffs.
+- Use Data Sources to inspect read-only provider coverage, cache state, provenance, freshness, and credential requirements.
+- Use Workflow Studio to run bounded templates that connect screeners, data sources, research, factors, backtests, paper trading, Binance intents, and reports.
+- Use Manual and Settings to understand local unlock, reset behavior, data boundaries, and live-trading confirmation rules.
+
+| Research workspace | Data-source provenance |
+| --- | --- |
+| ![Research workspace with saved brief entry points](docs/product-screenshots/research.png) | ![Data Sources workspace showing read-only provider status and provenance](docs/product-screenshots/data-sources.png) |
+
+| Workflow Studio | Local security manual |
+| --- | --- |
+| ![Workflow Studio template-driven setup](docs/product-screenshots/workflow-studio.png) | ![Manual page explaining local PIN reset and safety boundaries](docs/product-screenshots/manual-security.png) |
+
+These screenshots were regenerated from a temporary no-secret local runtime for documentation. They are safe source assets; generated smoke logs, local databases, Stronghold vaults, packaged binaries, installers, and machine-local diagnostics remain ignored.
+
 ## Versioning
 
 The current pre-release baseline is `0.1.0`. Version metadata is kept aligned across `package.json`, `package-lock.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and `backend/app/version.py`.

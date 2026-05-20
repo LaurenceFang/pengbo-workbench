@@ -56,6 +56,7 @@ Updated: 2026-05-20
 - `T60 - Demo Mode And No-Key Startup` is now implemented. Fresh no-key runtimes expose `/api/v1/settings/demo-mode`, dashboard/sample evaluation guidance, portfolio and data-source sample states, visible missing-credential boundaries, Vite dev-origin allowance, and repeatable no-key smoke evidence in `logs/demo-no-key-smoke-latest.json`.
 - `T61 - First Release Packaging` is now implemented as a local unsigned Windows packaging baseline. The refreshed EXE, MSI, and NSIS artifacts are produced locally, `docs/RELEASE_CHECKLIST.md` records the validation sequence, and MSI/NSIS installed startup smokes now verify the onedir sidecar path without the root `pengbo-sidecar.exe` DLL-loading trap.
 - `T61# Temp - Manual Security Reset Refresh` is completed as a temporary T61 follow-up: the in-app Manual and Settings security copy now explain local PIN/passphrase reset behavior before T62 product-proof work.
+- `T62 - README Product Proof Upgrade` is now implemented. The README includes a practical reviewer journey and source-safe product screenshots generated from a temporary no-secret runtime, while generated logs, runtime databases, credentials, installers, and packaged binaries remain outside the public source boundary.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -134,6 +135,13 @@ Updated: 2026-05-20
 - Updated Settings local-security copy so the reset control clearly says it only clears local unlock state and does not delete provider credentials, portfolios, research records, workflow records, or local databases.
 - Validation passed: `npm run typecheck`, `npm run build`, and `npm run smoke:page-polish`. The build still reports the existing large-chunk warning but completes successfully.
 - No backend security behavior, credential storage, provider route, live-trading path, packaging config, or GitHub Release flow changed in this temporary task.
+
+- Executed `T62 - README Product Proof Upgrade` on 2026-05-20.
+- Added README product-proof copy that explains the first reviewer journey across Dashboard, Research, Data Sources, Workflow Studio, and Manual/local-security boundaries.
+- Added source-safe screenshots under `docs/product-screenshots/` generated from a temporary no-secret local runtime. The screenshot set deliberately excludes local paths, real provider credentials, Stronghold material, generated logs, diagnostics, installers, and packaged binaries.
+- Updated README, CHANGELOG, PLAN, and this task board so T62 is complete and T63 is promoted next.
+- Validation passed: `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, `npm run smoke:page-polish`, and `git diff --check`.
+- No backend behavior, security model, credential storage, packaging config, GitHub Release flow, hosted account path, public network exposure, or live-trading route changed in T62.
 
 - Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
 - Treated `FinceptTerminal` as a product-pattern reference rather than a migration target; the local `Pengbo Workbench` stack remains the implementation baseline.
@@ -859,32 +867,32 @@ Updated: 2026-05-20
 
 ## Recommended Next Task
 
-### T62 - README Product Proof Upgrade
+### T63 - Contributor Entry Kit
 
 Priority: P2
 Status: Planned
 
 Why this is next:
 
-- `T61` now produces and documents a local unsigned Windows packaging baseline for the first external reviewer.
-- The next public-trust gap is making the README show the real packaged product experience rather than only engineering readiness.
-- T62 should use verified packaged screenshots and practical workflow copy while keeping local data, generated logs, and credentials out of the public source boundary.
+- `T62` now gives external reviewers a credible product walkthrough with source-safe screenshots.
+- The next public-trust gap is making the repository easier to contribute to without accidentally touching credential-sensitive or execution-sensitive surfaces.
+- T63 should document setup expectations, safe contribution areas, validation commands, and first-issue candidates grounded in the current roadmap.
 
 Scope:
 
-- Add real or freshly verified packaged screenshots.
-- Describe the core reviewer journey in practical product language: data status, research evidence, portfolio/strategy context, exports, and safety boundaries.
-- Link the release checklist and validation entry points without exposing local runtime artifacts.
+- Add contributor setup notes for JavaScript, Python, no-key demo, CI checks, and packaged validation boundaries.
+- Document safe contribution areas versus credential, Stronghold, execution, gateway, and release-signing sensitive areas.
+- Add a small first-issue candidate list that does not require provider credentials or live trading.
 
 Acceptance:
 
-- README presents a credible product walkthrough, not only a build skeleton.
-- Screenshots or visual proof come from the real packaged desktop path or are clearly marked as regenerated local evidence.
-- Public boundary language remains aligned with README, CHANGELOG, PLAN, and `docs/RELEASE_CHECKLIST.md`.
+- A new contributor can set up the source app and run the baseline checks without guessing.
+- The guide clearly warns against committing secrets, runtime artifacts, binaries, logs, Stronghold vaults, or live credentials.
+- First-issue candidates are useful and safe for public contributors.
 
 Implementation notes:
 
-- Do not upload generated screenshots/logs/binaries by default unless a source-safe screenshot artifact is explicitly selected.
+- Do not add issue templates that imply hosted support, signed binary releases, live trading support, or public API operation.
 
 ## Priority Order
 
@@ -1155,7 +1163,7 @@ Completion notes:
 ### T62 - README Product Proof Upgrade
 
 Priority: P2
-Status: Planned
+Status: Completed
 Target Window: 2026-08-02 to 2026-08-04
 Depends on: T61
 
@@ -1168,6 +1176,15 @@ Task:
 Done when:
 
 - The README shows a credible product, not only an engineering skeleton.
+
+Completion notes:
+
+- Added README product-proof narrative for a no-key reviewer: Dashboard, Research, Data Sources, Workflow Studio, and Manual/local-security boundaries.
+- Added source-safe screenshots under `docs/product-screenshots/`: `dashboard.png`, `research.png`, `data-sources.png`, `workflow-studio.png`, and `manual-security.png`.
+- Generated screenshots from a temporary no-secret runtime and excluded any screenshot containing local filesystem paths or credential material.
+- Updated CHANGELOG and PLAN to mark T62 complete and promote T63.
+- Validation passed: `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, `npm run smoke:page-polish`, and `git diff --check`.
+- No runtime behavior, backend route, security model, credential storage, packaging config, GitHub Release flow, hosted account path, public exposure path, or live-trading path changed.
 
 ### T63 - Contributor Entry Kit
 
