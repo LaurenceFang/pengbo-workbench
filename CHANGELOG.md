@@ -33,8 +33,11 @@ release channel yet.
 - T63 adds a contributor entry kit with setup expectations, safe contribution
   boundaries, first-issue candidates, and issue templates that avoid hosted,
   signed-release, live-trading, and credential-support promises.
+- T64 defines the primary research flow across Asset, Data Sources, Research,
+  evidence comparison, local report export, and audit handoffs before the next
+  page-polish tasks.
 
 ## Upcoming
 
-- T64 will define the core research flow across asset, data status, evidence,
-  report export, and audit handoffs.
+- T65 will make the Asset page a clearer symbol-first entry point into the
+  research loop.

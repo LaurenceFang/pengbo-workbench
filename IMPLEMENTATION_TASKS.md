@@ -58,6 +58,7 @@ Updated: 2026-05-20
 - `T61# Temp - Manual Security Reset Refresh` is completed as a temporary T61 follow-up: the in-app Manual and Settings security copy now explain local PIN/passphrase reset behavior before T62 product-proof work.
 - `T62 - README Product Proof Upgrade` is now implemented. The README includes a practical reviewer journey and source-safe product screenshots generated from a temporary no-secret runtime, while generated logs, runtime databases, credentials, installers, and packaged binaries remain outside the public source boundary.
 - `T63 - Contributor Entry Kit` is now implemented. New contributors have a dedicated setup and validation guide, safe first-issue candidates, and issue templates that keep credentials, Stronghold vaults, runtime data, generated logs, binaries, installers, hosted support, signed releases, and live trading outside the default public contribution path.
+- `T64 - Research Flow Definition` is now implemented. The product has a grounded primary research journey from Asset/Data Sources into Research briefs, evidence comparison, local report export, and redacted audit handoffs, with follow-up gaps mapped into T65-T68.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -150,6 +151,14 @@ Updated: 2026-05-20
 - Updated README, CHANGELOG, PLAN, and this task board so T63 is complete and T64 is promoted next.
 - Validation passed: `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, and `git diff --check`.
 - No runtime behavior, backend route, security model, credential storage, packaging config, GitHub Release flow, hosted support path, public API path, signed-release path, or live-trading path changed in T63.
+
+- Executed `T64 - Research Flow Definition` on 2026-05-20.
+- Added `docs/research-flow-definition.md` to define the primary journey: choose a symbol or source, inspect data status, create or open a Research brief, compare evidence, write thesis/assumptions/risk notes, export a local report, and review audit context only when it affects research evidence.
+- Mapped existing surfaces and APIs across Asset, Research, Data Sources, Workflow Studio, factor/strategy evidence, local report export, security audit, execution audit, and workflow audit events.
+- Captured current dead ends and follow-up mapping for T65 Asset entry polish, T66 data-status strip consistency, T67 Research brief quality, and T68 report evidence packs.
+- Updated README, CHANGELOG, PLAN, and this task board so T64 is complete and T65 is promoted next.
+- Validation passed: `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, and `git diff --check`.
+- No runtime behavior, backend route, security model, credential storage, packaging config, hosted support path, public API path, signed-release path, or live-trading path changed in T64.
 
 - Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
 - Treated `FinceptTerminal` as a product-pattern reference rather than a migration target; the local `Pengbo Workbench` stack remains the implementation baseline.
@@ -875,32 +884,32 @@ Updated: 2026-05-20
 
 ## Recommended Next Task
 
-### T64 - Research Flow Definition
+### T65 - Asset Page Research Entry Polish
 
 Priority: P1
 Status: Planned
 
 Why this is next:
 
-- `T63` now gives public contributors a safe setup and validation entry point.
-- The next product gap is turning the existing workspaces into one explicit research loop instead of a collection of capable surfaces.
-- T64 should map asset, data status, evidence, report export, and audit handoffs before deeper UI or backend polish.
+- `T64` now defines the primary research journey across Asset, Data Sources, Research, evidence, export, and audit handoffs.
+- The next product gap is making the Asset workspace feel like the practical first step for a symbol-driven research loop.
+- T65 should turn the flow map into visible entry actions and context on the Asset page without changing backend contracts.
 
 Scope:
 
-- Define the core user flow: open asset, inspect data status, review thesis, compare evidence, export report, and record audit trail.
-- Map existing pages and APIs to that flow.
-- Identify dead ends, duplicate concepts, and missing handoffs.
+- Make the asset/security page the practical starting point for research.
+- Show price, provider freshness, portfolio exposure, thesis summary, recent evidence, and next actions.
+- Reduce navigation friction from asset view to report/export.
 
 Acceptance:
 
-- The next research-polish work has a clear user journey and grounded implementation map.
-- The flow keeps credential, local-security, execution, and report-evidence boundaries visible.
-- Missing handoffs are captured as explicit follow-up tasks instead of implied product debt.
+- A user can start from one ticker or symbol and complete a basic research loop without hunting through unrelated pages.
+- Asset page entry points preserve credential, local-security, execution, and report-evidence boundaries.
+- Automation anchors remain stable enough for future packaged signoff.
 
 Implementation notes:
 
-- Treat this as a flow-definition pass first; avoid broad UI rewrites until the journey and gaps are documented.
+- Prefer additive Asset-to-Research handoff polish over route rewrites or backend schema changes.
 
 ## Priority Order
 
@@ -1222,7 +1231,7 @@ Completion notes:
 ### T64 - Research Flow Definition
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-08-08 to 2026-08-11
 Depends on: T63
 
@@ -1235,6 +1244,16 @@ Task:
 Done when:
 
 - The product has one primary research journey that the whole team can optimize around.
+
+Completion notes:
+
+- Added `docs/research-flow-definition.md` to define the primary journey from Dashboard/Asset/Data Sources into Research briefs, evidence comparison, thesis notes, local report export, and redacted audit handoffs.
+- Mapped existing pages, frontend store context, APIs, workflow templates, exports, and audit surfaces to each research-loop step.
+- Identified current dead ends around Asset-to-Research entry, data-status consistency, Research brief structure, report/evidence-pack alignment, audit guidance, and Data Sources-to-Research handoff visibility.
+- Mapped follow-up work into T65, T66, T67, and T68.
+- Updated README, CHANGELOG, PLAN, and this task board to mark T64 complete and promote T65.
+- Validation passed: `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, and `git diff --check`.
+- No runtime behavior, backend route, security model, credential storage, packaging config, hosted support path, public API path, signed-release path, or live-trading path changed.
 
 ### T65 - Asset Page Research Entry Polish
 
