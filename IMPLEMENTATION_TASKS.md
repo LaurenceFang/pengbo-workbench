@@ -1480,7 +1480,7 @@ Completion:
 - Added a Settings reset control so demos and reviews can replay first-run onboarding without deleting credentials, portfolios, research, workflows, or local databases.
 - Fixed visible first-run/demo/local setup Chinese mojibake in the shell path touched by T70.
 - Added `npm run smoke:onboarding` to validate reset, checklist persistence, Settings reset, and the local unlock gate needed to reach Settings.
-- Validation passed: `py -m unittest backend.tests.test_settings_service`, `npm run typecheck`, and `npm run smoke:onboarding`.
+- Validation passed: `py -m unittest backend.tests.test_settings_service`, `npm run typecheck`, `npm run check:public-boundary`, `npm run build`, `npm run smoke:onboarding`, `npm run smoke:page-polish`, `git diff --check`, and `npm run tauri:build`.
 
 ### T71 - Provider Capability Matrix
 
