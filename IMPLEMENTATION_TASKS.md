@@ -62,6 +62,7 @@ Updated: 2026-05-20
 - `T65 - Asset Page Research Entry Polish` is now implemented. The Asset page has an additive research-entry panel with local data status, portfolio exposure, related brief state, and direct Research, evidence, report, and Data Sources actions while preserving backend contracts and sensitive boundaries.
 - `T66 - Data Status Strip Everywhere` is now implemented. Asset, Research, and Data Sources share a compact frontend data-status strip for provider freshness, credential state, cache/degraded state, read-only or execution boundary, and cautious observed/cached/degraded/credential_required/blocked/audited wording.
 - `T67 - Research Brief Quality Upgrade` is now implemented. Research briefs now include an additive structured decision review with equity, crypto, portfolio, and macro templates, thesis, assumptions, supporting evidence, counter-evidence, risks, watch items, provenance, and a cautious conclusion boundary while preserving existing brief routes and handoffs.
+- `T68 - Report Export Evidence Pack` is now implemented. Research, Data Sources, and Strategy exports expose evidence-pack summaries, provider/freshness/evidence-quality boundaries, audit references where available, and explicit private-state exclusion notes; refreshed desktop EXE/MSI/NSIS artifacts are validated and uploaded to the first GitHub Release at `https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0`.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -189,6 +190,20 @@ Updated: 2026-05-20
 - Validation passed: `py -m pytest backend/tests`, `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, `npm run smoke:page-polish`, and `git diff --check`.
 - T68 must finish by preparing and uploading the first GitHub Release after the evidence-pack export and secret/private-state checks pass.
 - No credential storage, Stronghold behavior, local-security/session/gateway model, packaging config, hosted support path, public API path, signed-release path, or live-trading path changed in T67.
+
+- Started `T68 - Report Export Evidence Pack` on 2026-05-20.
+- Added evidence-pack summaries to Research exports, Data Sources exports, and Strategy backtest/paper exports.
+- Added provider/freshness/evidence quality, audit-reference, and private-state exclusion language to exported Markdown so local reports can be reviewed without implying hidden credentials or private runtime state.
+- Added `scripts/check_release_artifacts.mjs` plus `npm run check:release-artifacts` to verify only approved Windows release artifacts are used for the first GitHub Release upload.
+- Added `docs/releases/v0.1.0.md` as the first release-note body.
+- Updated `docs/RELEASE_CHECKLIST.md` with the T68 GitHub Release gate.
+- Repaired packaged smoke scripts to use the current onedir sidecar path under `src-tauri/target/release/binaries/pengbo-sidecar/pengbo-sidecar.exe` instead of the removed root sidecar path.
+- Refreshed desktop artifacts with `npm run tauri:build`: `pengbo-workbench.exe` `16,393,216 bytes`, MSI `124,547,556 bytes`, and NSIS `89,355,099 bytes`.
+- Packaged evidence report smoke passed with `factor_run_id=factor-63e074feca5c`, `backtest_run_id=strategy-c81b06573d2d`, `paper_session_id=paper-6067a12f016a`, `intent_id=intent-9a7f53b9f7ee`, `brief_id=brief-02df6905a019`, `evidence_audit_count=2`, `export_exists=true`, and `restored_after_restart=true`.
+- Packaged Data Sources smoke passed with `provider_count=5`, `report_source_count=5`, `report_export_exists=true`, and `failures=[]`.
+- MSI and NSIS installed startup smokes passed with `root_sidecar_absent_ok=true`, `single_instance_ok=true`, `adopt_existing_ok=true`, and `failures=[]`.
+- Validation passed: `py -m pytest backend/tests`, `npm run check:version`, `npm run check:public-boundary`, `npm audit --audit-level=moderate`, `npm run typecheck`, `npm run build`, `npm run sidecar:build`, `npm run tauri:build`, `npm run check:release-artifacts`, `npm run smoke:packaged-startup`, `npm run smoke:evidence-report`, `npm run smoke:data-sources:packaged`, `npm run smoke:installed-startup`, `npm run smoke:installed-startup:nsis`, and `git diff --check`.
+- GitHub Release: `https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0`.
 
 - Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
 - Treated `FinceptTerminal` as a product-pattern reference rather than a migration target; the local `Pengbo Workbench` stack remains the implementation baseline.
@@ -914,33 +929,32 @@ Updated: 2026-05-20
 
 ## Recommended Next Task
 
-### T68 - Report Export Evidence Pack
+### T69 - Command Center V1
 
-Priority: P1
+Priority: P2
 Status: Planned
 
 Why this is next:
 
-- `T67` now turns Research briefs into structured decision reviews with thesis, evidence, counter-evidence, risks, watch items, and provenance.
-- The next product gap is making exported evidence packs coherent enough to hand to a reviewer.
-- T68 should finish by uploading the first GitHub Release after export evidence, packaging, secret exclusion, and private-state checks pass.
+- `T68` now closes the first release-upload loop with evidence-pack exports, refreshed desktop artifacts, installed startup validation, and the first GitHub Release.
+- The next product gap is making common actions easier to reach without navigating every workspace manually.
+- T69 should build a compact command center for asset search, brief opening, provider refresh, report export, audit review, and safe smoke checks.
 
 Scope:
 
-- Export reports with evidence tables, provider status, generated time, data freshness, and audit references.
-- Add PDF/Markdown export parity where practical.
-- Validate that exports exclude secrets and private runtime state.
-- As the final step, prepare and upload the first GitHub Release with the approved Windows artifact(s) and release notes.
+- Build a compact command center for common actions: search asset, open research brief, refresh provider, export report, view audit, and run safe smoke checks.
+- Keep it operational and dense, not a marketing dashboard.
+- Reuse existing command palette, provider, research, export, and audit APIs where possible.
 
 Acceptance:
 
-- A user can hand someone a report that explains both conclusion and evidence quality.
-- The release upload includes only approved artifacts and notes; no source-ignored runtime data, secrets, Stronghold vaults, diagnostics, or private state are uploaded.
-- The GitHub Release link is recorded in this task board after upload.
+- Common reviewer/operator actions are reachable from one compact desktop surface.
+- Sensitive actions remain permission-gated and local-first.
+- Existing workspace flows remain compatible.
 
 Implementation notes:
 
-- Treat the GitHub Release upload as T68's final step, not as a separate implied task.
+- Start from the existing command palette and current workspace store instead of building a parallel automation surface.
 
 ## Priority Order
 
@@ -1367,7 +1381,7 @@ Completion:
 ### T68 - Report Export Evidence Pack
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-08-29 to 2026-09-04
 Depends on: T67
 
@@ -1382,6 +1396,14 @@ Done when:
 
 - A user can hand someone a report that explains both conclusion and evidence quality.
 - The first GitHub Release URL is recorded in this task board, and the uploaded release excludes runtime data, secrets, Stronghold vaults, diagnostics, and private local state.
+
+Completion:
+
+- Added evidence-pack summaries and private-state exclusion notes to Research, Data Sources, and Strategy exports.
+- Added release notes and a release-artifact boundary check for the approved Windows artifacts.
+- Rebuilt and validated the desktop EXE, MSI, and NSIS installer.
+- Uploaded the first GitHub Release: `https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0`.
+- Validation passed: `py -m pytest backend/tests`, `npm run check:version`, `npm run check:public-boundary`, `npm audit --audit-level=moderate`, `npm run typecheck`, `npm run build`, `npm run sidecar:build`, `npm run tauri:build`, `npm run check:release-artifacts`, `npm run smoke:packaged-startup`, `npm run smoke:evidence-report`, `npm run smoke:data-sources:packaged`, `npm run smoke:installed-startup`, `npm run smoke:installed-startup:nsis`, and `git diff --check`.
 
 ### T69 - Command Center V1
 

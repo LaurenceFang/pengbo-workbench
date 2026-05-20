@@ -8,7 +8,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $baseUrl = "http://127.0.0.1:8765/api/v1"
-$sidecarPath = (Join-Path (Join-Path $PSScriptRoot "..") "src-tauri\\target\\release\\pengbo-sidecar.exe")
+$sidecarPath = (Join-Path (Join-Path $PSScriptRoot "..") "src-tauri\\target\\release\\binaries\\pengbo-sidecar\\pengbo-sidecar.exe")
 $result = [ordered]@{
     exe_path = ""
     started_at = (Get-Date).ToString("o")
@@ -37,6 +37,7 @@ $script:resolvedOutputPath = $null
 $script:dataDirPath = $null
 $script:backupDirPath = $null
 $script:dataDirBackedUp = $false
+$script:sessionHeaders = @{}
 
 function Add-Failure {
     param([string]$Message)
@@ -108,6 +109,9 @@ function Invoke-ApiJson {
         Uri = "$baseUrl$Path"
         TimeoutSec = $TimeoutSeconds
     }
+    if ($script:sessionHeaders.Count -gt 0) {
+        $params.Headers = $script:sessionHeaders
+    }
     if ($null -ne $Body) {
         $params.Body = ($Body | ConvertTo-Json -Depth 16)
         $params.ContentType = "application/json"
@@ -158,6 +162,27 @@ function Backup-DataDirectory {
     $script:dataDirBackedUp = $false
 }
 
+function Reset-DataDirectoryForSmoke {
+    if (-not $script:dataDirPath) {
+        throw "Cannot reset packaged smoke data directory before runtime path is known."
+    }
+    if (Test-Path -LiteralPath $script:dataDirPath) {
+        Remove-Item -LiteralPath $script:dataDirPath -Recurse -Force
+    }
+}
+
+function Initialize-SmokeSecurity {
+    $session = Invoke-ApiJson -Method Post -Path "/security/session" -Body @{}
+    $script:sessionHeaders = @{ "X-Pengbo-Session" = [string]$session.session_id }
+    $status = Invoke-ApiJson -Method Get -Path "/security/local/status"
+    if (-not $status.initialized) {
+        Invoke-ApiJson -Method Post -Path "/security/local/initialize" -Body @{ unlock_secret = "evidence-report-smoke-passphrase" } | Out-Null
+    }
+    elseif ($status.locked) {
+        Invoke-ApiJson -Method Post -Path "/security/local/unlock" -Body @{ unlock_secret = "evidence-report-smoke-passphrase" } | Out-Null
+    }
+}
+
 function Restore-DataDirectory {
     if (-not $script:dataDirPath) {
         return
@@ -179,8 +204,10 @@ try {
     Start-DesktopPhase -ResolvedExePath $script:resolvedExePath
     Stop-DesktopScenario -ResolvedExePath $script:resolvedExePath
     Backup-DataDirectory -Path $script:dataDirPath
+    Reset-DataDirectoryForSmoke
 
     Start-DesktopPhase -ResolvedExePath $script:resolvedExePath
+    Initialize-SmokeSecurity
     $factorRun = Invoke-ApiJson -Method Post -Path "/factors/runs" -Body @{
         universeSource = "expanded"
         assetType = "equity"

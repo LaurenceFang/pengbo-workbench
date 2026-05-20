@@ -143,6 +143,8 @@ class StrategyServiceTests(unittest.TestCase):
 
         export = self.strategy_service.export_report(backtest.run_id)
         contents = Path(export.export_path).read_text(encoding="utf-8")
+        self.assertIn("Evidence Pack Summary", contents)
+        self.assertIn("Private-state boundary", contents)
         self.assertIn("Strategy Rules", contents)
         self.assertIn("Live orders: `none`", contents)
 
@@ -249,6 +251,8 @@ class StrategyApiTests(unittest.TestCase):
                 self.assertEqual(export_response.status_code, 200)
                 contents = Path(export_response.json()["export_path"]).read_text(encoding="utf-8")
                 self.assertIn("Paper Session", contents)
+                self.assertIn("Evidence Pack Summary", contents)
+                self.assertIn("simulated paper ledger", contents)
                 self.assertIn("Live orders: `none`", contents)
 
 

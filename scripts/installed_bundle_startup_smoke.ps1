@@ -353,7 +353,11 @@ function Get-LogDelta {
         return @()
     }
 
-    return @((Get-Content -Path $Path -ErrorAction SilentlyContinue | Select-Object -Skip $StartLine) | ForEach-Object { "$_" })
+    $lines = @((Get-Content -Path $Path -ErrorAction SilentlyContinue) | ForEach-Object { "$_" })
+    if ($lines.Count -lt $StartLine) {
+        return $lines
+    }
+    return @($lines | Select-Object -Skip $StartLine)
 }
 
 function Wait-ForLogPattern {

@@ -481,6 +481,13 @@ class DataSourceService:
             "",
             f"Generated at: {generated_at}",
             "",
+            "## Evidence Pack Summary",
+            "",
+            "- Evidence pack: `data_sources`",
+            "- Provider status: `catalog health, credential readiness, cache state, and read-only boundary`",
+            "- Private-state boundary: `no API keys, Stronghold vaults, unlock secrets, session tokens, runtime databases, or diagnostics bundles are included`",
+            "- Audit references: `provider health and provenance only; security audit records are not exported from this report`",
+            "",
             "## Source Status",
             "",
         ]
@@ -525,10 +532,25 @@ class DataSourceService:
         sections.extend(
             [
                 "",
+                "## Evidence Quality Table",
+                "",
+                "| Provider | Health | Freshness | Read-only | Live trading | Source |",
+                "| --- | --- | --- | --- | --- | --- |",
+            ]
+        )
+        for item in summaries:
+            freshness = "cached" if item.stale else "observed"
+            sections.append(
+                f"| {item.provider} | {item.health} | {freshness} | {item.read_only} | {item.live_trading} | {item.source_url or 'catalog'} |"
+            )
+        sections.extend(
+            [
+                "",
                 "## Safety",
                 "",
                 "- All listed data sources are read-only in this catalog.",
                 "- Non-Binance sources do not expose live trading or order submission paths.",
+                "- This export excludes credentials, Stronghold state, session tokens, runtime databases, and private local diagnostics.",
             ]
         )
 

@@ -137,5 +137,8 @@ packs, not unrelated diagnostics.
   counter-evidence, risks, watch items, provenance, and conclusion boundaries
   while preserving current export and evidence contracts.
 - T68 - Report Export Evidence Pack: align research, data-source, strategy, and
-  workflow exports into a coherent local evidence-pack story, then prepare and
-  upload the first GitHub Release with approved artifacts and release notes.
+  workflow exports into a coherent local evidence-pack story with provider
+  status, freshness, evidence-quality labels, audit references, and private-state
+  exclusion notes, then prepare and upload the first GitHub Release with
+  approved artifacts and release notes. Implemented in
+  [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0).

@@ -313,6 +313,8 @@ class ResearchServiceTests(unittest.TestCase):
         self.assertIn("# AAPL Research Brief", contents)
         self.assertIn("Watch the next filing.", contents)
         self.assertIn("## Decision Review", contents)
+        self.assertIn("## Evidence Pack Summary", contents)
+        self.assertIn("Private-state boundary", contents)
         self.assertIn("### Counter-Evidence", contents)
         self.assertIn("## Analysis Modules", contents)
         self.assertIn("### Asset Quality Snapshot", contents)
@@ -503,6 +505,8 @@ class ResearchApiTests(unittest.TestCase):
                 self.assertEqual(export_response.status_code, 200)
                 contents = Path(export_response.json()["export_path"]).read_text(encoding="utf-8")
                 self.assertIn("## Decision Review", contents)
+                self.assertIn("## Evidence Pack Summary", contents)
+                self.assertIn("Audit references", contents)
                 self.assertIn("## Evidence Chain", contents)
                 self.assertIn("Binance intent", contents)
 

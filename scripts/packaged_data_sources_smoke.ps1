@@ -12,7 +12,7 @@ Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 
 $baseUrl = "http://127.0.0.1:8765/api/v1"
-$sidecarPath = (Join-Path (Join-Path $PSScriptRoot "..") "src-tauri\\target\\release\\pengbo-sidecar.exe")
+$sidecarPath = (Join-Path (Join-Path $PSScriptRoot "..") "src-tauri\\target\\release\\binaries\\pengbo-sidecar\\pengbo-sidecar.exe")
 $result = [ordered]@{
     exe_path = ""
     started_at = (Get-Date).ToString("o")
@@ -36,6 +36,7 @@ $script:dataDirPath = $null
 $script:backupDirPath = $null
 $script:dataDirBackedUp = $false
 $script:originalPreferences = $null
+$script:sessionHeaders = @{}
 
 function Add-Failure {
     param([string]$Message)
@@ -135,6 +136,9 @@ function Invoke-ApiJson {
         Uri = "$baseUrl$Path"
         TimeoutSec = $TimeoutSeconds
         UseBasicParsing = $true
+    }
+    if ($script:sessionHeaders.Count -gt 0) {
+        $params.Headers = $script:sessionHeaders
     }
     if ($null -ne $Body) {
         $params.Body = ($Body | ConvertTo-Json -Depth 12)
@@ -342,6 +346,8 @@ try {
         }
     }
 
+    $session = Invoke-ApiJson -Method Post -Path "/security/session" -Body @{}
+    $script:sessionHeaders = @{ "X-Pengbo-Session" = [string]$session.session_id }
     $report = Invoke-ApiJson -Method Post -Path "/data-sources/reports/export" -Body @{
         macroProvider = "worldbank"
         macroSeriesId = "NY.GDP.MKTP.CD"

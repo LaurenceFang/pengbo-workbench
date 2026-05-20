@@ -46,9 +46,15 @@ release channel yet.
   thesis, assumptions, supporting evidence, counter-evidence, risks, watch
   items, provenance, conclusion boundary, and equity/crypto/portfolio/macro
   templates.
+- T68 aligns local report exports into evidence-pack Markdown with provider
+  status, freshness, evidence-quality labels, audit references where available,
+  private-state exclusion language, and a release-artifact check for the first
+  GitHub Release upload.
+- The first GitHub Release is published as
+  [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
+  with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T68 will align local report exports into evidence packs and finish with the
-  first GitHub Release upload after artifact, release-note, and secret/private
-  state checks pass.
+- T69 will add a compact Command Center V1 for common reviewer and operator
+  actions.
