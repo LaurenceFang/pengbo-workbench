@@ -21,7 +21,7 @@ The active roadmap is tracked in [IMPLEMENTATION_TASKS.md](IMPLEMENTATION_TASKS.
 
 These tasks were intentionally prioritized before broader public, account, remote, team, AI, or China-market connector work. The next roadmap lane begins at `T57 - License And Open Source Boundary`, followed by open-source readiness, CI, releases, demo mode, contributor readiness, research-flow polish, data governance, local AI assistance, China-market connectors, and security packaged signoff.
 
-`T58 - Version Governance Cleanup`, `T59 - GitHub Actions CI Baseline`, `T60 - Demo Mode And No-Key Startup`, `T61 - First Release Packaging`, `T62 - README Product Proof Upgrade`, `T63 - Contributor Entry Kit`, and `T64 - Research Flow Definition` are implemented. The next product-trust task is `T65 - Asset Page Research Entry Polish`.
+`T58 - Version Governance Cleanup`, `T59 - GitHub Actions CI Baseline`, `T60 - Demo Mode And No-Key Startup`, `T61 - First Release Packaging`, `T62 - README Product Proof Upgrade`, `T63 - Contributor Entry Kit`, `T64 - Research Flow Definition`, and `T65 - Asset Page Research Entry Polish` are implemented. The next product-trust task is `T66 - Data Status Strip Everywhere`.
 
 For the product-team assessment behind this direction, see [docs/product-team-assessment-2026-05-17.md](docs/product-team-assessment-2026-05-17.md).
 

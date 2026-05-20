@@ -59,6 +59,7 @@ Updated: 2026-05-20
 - `T62 - README Product Proof Upgrade` is now implemented. The README includes a practical reviewer journey and source-safe product screenshots generated from a temporary no-secret runtime, while generated logs, runtime databases, credentials, installers, and packaged binaries remain outside the public source boundary.
 - `T63 - Contributor Entry Kit` is now implemented. New contributors have a dedicated setup and validation guide, safe first-issue candidates, and issue templates that keep credentials, Stronghold vaults, runtime data, generated logs, binaries, installers, hosted support, signed releases, and live trading outside the default public contribution path.
 - `T64 - Research Flow Definition` is now implemented. The product has a grounded primary research journey from Asset/Data Sources into Research briefs, evidence comparison, local report export, and redacted audit handoffs, with follow-up gaps mapped into T65-T68.
+- `T65 - Asset Page Research Entry Polish` is now implemented. The Asset page has an additive research-entry panel with local data status, portfolio exposure, related brief state, and direct Research, evidence, report, and Data Sources actions while preserving backend contracts and sensitive boundaries.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -159,6 +160,14 @@ Updated: 2026-05-20
 - Updated README, CHANGELOG, PLAN, and this task board so T64 is complete and T65 is promoted next.
 - Validation passed: `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, and `git diff --check`.
 - No runtime behavior, backend route, security model, credential storage, packaging config, hosted support path, public API path, signed-release path, or live-trading path changed in T64.
+
+- Executed `T65 - Asset Page Research Entry Polish` on 2026-05-20.
+- Added an Asset page research-entry panel that shows local data status, portfolio exposure, and related Research brief state for the selected symbol.
+- Added direct Asset actions for opening or creating the Research brief, reviewing evidence, preparing a report, and checking Data Sources, all through existing frontend store/API flows.
+- Added stable automation anchors for `asset-research-entry`, `asset-open-research`, `asset-data-status`, and `asset-next-action` states.
+- Updated `docs/research-flow-definition.md`, README, CHANGELOG, PLAN, and this task board so T65 is complete and T66 is promoted next.
+- Validation passed: `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, `npm run smoke:page-polish`, and `git diff --check`.
+- No backend route, Research API contract, credential storage, Stronghold behavior, local-security/session/gateway model, packaging config, hosted support path, public API path, signed-release path, or live-trading path changed in T65.
 
 - Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
 - Treated `FinceptTerminal` as a product-pattern reference rather than a migration target; the local `Pengbo Workbench` stack remains the implementation baseline.
@@ -884,32 +893,32 @@ Updated: 2026-05-20
 
 ## Recommended Next Task
 
-### T65 - Asset Page Research Entry Polish
+### T66 - Data Status Strip Everywhere
 
 Priority: P1
 Status: Planned
 
 Why this is next:
 
-- `T64` now defines the primary research journey across Asset, Data Sources, Research, evidence, export, and audit handoffs.
-- The next product gap is making the Asset workspace feel like the practical first step for a symbol-driven research loop.
-- T65 should turn the flow map into visible entry actions and context on the Asset page without changing backend contracts.
+- `T65` now gives the Asset page a practical symbol-first research entry.
+- The next product gap is making provider freshness, credential requirements, read-only/trading capability, and degraded/cache state consistent across research-critical views.
+- T66 should reuse the T65 Asset status semantics across Asset, Research, Data Sources, and report-facing surfaces.
 
 Scope:
 
-- Make the asset/security page the practical starting point for research.
-- Show price, provider freshness, portfolio exposure, thesis summary, recent evidence, and next actions.
-- Reduce navigation friction from asset view to report/export.
+- Add a consistent data-status strip to research-critical views.
+- Show provider, freshness, read-only/trading capability, missing credential reason, and degradation state.
+- Keep wording cautious: observed, cached, simulated, degraded, blocked, audited.
 
 Acceptance:
 
-- A user can start from one ticker or symbol and complete a basic research loop without hunting through unrelated pages.
-- Asset page entry points preserve credential, local-security, execution, and report-evidence boundaries.
-- Automation anchors remain stable enough for future packaged signoff.
+- Research-critical pages show the same compact data-state language for provider freshness, credentials, cache/degraded state, and execution boundary.
+- The strip does not expose secrets or imply live-trading support for non-Binance providers.
+- Existing Asset-to-Research handoff anchors remain stable.
 
 Implementation notes:
 
-- Prefer additive Asset-to-Research handoff polish over route rewrites or backend schema changes.
+- Prefer a shared frontend component or helper before duplicating status logic across pages.
 
 ## Priority Order
 
@@ -1258,7 +1267,7 @@ Completion notes:
 ### T65 - Asset Page Research Entry Polish
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-08-12 to 2026-08-16
 Depends on: T64
 
@@ -1271,6 +1280,16 @@ Task:
 Done when:
 
 - A user can start from one ticker or symbol and complete a basic research loop without hunting through unrelated pages.
+
+Completion notes:
+
+- Added an additive Asset page research-entry panel for the selected symbol.
+- Shows local data state, portfolio exposure, and related Research brief state without adding backend contracts.
+- Added direct actions to open or create the Research brief, review evidence, prepare a report, and check Data Sources.
+- Added stable automation anchors for `asset-research-entry`, `asset-open-research`, `asset-data-status`, and `asset-next-action`.
+- Updated `docs/research-flow-definition.md`, README, CHANGELOG, PLAN, and this task board to mark T65 complete and promote T66.
+- Validation passed: `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, `npm run smoke:page-polish`, and `git diff --check`.
+- No backend route, Research API contract, credential storage, Stronghold behavior, local-security/session/gateway model, packaging config, hosted support path, public API path, signed-release path, or live-trading path changed.
 
 ### T66 - Data Status Strip Everywhere
 

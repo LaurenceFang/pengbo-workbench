@@ -849,6 +849,11 @@ button {
   grid-row: 1;
 }
 
+.asset-research-card {
+  grid-column: 1;
+  grid-row: 2;
+}
+
 .ratios-card {
   grid-column: 2;
   grid-row: 1 / span 2;
@@ -856,7 +861,7 @@ button {
 
 .filings-card {
   grid-column: 1;
-  grid-row: 2;
+  grid-row: 3;
 }
 
 .inline-symbol {
@@ -1387,6 +1392,50 @@ button {
 
 .chart-interval-select select {
   min-width: 9rem;
+}
+
+.asset-research-status,
+.asset-next-actions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.asset-research-status {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 1rem 0;
+}
+
+.asset-research-status > div {
+  min-width: 0;
+  padding: 0.85rem;
+  border-radius: var(--radius-panel);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.asset-research-status span {
+  display: block;
+  color: rgba(211, 224, 242, 0.62);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+}
+
+.asset-research-status strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: #f5f8ff;
+  font-size: 0.95rem;
+}
+
+.asset-research-status p {
+  margin: 0.35rem 0 0;
+  color: rgba(217, 227, 242, 0.72);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.asset-next-actions {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .manual-workspace {
@@ -2052,10 +2101,16 @@ button {
   }
 
   .hero-chart,
+  .asset-research-card,
   .ratios-card,
   .filings-card {
     grid-column: 1;
     grid-row: auto;
+  }
+
+  .asset-research-status,
+  .asset-next-actions {
+    grid-template-columns: 1fr;
   }
 }
 

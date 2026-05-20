@@ -52,8 +52,8 @@ submission.
 - Dashboard: good for no-key reviewers and runtime readiness, but it should
   hand off into the research loop without becoming another research page.
 - Asset: should become the most practical first step for a symbol-driven user.
-  T65 should make its research entry, data-status summary, and report handoff
-  more obvious.
+  T65 adds its research entry, data-status summary, and report handoff actions
+  without changing backend contracts.
 - Research: owns durable briefs, notes, evidence comparison, and research export.
   It should stay the canonical place for thesis, assumptions, and conclusion.
 - Data Sources: owns provider provenance, read-only source health, cache state,
@@ -123,9 +123,9 @@ packs, not unrelated diagnostics.
 
 ## Follow-Up Mapping
 
-- T65 - Asset Page Research Entry Polish: make Asset the practical symbol-first
-  start of the research loop with visible data status, related brief state, and
-  direct Research/report actions.
+- T65 - Asset Page Research Entry Polish: implemented as an additive Asset page
+  research-entry panel with local data status, portfolio exposure, related brief
+  state, and direct Research/evidence/report/Data Sources actions.
 - T66 - Data Status Strip Everywhere: define and reuse one compact status strip
   for provider, freshness, read-only/trading capability, credential reason, and
   degraded/cache state.

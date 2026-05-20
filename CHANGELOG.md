@@ -36,8 +36,10 @@ release channel yet.
 - T64 defines the primary research flow across Asset, Data Sources, Research,
   evidence comparison, local report export, and audit handoffs before the next
   page-polish tasks.
+- T65 makes the Asset page a clearer symbol-first research entry with local data
+  status, portfolio exposure, related brief state, and direct Research, evidence,
+  report, and Data Sources actions.
 
 ## Upcoming
 
-- T65 will make the Asset page a clearer symbol-first entry point into the
-  research loop.
+- T66 will add a consistent data-status strip across research-critical views.

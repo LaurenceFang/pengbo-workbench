@@ -62,8 +62,9 @@ The active product-trust sequence is:
 - T62: README product proof upgrade. Completed.
 - T63: contributor entry kit. Completed.
 - T64: research flow definition. Completed.
-- T65+: asset-page research entry, data-status consistency, research-brief
-  quality, report evidence packs, data-source governance, local AI assistance,
+- T65: asset-page research entry. Completed.
+- T66+: data-status consistency, research-brief quality, report evidence packs,
+  data-source governance, local AI assistance,
   China-market connectors, packaged signoff, and broader public-trust work.
 
 The current research-flow map is tracked in

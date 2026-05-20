@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { api, type AssetWorkspaceResponse, type PriceHistoryInterval, type PricePoint, type WatchlistAssetSnapshot } from "../lib/api";
+import {
+  api,
+  type AssetWorkspaceResponse,
+  type PortfolioHolding,
+  type PriceHistoryInterval,
+  type PricePoint,
+  type ResearchBriefListItem,
+  type WatchlistAssetSnapshot,
+} from "../lib/api";
 import { InlineState, KLineChartPanel, PanelState, formatPercent, formatPrice, formatSignedMoney } from "../components/shared";
 import { useI18n } from "../i18n";
+import { useAppStore } from "../store/app-store";
 
 type CoverageStatus = AssetWorkspaceResponse["capabilities"]["fundamentals_status"];
 
@@ -53,10 +62,16 @@ export function AssetView({
   onRetry: () => void;
 }) {
   const i18n = useI18n();
+  const setActiveView = useAppStore((state) => state.setActiveView);
+  const setSelectedAssetId = useAppStore((state) => state.setSelectedAssetId);
+  const setSelectedResearchBriefId = useAppStore((state) => state.setSelectedResearchBriefId);
   const [interval, setInterval] = useState<PriceHistoryInterval>(DEFAULT_INTERVAL);
   const [history, setHistory] = useState<PricePoint[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [recentBriefs, setRecentBriefs] = useState<ResearchBriefListItem[]>([]);
+  const [portfolioHoldings, setPortfolioHoldings] = useState<PortfolioHolding[]>([]);
+  const [contextError, setContextError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!asset?.asset.symbol) {
@@ -87,6 +102,32 @@ export function AssetView({
       cancelled = true;
     };
   }, [asset?.asset.symbol, interval]);
+
+  useEffect(() => {
+    if (!asset?.asset.symbol) {
+      return;
+    }
+    let cancelled = false;
+    setContextError(null);
+    Promise.allSettled([api.getRecentResearchBriefs(50), api.getPortfolioHoldings()])
+      .then(([briefsResult, holdingsResult]) => {
+        if (cancelled) {
+          return;
+        }
+        if (briefsResult.status === "fulfilled") {
+          setRecentBriefs(briefsResult.value);
+        }
+        if (holdingsResult.status === "fulfilled") {
+          setPortfolioHoldings(holdingsResult.value);
+        }
+        const failures = [briefsResult, holdingsResult].filter((result) => result.status === "rejected");
+        setContextError(failures.length ? "Some local context is unavailable; Research actions still work." : null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [asset?.asset.symbol]);
+
   const selectedIntervalLabel = useMemo(
     () => [...QUICK_INTERVALS, ...MORE_INTERVALS].find((item) => item.value === interval)?.label ?? interval,
     [interval],
@@ -112,6 +153,22 @@ export function AssetView({
     asset.capabilities.filings_message ??
     (asset.capabilities.notes.join(" / ") || i18n.t("asset.noFilings"));
   const chartData = history.length ? history : asset.history;
+  const symbol = asset.asset.symbol;
+  const relatedBrief = recentBriefs.find((item) => item.symbol === symbol) ?? null;
+  const holding = portfolioHoldings.find((item) => item.symbol === symbol) ?? null;
+  const watchlistState = selectedAsset?.symbol === symbol ? "watchlist" : "catalog";
+  const evidenceState = relatedBrief ? "brief-linked" : "ready";
+  const dataStatusCopy = summarizeDataStatus(asset);
+
+  function openResearchBrief() {
+    setSelectedAssetId(symbol);
+    setSelectedResearchBriefId(relatedBrief?.brief_id ?? null);
+    setActiveView("research");
+  }
+
+  function openDataSources() {
+    setActiveView("dataSources");
+  }
 
   return (
     <div aria-label={`asset-workspace symbol=${asset.asset.symbol}`} className="asset-layout terminal-asset-layout">
@@ -170,6 +227,79 @@ export function AssetView({
         {historyLoading ? <InlineState label="正在加载当前周期 K 线..." /> : null}
         {historyError ? <InlineState label={`已回退到缓存/默认历史：${historyError}`} /> : null}
         <KLineChartPanel data={chartData} legend={`${asset.asset.symbol} ${selectedIntervalLabel}`} />
+      </section>
+
+      <section
+        aria-label={`asset-research-entry symbol=${symbol} brief=${relatedBrief?.brief_id ?? "none"} holding=${holding ? "held" : "not-held"}`}
+        className="card asset-research-card"
+      >
+        <div className="card-header">
+          <div>
+            <p className="eyebrow">Research loop</p>
+            <h3>Start the brief from this asset</h3>
+          </div>
+          <span className={`mini-pill status-${asset.stale ? "cached" : "available"}`}>
+            {asset.stale ? "cached" : "observed"}
+          </span>
+        </div>
+        <div
+          aria-label={`asset-data-status symbol=${symbol} fundamentals=${asset.capabilities.fundamentals_status} filings=${asset.capabilities.filings_status} stale=${String(asset.stale)}`}
+          className="asset-research-status"
+        >
+          <div>
+            <span>Data</span>
+            <strong>{dataStatusCopy.title}</strong>
+            <p>{dataStatusCopy.copy}</p>
+          </div>
+          <div>
+            <span>Portfolio</span>
+            <strong>{holding ? `${holding.quantity} ${symbol}` : "Not held"}</strong>
+            <p>{holding ? "Local holding context is available for the Research handoff." : "Research can still create a portfolio handoff later."}</p>
+          </div>
+          <div>
+            <span>Brief</span>
+            <strong>{relatedBrief ? "Existing brief" : "Ready to create"}</strong>
+            <p>{relatedBrief ? `Updated ${new Date(relatedBrief.updated_at).toLocaleString()}` : "Research will open or create a local brief for this symbol."}</p>
+          </div>
+        </div>
+        {contextError ? <InlineState label={`Context fallback: ${contextError}`} /> : null}
+        <div className="asset-next-actions">
+          <button
+            aria-label={`asset-open-research symbol=${symbol} brief=${relatedBrief?.brief_id ?? "auto"}`}
+            className="primary-button"
+            type="button"
+            onClick={openResearchBrief}
+          >
+            {relatedBrief ? "Open research brief" : "Create research brief"}
+          </button>
+          <button
+            aria-label={`asset-next-action action=evidence symbol=${symbol} state=${evidenceState}`}
+            className="ghost-button"
+            type="button"
+            onClick={openResearchBrief}
+          >
+            Review evidence
+          </button>
+          <button
+            aria-label={`asset-next-action action=report symbol=${symbol} state=${relatedBrief ? "ready" : "needs-brief"}`}
+            className="ghost-button"
+            type="button"
+            onClick={openResearchBrief}
+          >
+            Prepare report
+          </button>
+          <button
+            aria-label={`asset-next-action action=data-sources symbol=${symbol} source=${watchlistState}`}
+            className="ghost-button"
+            type="button"
+            onClick={openDataSources}
+          >
+            Check data sources
+          </button>
+        </div>
+        <p className="panel-note">
+          Research outputs stay local. Provider credentials, Stronghold data, generated logs, and live trading remain outside this asset handoff.
+        </p>
       </section>
 
       <section
@@ -264,6 +394,38 @@ function describeCoverageTitle(status: CoverageStatus, availableTitle: string, i
     default:
       return i18n.t("asset.coverageUnsupported");
   }
+}
+
+function summarizeDataStatus(asset: AssetWorkspaceResponse): { title: string; copy: string } {
+  const statuses = [asset.capabilities.fundamentals_status, asset.capabilities.filings_status];
+  if (asset.stale) {
+    return {
+      title: "Cached snapshot",
+      copy: "This asset can still seed a brief, but the report should mention cached or stale data.",
+    };
+  }
+  if (statuses.includes("credential_required")) {
+    return {
+      title: "Credential gated",
+      copy: "Some provider coverage needs local credentials before a refreshed brief can include it.",
+    };
+  }
+  if (statuses.includes("temporarily_unavailable")) {
+    return {
+      title: "Partially degraded",
+      copy: "Supported coverage is temporarily unavailable; Research will preserve the observed state.",
+    };
+  }
+  if (statuses.every((status) => status === "unsupported")) {
+    return {
+      title: "Limited coverage",
+      copy: "The asset is available for price research, but fundamentals and filings are unsupported.",
+    };
+  }
+  return {
+    title: "Observed",
+    copy: "Quote, provider state, and available source context are ready for a local research brief.",
+  };
 }
 
 function formatCoverageStatus(status: CoverageStatus, i18n: ReturnType<typeof useI18n>): string {
