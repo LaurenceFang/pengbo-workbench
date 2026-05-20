@@ -42,8 +42,13 @@ release channel yet.
 - T66 adds a shared data-status strip across Asset, Research, and Data Sources
   so provider freshness, credentials, cache/degraded state, and read-only or
   execution boundaries use consistent cautious language.
+- T67 upgrades Research briefs with an additive structured decision review:
+  thesis, assumptions, supporting evidence, counter-evidence, risks, watch
+  items, provenance, conclusion boundary, and equity/crypto/portfolio/macro
+  templates.
 
 ## Upcoming
 
-- T67 will upgrade Research briefs around thesis, evidence, counter-evidence,
-  risks, watch items, and source provenance.
+- T68 will align local report exports into evidence packs and finish with the
+  first GitHub Release upload after artifact, release-note, and secret/private
+  state checks pass.

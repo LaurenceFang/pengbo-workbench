@@ -1077,6 +1077,39 @@ export type AnalysisModuleResult = {
   stale: boolean;
 };
 
+export type ResearchBriefEvidenceStatus =
+  | "observed"
+  | "cached"
+  | "simulated"
+  | "degraded"
+  | "blocked"
+  | "audited"
+  | "unsupported";
+
+export type ResearchBriefEvidenceItem = {
+  label: string;
+  summary: string;
+  status: ResearchBriefEvidenceStatus;
+};
+
+export type ResearchBriefProvenanceItem = {
+  label: string;
+  detail: string;
+  status: ResearchBriefEvidenceStatus;
+};
+
+export type ResearchBriefDecisionReview = {
+  template_key: "equity" | "crypto" | "portfolio" | "macro";
+  thesis: string;
+  assumptions: string[];
+  supporting_evidence: ResearchBriefEvidenceItem[];
+  counter_evidence: ResearchBriefEvidenceItem[];
+  risks: string[];
+  watch_items: string[];
+  provenance: ResearchBriefProvenanceItem[];
+  conclusion: string;
+};
+
 export type ResearchBrief = {
   brief_id: string;
   symbol: string;
@@ -1124,6 +1157,7 @@ export type ResearchBrief = {
     };
   };
   analysis_modules: AnalysisModuleResult[];
+  decision_review: ResearchBriefDecisionReview;
   notes: {
     markdown: string;
     updated_at: string;

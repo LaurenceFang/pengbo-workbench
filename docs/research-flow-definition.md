@@ -110,11 +110,13 @@ packs, not unrelated diagnostics.
 - Data status now uses one shared strip on research-critical Asset, Research,
   and Data Sources surfaces. T67 should build on that strip when structuring
   brief thesis, assumptions, evidence, and risk boundaries.
-- Research has evidence-chain content, but the thesis, assumptions, conclusion,
-  and risk-boundary structure still depends too much on free-form notes.
+- Research now has a structured decision review for thesis, assumptions,
+  supporting evidence, counter-evidence, risks, watch items, provenance, and
+  conclusion boundaries.
 - Export flows exist for research, data sources, strategy, and workflow
   evidence, but the product story does not yet present them as one coherent
-  report/evidence-pack system.
+  report/evidence-pack system; T68 should close that gap and finish with the
+  first GitHub Release upload after artifact and private-state checks pass.
 - Audit evidence exists across security, execution, and workflow records, but
   the user journey needs clearer guidance for when audit matters to research
   versus when it is simply background operational evidence.
@@ -130,8 +132,10 @@ packs, not unrelated diagnostics.
 - T66 - Data Status Strip Everywhere: implemented with a shared frontend status
   strip for provider, freshness, read-only/trading capability, credential reason,
   and degraded/cache state across Asset, Research, and Data Sources.
-- T67 - Research Brief Quality Upgrade: structure the brief around thesis,
-  assumptions, evidence, notes, conclusion, and risk boundaries while preserving
-  current export and evidence contracts.
+- T67 - Research Brief Quality Upgrade: implemented as an additive structured
+  decision review around thesis, assumptions, supporting evidence,
+  counter-evidence, risks, watch items, provenance, and conclusion boundaries
+  while preserving current export and evidence contracts.
 - T68 - Report Export Evidence Pack: align research, data-source, strategy, and
-  workflow exports into a coherent local evidence-pack story.
+  workflow exports into a coherent local evidence-pack story, then prepare and
+  upload the first GitHub Release with approved artifacts and release notes.

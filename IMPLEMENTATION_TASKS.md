@@ -61,6 +61,7 @@ Updated: 2026-05-20
 - `T64 - Research Flow Definition` is now implemented. The product has a grounded primary research journey from Asset/Data Sources into Research briefs, evidence comparison, local report export, and redacted audit handoffs, with follow-up gaps mapped into T65-T68.
 - `T65 - Asset Page Research Entry Polish` is now implemented. The Asset page has an additive research-entry panel with local data status, portfolio exposure, related brief state, and direct Research, evidence, report, and Data Sources actions while preserving backend contracts and sensitive boundaries.
 - `T66 - Data Status Strip Everywhere` is now implemented. Asset, Research, and Data Sources share a compact frontend data-status strip for provider freshness, credential state, cache/degraded state, read-only or execution boundary, and cautious observed/cached/degraded/credential_required/blocked/audited wording.
+- `T67 - Research Brief Quality Upgrade` is now implemented. Research briefs now include an additive structured decision review with equity, crypto, portfolio, and macro templates, thesis, assumptions, supporting evidence, counter-evidence, risks, watch items, provenance, and a cautious conclusion boundary while preserving existing brief routes and handoffs.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -178,6 +179,16 @@ Updated: 2026-05-20
 - Updated `docs/research-flow-definition.md`, README, CHANGELOG, PLAN, and this task board so T66 is complete and T67 is promoted next.
 - Validation passed: `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, `npm run smoke:page-polish`, and `git diff --check`.
 - No backend route, provider data model, Research API contract, credential storage, Stronghold behavior, local-security/session/gateway model, packaging config, hosted support path, public API path, signed-release path, or live-trading path changed in T66.
+
+- Executed `T67 - Research Brief Quality Upgrade` on 2026-05-20.
+- Added an additive `decision_review` section to Research briefs with reusable equity, crypto, portfolio, and macro templates.
+- Structured each review around thesis, assumptions, supporting evidence, counter-evidence, risks, watch items, source provenance, and a cautious conclusion boundary.
+- Made stale, unsupported, simulated, blocked, and audited evidence explicit in the backend brief snapshot, frontend Research view, and Markdown export.
+- Preserved existing `/api/v1/research/briefs*` routes, existing notes/export behavior, evidence-chain compatibility, and Asset-to-Research handoffs.
+- Updated `docs/research-flow-definition.md`, README, CHANGELOG, PLAN, and this task board so T67 is complete and T68 is promoted next.
+- Validation passed: `py -m pytest backend/tests`, `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, `npm run smoke:page-polish`, and `git diff --check`.
+- T68 must finish by preparing and uploading the first GitHub Release after the evidence-pack export and secret/private-state checks pass.
+- No credential storage, Stronghold behavior, local-security/session/gateway model, packaging config, hosted support path, public API path, signed-release path, or live-trading path changed in T67.
 
 - Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
 - Treated `FinceptTerminal` as a product-pattern reference rather than a migration target; the local `Pengbo Workbench` stack remains the implementation baseline.
@@ -903,32 +914,33 @@ Updated: 2026-05-20
 
 ## Recommended Next Task
 
-### T67 - Research Brief Quality Upgrade
+### T68 - Report Export Evidence Pack
 
 Priority: P1
 Status: Planned
 
 Why this is next:
 
-- `T66` now gives Asset, Research, and Data Sources a consistent data-status strip.
-- The next product gap is making Research briefs read like structured decisions instead of a snapshot plus free-form notes.
-- T67 should turn thesis, evidence, counter-evidence, risks, watch items, and provenance into a reusable brief shape.
+- `T67` now turns Research briefs into structured decision reviews with thesis, evidence, counter-evidence, risks, watch items, and provenance.
+- The next product gap is making exported evidence packs coherent enough to hand to a reviewer.
+- T68 should finish by uploading the first GitHub Release after export evidence, packaging, secret exclusion, and private-state checks pass.
 
 Scope:
 
-- Upgrade briefs from summary text into structured thesis, evidence, counter-evidence, risks, watch items, and source provenance.
-- Add brief templates for equity, crypto, portfolio, and macro use cases.
-- Make unsupported or stale evidence explicit.
+- Export reports with evidence tables, provider status, generated time, data freshness, and audit references.
+- Add PDF/Markdown export parity where practical.
+- Validate that exports exclude secrets and private runtime state.
+- As the final step, prepare and upload the first GitHub Release with the approved Windows artifact(s) and release notes.
 
 Acceptance:
 
-- Research briefs support a complete thesis review without relying only on free-form notes.
-- Stale, unsupported, simulated, blocked, and audited evidence remains clearly labeled.
-- Existing export, evidence, and Asset-to-Research handoff paths remain compatible.
+- A user can hand someone a report that explains both conclusion and evidence quality.
+- The release upload includes only approved artifacts and notes; no source-ignored runtime data, secrets, Stronghold vaults, diagnostics, or private state are uploaded.
+- The GitHub Release link is recorded in this task board after upload.
 
 Implementation notes:
 
-- Preserve current Research API compatibility unless a small additive field is clearly needed and covered by tests.
+- Treat the GitHub Release upload as T68's final step, not as a separate implied task.
 
 ## Priority Order
 
@@ -1331,7 +1343,7 @@ Completion notes:
 ### T67 - Research Brief Quality Upgrade
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-08-22 to 2026-08-28
 Depends on: T66
 
@@ -1345,6 +1357,13 @@ Done when:
 
 - A brief reads like a cautious analyst note and never implies certainty without evidence.
 
+Completion:
+
+- Added an additive `decision_review` brief payload that preserves existing Research routes while adding a reusable review structure.
+- Added equity, crypto, portfolio, and macro template selection from current asset, portfolio, and source context.
+- Rendered the review in the Research workspace and Markdown export with thesis, assumptions, supporting evidence, counter-evidence, risks, watch items, provenance, and conclusion boundary.
+- Validation passed: `py -m pytest backend/tests`, `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, `npm run smoke:page-polish`, and `git diff --check`.
+
 ### T68 - Report Export Evidence Pack
 
 Priority: P1
@@ -1357,10 +1376,12 @@ Task:
 - Export reports with evidence tables, provider status, generated time, data freshness, and audit references.
 - Add PDF/Markdown export parity where practical.
 - Validate that exports exclude secrets and private runtime state.
+- Finish the task by preparing and uploading the first GitHub Release with approved Windows artifact(s) and release notes after evidence-pack and secret/private-state checks pass.
 
 Done when:
 
 - A user can hand someone a report that explains both conclusion and evidence quality.
+- The first GitHub Release URL is recorded in this task board, and the uploaded release excludes runtime data, secrets, Stronghold vaults, diagnostics, and private local state.
 
 ### T69 - Command Center V1
 

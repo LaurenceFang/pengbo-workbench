@@ -292,6 +292,9 @@ class ResearchServiceTests(unittest.TestCase):
         self.assertEqual(brief.portfolio_context.handoff_draft.symbol, "AAPL")
         self.assertEqual(len(brief.analysis_modules), 4)
         self.assertEqual(brief.analysis_modules[0].key, "asset_quality_snapshot")
+        self.assertEqual(brief.decision_review.template_key, "portfolio")
+        self.assertIn("observed", [item.status for item in brief.decision_review.supporting_evidence])
+        self.assertGreaterEqual(len(brief.decision_review.counter_evidence), 2)
 
         recent = service.list_recent_briefs()
         self.assertEqual(len(recent), 1)
@@ -309,6 +312,8 @@ class ResearchServiceTests(unittest.TestCase):
         contents = Path(export.export_path).read_text(encoding="utf-8")
         self.assertIn("# AAPL Research Brief", contents)
         self.assertIn("Watch the next filing.", contents)
+        self.assertIn("## Decision Review", contents)
+        self.assertIn("### Counter-Evidence", contents)
         self.assertIn("## Analysis Modules", contents)
         self.assertIn("### Asset Quality Snapshot", contents)
 
@@ -352,6 +357,7 @@ class ResearchApiTests(unittest.TestCase):
                 created = create_response.json()
                 self.assertEqual(created["symbol"], "AAPL")
                 self.assertEqual(len(created["analysis_modules"]), 4)
+                self.assertEqual(created["decision_review"]["template_key"], "portfolio")
                 brief_id = created["brief_id"]
 
                 recent_response = client.get("/api/v1/research/briefs/recent")
@@ -362,6 +368,7 @@ class ResearchApiTests(unittest.TestCase):
                 self.assertEqual(get_response.status_code, 200)
                 self.assertEqual(get_response.json()["brief_id"], brief_id)
                 self.assertEqual(len(get_response.json()["analysis_modules"]), 4)
+                self.assertIn("conclusion", get_response.json()["decision_review"])
 
                 notes_response = client.put(
                     f"/api/v1/research/briefs/{brief_id}/notes",
@@ -490,10 +497,12 @@ class ResearchApiTests(unittest.TestCase):
                 self.assertEqual(brief_response.status_code, 200)
                 brief = brief_response.json()
                 self.assertEqual(brief["evidence_context"]["execution"]["intent_id"], intent_id)
+                self.assertIn("simulated", [item["status"] for item in brief["decision_review"]["supporting_evidence"]])
 
                 export_response = client.post(f"/api/v1/research/briefs/{brief['brief_id']}/export")
                 self.assertEqual(export_response.status_code, 200)
                 contents = Path(export_response.json()["export_path"]).read_text(encoding="utf-8")
+                self.assertIn("## Decision Review", contents)
                 self.assertIn("## Evidence Chain", contents)
                 self.assertIn("Binance intent", contents)
 

@@ -689,6 +689,30 @@ class ResearchEvidenceContext(BaseModel):
     data_quality_notes: list[str] = Field(default_factory=list)
 
 
+class ResearchBriefEvidenceItem(BaseModel):
+    label: str
+    summary: str
+    status: Literal["observed", "cached", "simulated", "degraded", "blocked", "audited", "unsupported"]
+
+
+class ResearchBriefProvenanceItem(BaseModel):
+    label: str
+    detail: str
+    status: Literal["observed", "cached", "simulated", "degraded", "blocked", "audited", "unsupported"]
+
+
+class ResearchBriefDecisionReview(BaseModel):
+    template_key: Literal["equity", "crypto", "portfolio", "macro"]
+    thesis: str
+    assumptions: list[str] = Field(default_factory=list)
+    supporting_evidence: list[ResearchBriefEvidenceItem] = Field(default_factory=list)
+    counter_evidence: list[ResearchBriefEvidenceItem] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    watch_items: list[str] = Field(default_factory=list)
+    provenance: list[ResearchBriefProvenanceItem] = Field(default_factory=list)
+    conclusion: str
+
+
 class ResearchBrief(BaseModel):
     brief_id: str
     symbol: str
@@ -702,6 +726,7 @@ class ResearchBrief(BaseModel):
     evidence_context: ResearchEvidenceContext | None = None
     portfolio_context: ResearchPortfolioContext
     analysis_modules: list[AnalysisModuleResult] = Field(default_factory=list)
+    decision_review: ResearchBriefDecisionReview
     notes: ResearchNoteState
     export_info: ResearchExportInfo
 

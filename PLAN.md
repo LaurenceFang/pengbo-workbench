@@ -64,7 +64,8 @@ The active product-trust sequence is:
 - T64: research flow definition. Completed.
 - T65: asset-page research entry. Completed.
 - T66: data-status strip consistency. Completed.
-- T67+: research-brief quality, report evidence packs,
+- T67: research-brief quality. Completed.
+- T68+: report evidence packs and first GitHub Release upload,
   data-source governance, local AI assistance,
   China-market connectors, packaged signoff, and broader public-trust work.
 

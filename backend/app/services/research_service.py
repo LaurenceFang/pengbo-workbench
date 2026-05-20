@@ -11,9 +11,13 @@ from ..models import (
     AssetWorkspaceResponse,
     CreateResearchBriefRequest,
     ResearchBrief,
+    ResearchBriefDecisionReview,
+    ResearchBriefEvidenceItem,
     ResearchBriefExportResponse,
     ResearchBriefListItem,
     ResearchFactorContext,
+    ResearchEvidenceContext,
+    ResearchBriefProvenanceItem,
     ResearchBriefSourceContext,
     ResearchPortfolioContext,
     ResearchPortfolioHandoffDraft,
@@ -234,6 +238,210 @@ class ResearchService:
             ),
         )
 
+    def _brief_template_key(
+        self,
+        asset_snapshot: AssetWorkspaceResponse,
+        portfolio_context: ResearchPortfolioContext,
+        source_context: ResearchBriefSourceContext | None,
+    ) -> str:
+        if portfolio_context.in_portfolio:
+            return "portfolio"
+        if source_context and source_context.data_source_kind in {"macro", "macro_series"}:
+            return "macro"
+        if asset_snapshot.asset.asset_class == "crypto":
+            return "crypto"
+        return "equity"
+
+    def _status_for_capability(self, status: str, stale: bool) -> str:
+        if stale:
+            return "cached"
+        if status == "temporarily_unavailable":
+            return "degraded"
+        if status == "credential_required":
+            return "blocked"
+        if status == "unsupported":
+            return "unsupported"
+        return "observed"
+
+    def _build_decision_review(
+        self,
+        *,
+        symbol: str,
+        source_context: ResearchBriefSourceContext | None,
+        asset_snapshot: AssetWorkspaceResponse,
+        screener_context: ResearchScreenerContext,
+        factor_context: ResearchFactorContext | None,
+        evidence_context: ResearchEvidenceContext | None,
+        portfolio_context: ResearchPortfolioContext,
+    ) -> ResearchBriefDecisionReview:
+        template_key = self._brief_template_key(asset_snapshot, portfolio_context, source_context)
+        stale_label = "cached" if asset_snapshot.stale else "observed"
+        matched = [item for item in screener_context.summaries if item.matched]
+        fundamentals_status = asset_snapshot.capabilities.fundamentals_status
+        filings_status = asset_snapshot.capabilities.filings_status
+        unsupported_or_blocked = [
+            label
+            for label, status in [
+                ("fundamentals", fundamentals_status),
+                ("filings", filings_status),
+            ]
+            if status in {"credential_required", "unsupported", "temporarily_unavailable"}
+        ]
+
+        if template_key == "crypto":
+            thesis = (
+                f"{symbol} should be reviewed as a volatile crypto asset using observed quote context, "
+                "local evidence, and explicit unsupported-provider boundaries."
+            )
+            watch_items = [
+                "Recheck quote freshness before using this brief in a report.",
+                "Keep any execution intent behind the Binance confirmation gate.",
+            ]
+        elif template_key == "portfolio":
+            thesis = (
+                f"{symbol} is already held locally, so the review should weigh observed position exposure "
+                "against current evidence quality before any portfolio handoff."
+            )
+            watch_items = [
+                "Compare market value, cost basis, and transaction history before changing exposure.",
+                "Refresh the brief after material portfolio edits.",
+            ]
+        elif template_key == "macro":
+            thesis = (
+                f"{symbol} should be treated as a macro research input; conclusions depend on provider freshness "
+                "and source provenance rather than single-asset fundamentals."
+            )
+            watch_items = [
+                "Confirm source provider freshness before citing this brief externally.",
+                "Pair the macro signal with asset-level evidence before forming a conclusion.",
+            ]
+        else:
+            thesis = (
+                f"{symbol} has an observed asset snapshot that can support a cautious equity brief, "
+                "provided stale, credential-gated, and unsupported evidence remains visible."
+            )
+            watch_items = [
+                "Refresh fundamentals and filings before a final report if credentials become available.",
+                "Compare screener and factor evidence against counter-evidence before acting.",
+            ]
+
+        supporting_evidence = [
+            ResearchBriefEvidenceItem(
+                label="Asset snapshot",
+                summary=(
+                    f"{asset_snapshot.asset.name} is available from {asset_snapshot.asset.provider} with "
+                    f"{stale_label} quote context at {asset_snapshot.quote.price:.2f} {asset_snapshot.quote.currency}."
+                ),
+                status="cached" if asset_snapshot.stale else "observed",
+            ),
+            ResearchBriefEvidenceItem(
+                label="Screener coverage",
+                summary=f"{len(matched)} matched profile(s) out of {len(screener_context.summaries)} checked.",
+                status="audited" if screener_context.summaries else "blocked",
+            ),
+        ]
+        if factor_context is not None:
+            supporting_evidence.append(
+                ResearchBriefEvidenceItem(
+                    label="Factor context",
+                    summary=(
+                        f"Factor run {factor_context.run_id} reports bucket {factor_context.bucket} "
+                        f"with rank {factor_context.rank if factor_context.rank is not None else 'n/a'}."
+                    ),
+                    status="audited",
+                )
+            )
+        if evidence_context is not None and evidence_context.backtest is not None:
+            supporting_evidence.append(
+                ResearchBriefEvidenceItem(
+                    label="Backtest evidence",
+                    summary=(
+                        f"Backtest {evidence_context.backtest.run_id} is simulated evidence with "
+                        f"{evidence_context.backtest.trade_count} trade(s) and no live orders."
+                    ),
+                    status="simulated",
+                )
+            )
+
+        counter_evidence = [
+            ResearchBriefEvidenceItem(
+                label="Fundamentals boundary",
+                summary=f"Fundamentals status is {fundamentals_status}.",
+                status=self._status_for_capability(fundamentals_status, asset_snapshot.stale),
+            ),
+            ResearchBriefEvidenceItem(
+                label="Filings boundary",
+                summary=f"Filings status is {filings_status}.",
+                status=self._status_for_capability(filings_status, asset_snapshot.stale),
+            ),
+        ]
+        for summary in screener_context.summaries:
+            if not summary.matched:
+                counter_evidence.append(
+                    ResearchBriefEvidenceItem(
+                        label=f"Screener: {summary.preset_title}",
+                        summary="; ".join(summary.explanations[:2]) or "This preset did not support the thesis.",
+                        status="cached" if summary.stale else "observed",
+                    )
+                )
+
+        risks = [
+            "This brief is a local research artifact, not investment advice or an execution instruction.",
+            "Live Binance submission remains blocked until the explicit user-confirmed submit path is used.",
+        ]
+        if asset_snapshot.stale:
+            risks.append("Some source context is cached; refresh before relying on the latest price or provider state.")
+        if unsupported_or_blocked:
+            risks.append(f"Evidence coverage is incomplete for: {', '.join(unsupported_or_blocked)}.")
+        if factor_context and factor_context.missing_data:
+            risks.append(f"Factor evidence has missing input(s): {', '.join(factor_context.missing_data)}.")
+
+        assumptions = [
+            f"Template: {template_key}.",
+            f"Provider state is treated as {stale_label} unless a refresh changes the snapshot.",
+            "Unsupported, stale, simulated, blocked, and audited evidence must remain labeled in exports.",
+        ]
+        if source_context and source_context.source_label:
+            assumptions.append(f"Source handoff: {source_context.source_label}.")
+
+        provenance = [
+            ResearchBriefProvenanceItem(
+                label="Asset provider",
+                detail=f"{asset_snapshot.asset.provider}; quote currency {asset_snapshot.quote.currency}.",
+                status="cached" if asset_snapshot.stale else "observed",
+            ),
+            ResearchBriefProvenanceItem(
+                label="Research storage",
+                detail="Stored in the local SQLite-backed research workspace.",
+                status="audited",
+            ),
+        ]
+        if evidence_context is not None:
+            provenance.append(
+                ResearchBriefProvenanceItem(
+                    label="Evidence chain",
+                    detail=f"{len(evidence_context.data_quality_notes)} data-quality note(s) attached.",
+                    status="audited",
+                )
+            )
+
+        conclusion = (
+            f"Conclusion boundary: {symbol} can be reviewed with the current {template_key} template, "
+            "but any report should preserve the visible evidence labels and avoid certainty beyond observed data."
+        )
+
+        return ResearchBriefDecisionReview(
+            template_key=template_key,  # type: ignore[arg-type]
+            thesis=thesis,
+            assumptions=assumptions,
+            supporting_evidence=supporting_evidence,
+            counter_evidence=counter_evidence,
+            risks=risks,
+            watch_items=watch_items,
+            provenance=provenance,
+            conclusion=conclusion,
+        )
+
     def _build_snapshot(
         self,
         *,
@@ -267,6 +475,15 @@ class ResearchService:
             portfolio_context=portfolio_context,
         )
         analysis_modules = self.analysis_registry.render_all(analysis_context)
+        decision_review = self._build_decision_review(
+            symbol=symbol,
+            source_context=source_context,
+            asset_snapshot=asset_snapshot,
+            screener_context=screener_context,
+            factor_context=factor_context,
+            evidence_context=evidence_context,
+            portfolio_context=portfolio_context,
+        )
         return {
             "brief_id": brief_id,
             "symbol": symbol,
@@ -279,10 +496,39 @@ class ResearchService:
             "evidence_context": evidence_context.model_dump(mode="json") if evidence_context else None,
             "portfolio_context": portfolio_context.model_dump(mode="json"),
             "analysis_modules": [item.model_dump(mode="json") for item in analysis_modules],
+            "decision_review": decision_review.model_dump(mode="json"),
         }
 
     def _to_brief(self, row: dict) -> ResearchBrief:
         snapshot = row["snapshot"]
+        if "decision_review" not in snapshot:
+            source_context = (
+                ResearchBriefSourceContext.model_validate(row["source_context"])
+                if row.get("source_context")
+                else None
+            )
+            asset_snapshot = AssetWorkspaceResponse.model_validate(snapshot["asset_snapshot"])
+            screener_context = ResearchScreenerContext.model_validate(snapshot["screener_context"])
+            factor_context = (
+                ResearchFactorContext.model_validate(snapshot.get("factor_context"))
+                if snapshot.get("factor_context")
+                else None
+            )
+            evidence_context = (
+                ResearchEvidenceContext.model_validate(snapshot.get("evidence_context"))
+                if snapshot.get("evidence_context")
+                else None
+            )
+            portfolio_context = ResearchPortfolioContext.model_validate(snapshot["portfolio_context"])
+            snapshot["decision_review"] = self._build_decision_review(
+                symbol=row["symbol"],
+                source_context=source_context,
+                asset_snapshot=asset_snapshot,
+                screener_context=screener_context,
+                factor_context=factor_context,
+                evidence_context=evidence_context,
+                portfolio_context=portfolio_context,
+            ).model_dump(mode="json")
         return ResearchBrief.model_validate(
             {
                 "brief_id": row["brief_id"],
@@ -297,6 +543,7 @@ class ResearchService:
                 "evidence_context": snapshot.get("evidence_context"),
                 "portfolio_context": snapshot["portfolio_context"],
                 "analysis_modules": snapshot.get("analysis_modules", []),
+                "decision_review": snapshot["decision_review"],
                 "notes": {
                     "markdown": row["notes_markdown"],
                     "updated_at": row["updated_at"],
@@ -442,6 +689,40 @@ class ResearchService:
             f"- Change: {brief.asset_snapshot.quote.change_pct:.2f}%",
             "",
         ]
+
+        review = brief.decision_review
+        lines.extend(
+            [
+                "## Decision Review",
+                "",
+                f"- Template: `{review.template_key}`",
+                "",
+                "### Thesis",
+                "",
+                review.thesis,
+                "",
+                "### Assumptions",
+                "",
+            ]
+        )
+        for item in review.assumptions:
+            lines.append(f"- {item}")
+        lines.extend(["", "### Supporting Evidence", ""])
+        for item in review.supporting_evidence:
+            lines.append(f"- `{item.status}` {item.label}: {item.summary}")
+        lines.extend(["", "### Counter-Evidence", ""])
+        for item in review.counter_evidence:
+            lines.append(f"- `{item.status}` {item.label}: {item.summary}")
+        lines.extend(["", "### Risks", ""])
+        for item in review.risks:
+            lines.append(f"- {item}")
+        lines.extend(["", "### Watch Items", ""])
+        for item in review.watch_items:
+            lines.append(f"- {item}")
+        lines.extend(["", "### Provenance", ""])
+        for item in review.provenance:
+            lines.append(f"- `{item.status}` {item.label}: {item.detail}")
+        lines.extend(["", "### Conclusion Boundary", "", review.conclusion, ""])
 
         lines.extend(["## Analysis Modules", ""])
         for module in brief.analysis_modules:

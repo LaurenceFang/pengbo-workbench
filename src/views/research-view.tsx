@@ -16,6 +16,7 @@ import {
   api,
   type AssetSearchResult,
   type ResearchBrief,
+  type ResearchBriefEvidenceItem,
   type ResearchBriefListItem,
   type ResearchEvidenceContext,
 } from "../lib/api";
@@ -371,6 +372,7 @@ export function ResearchView({
                     items={researchStatusItems(activeBrief)}
                     note="Research evidence stays local; credential-gated fields remain visibly marked and live execution stays behind explicit Binance gates."
                   />
+                  <DecisionReviewPanel brief={activeBrief} />
                   <div className="metric-grid">
                     <MetricCard
                       label="Price"
@@ -668,6 +670,87 @@ function EvidenceChainPanel({
         </div>
       ) : null}
     </section>
+  );
+}
+
+function DecisionReviewPanel({ brief }: { brief: ResearchBrief }) {
+  const review = brief.decision_review;
+
+  return (
+    <section
+      aria-label={`research-decision-review brief=${brief.brief_id} template=${review.template_key}`}
+      className="decision-review-panel"
+    >
+      <div className="decision-review-head">
+        <div>
+          <p className="eyebrow">Decision review</p>
+          <strong>{review.template_key} template</strong>
+        </div>
+        <span className="mini-pill accent">audited shape</span>
+      </div>
+      <p className="research-copy">{review.thesis}</p>
+      <DecisionList title="Assumptions" items={review.assumptions} />
+      <DecisionEvidenceList title="Supporting evidence" items={review.supporting_evidence} />
+      <DecisionEvidenceList title="Counter-evidence" items={review.counter_evidence} />
+      <DecisionList title="Risks" items={review.risks} />
+      <DecisionList title="Watch items" items={review.watch_items} />
+      <div className="decision-provenance-grid">
+        {review.provenance.map((item) => (
+          <div className="decision-provenance-item" key={`${item.label}-${item.status}`}>
+            <span className={`mini-pill status-${item.status}`}>{item.status}</span>
+            <strong>{item.label}</strong>
+            <p>{item.detail}</p>
+          </div>
+        ))}
+      </div>
+      <p className="decision-conclusion">{review.conclusion}</p>
+    </section>
+  );
+}
+
+function DecisionList({ title, items }: { title: string; items: string[] }) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="decision-list">
+      <strong>{title}</strong>
+      <ul>
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DecisionEvidenceList({
+  title,
+  items,
+}: {
+  title: string;
+  items: ResearchBriefEvidenceItem[];
+}) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="decision-list">
+      <strong>{title}</strong>
+      <div className="decision-evidence-list">
+        {items.map((item) => (
+          <article className="decision-evidence-item" key={`${item.label}-${item.status}`}>
+            <span className={`mini-pill status-${item.status}`}>{item.status}</span>
+            <div>
+              <strong>{item.label}</strong>
+              <p>{item.summary}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
   );
 }
 
