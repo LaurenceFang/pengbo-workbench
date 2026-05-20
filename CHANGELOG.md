@@ -53,12 +53,14 @@ release channel yet.
 - T69 adds a compact Command Center workspace for common reviewer and operator
   actions: asset search, Research brief entry, provider refresh, local report
   export, audit review, and no-secret readiness checks.
+- T69# Temp generates a Hyperframes video walkthrough from real packaged
+  desktop frames covering local unlock, AAPL selection, 12-1 Momentum factor
+  selection, Top-N Factor Rotation selection, and a simulated backtest result.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T69# Temp will generate a video walkthrough of the real packaged desktop flow:
-  local unlock, asset selection, factor selection, strategy selection, and a
-  backtest run.
+- T70 will add first-run product onboarding for demo mode, provider setup,
+  local unlock, privacy boundaries, and safe execution boundaries.

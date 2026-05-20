@@ -64,6 +64,7 @@ Updated: 2026-05-20
 - `T67 - Research Brief Quality Upgrade` is now implemented. Research briefs now include an additive structured decision review with equity, crypto, portfolio, and macro templates, thesis, assumptions, supporting evidence, counter-evidence, risks, watch items, provenance, and a cautious conclusion boundary while preserving existing brief routes and handoffs.
 - `T68 - Report Export Evidence Pack` is now implemented. Research, Data Sources, and Strategy exports expose evidence-pack summaries, provider/freshness/evidence-quality boundaries, audit references where available, and explicit private-state exclusion notes; refreshed desktop EXE/MSI/NSIS artifacts are validated and uploaded to the first GitHub Release at `https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0`.
 - `T69 - Command Center V1` is now implemented. The desktop shell has a compact Command Center workspace for asset search, Research brief entry, provider refresh, local report export, audit review, and no-secret safe readiness checks while preserving existing workspace flows and local permission gates.
+- `T69# Temp - Packaged Desktop Video Walkthrough` is now completed. A Hyperframes MP4 was generated from real `pengbo-workbench.exe` walkthrough frames covering local unlock with `000000`, AAPL asset selection, 12-1 Momentum factor selection, Top-N Factor Rotation strategy selection, and a simulated backtest result.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -930,33 +931,30 @@ Updated: 2026-05-20
 
 ## Recommended Next Task
 
-### T69# Temp - Packaged Desktop Video Walkthrough
+### T70 - First-Run Product Onboarding
 
 Priority: P2
 Status: Planned
 
 Why this is next:
 
-- `T69` now gives reviewers and operators a compact Command Center for frequent actions.
-- The user requested an immediate video deliverable after the T69 repo sync, using the configured Windows Computer Use, Browser, and Hyperframes tooling.
-- The video should prove the real packaged desktop flow, not a browser mock.
+- `T69` made frequent operator actions easier to reach.
+- `T69# Temp` produced a real packaged-desktop walkthrough video for the research/factor/strategy/backtest loop.
+- The next product gap is helping first-time reviewers understand demo mode, provider setup, local unlock, privacy boundaries, and safe execution boundaries before they explore the product.
 
 Scope:
 
-- Launch `E:\彭博\src-tauri\target\release\pengbo-workbench.exe`.
-- Use the configured local unlock password `000000`.
-- Record or compose a complete walkthrough covering: unlock, asset selection, factor selection, strategy selection, and running a backtest.
-- Generate a final video artifact directly; this is not just a written task description.
+- Add first-run guidance for demo mode, provider setup, local unlock, privacy boundary, and safe execution boundary.
+- Keep onboarding skippable and local-only.
+- Add a resettable checklist for new reviewers.
 
 Acceptance:
 
-- A video file exists and can be opened locally.
-- The walkthrough shows the packaged desktop app path and the full requested flow.
-- The narration or captions explain the local-first safety boundary and that the backtest is simulated rather than a live trade.
+- A first-time user understands what Pengbo can do now and what is intentionally blocked.
 
 Implementation notes:
 
-- Use Windows Computer Use for the packaged EXE walkthrough, Browser only when useful for local preview or verification, and Hyperframes for the final video composition if raw capture needs title cards, captions, or editing.
+- Reuse the existing onboarding state and Settings preference surfaces; do not add hosted accounts, remote sync, or public API behavior.
 
 ## Priority Order
 
@@ -1435,7 +1433,7 @@ Completion:
 ### T69# Temp - Packaged Desktop Video Walkthrough
 
 Priority: P2
-Status: Planned
+Status: Completed
 Target Window: 2026-05-20
 Depends on: T69
 
@@ -1444,19 +1442,26 @@ Task:
 - Launch `E:\彭博\src-tauri\target\release\pengbo-workbench.exe` through the configured Windows desktop automation path.
 - Use local unlock password `000000`.
 - Generate a final video walkthrough of: input password, select an asset, select a factor, select a strategy, and run a backtest.
-- Use Windows Computer Use for the packaged desktop walkthrough, Browser only for local preview or verification as useful, and Hyperframes for the final video composition if editing/captions/title cards are needed.
+- Use Windows Computer Use for the packaged desktop walkthrough, Browser only for local preview or verification as useful, and Hyperframes for the final video composition.
 
 Done when:
 
 - A local video artifact is generated and the final answer links to it.
 - The video makes clear that the strategy run is a local simulation/backtest, not live trading.
 
+Completion:
+
+- Rebuilt `src-tauri\target\release\pengbo-workbench.exe` after T69 so the walkthrough used the current packaged desktop app.
+- Used Windows Computer Use to drive the real app through local unlock initialization with `000000`, AAPL asset selection, 12-1 Momentum factor selection, factor run, Top-N Factor Rotation strategy selection, and simulated backtest execution.
+- Generated `logs/t69-temp-video/pengbo-t69-temp-walkthrough.mp4` with Hyperframes from the real packaged desktop frames.
+- Validation passed: `npx hyperframes lint`, `npx hyperframes inspect --samples 8`, `npx hyperframes render --strict`, and a rendered-frame preview at `logs/t69-temp-video/preview-36s.png`.
+
 ### T70 - First-Run Product Onboarding
 
 Priority: P2
 Status: Planned
 Target Window: 2026-09-12 to 2026-09-18
-Depends on: T69
+Depends on: T69# Temp
 
 Task:
 

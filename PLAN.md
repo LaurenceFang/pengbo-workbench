@@ -67,7 +67,7 @@ The active product-trust sequence is:
 - T67: research-brief quality. Completed.
 - T68: report evidence packs and first GitHub Release upload. Completed.
 - T69: command center for frequent reviewer and operator actions. Completed.
-- T69# Temp: generate a real packaged-desktop video walkthrough. Next.
+- T69# Temp: real packaged-desktop video walkthrough. Completed.
 - T70+: first-run onboarding, data-source governance, local AI assistance,
   China-market connectors, packaged signoff, and broader public-trust work.
 
