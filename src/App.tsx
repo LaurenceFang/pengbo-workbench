@@ -41,6 +41,7 @@ import {
 import { deriveDesktopConnectionStatus, getRuntimeConfig, type RuntimeConfig } from "./lib/runtime";
 import { useAppStore, type ViewKey } from "./store/app-store";
 import { AssetView } from "./views/asset-view";
+import { CommandCenterView } from "./views/command-center-view";
 import { ConnectionsView } from "./views/connections-view";
 import { DashboardView } from "./views/dashboard-view";
 import { DataSourcesView } from "./views/data-sources-view";
@@ -56,6 +57,7 @@ import { WorkflowStudioView } from "./views/workflow-studio-view";
 
 const navigation = [
   { key: "dashboard", icon: LayoutDashboard },
+  { key: "commandCenter", icon: Command },
   { key: "asset", icon: ChartCandlestick },
   { key: "watchlist", icon: Star },
   { key: "research", icon: Search },
@@ -769,6 +771,9 @@ function App() {
               error={dashboard.error}
               onRetry={dashboard.reload}
             />
+          ) : null}
+          {!activeViewLocked && activeView === "commandCenter" ? (
+            <CommandCenterView backendStatus={backendStatus} onGlobalRefresh={reloadEverything} />
           ) : null}
           {!activeViewLocked && activeView === "asset" ? (
             <AssetView

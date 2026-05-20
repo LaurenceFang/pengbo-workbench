@@ -9,6 +9,7 @@ import type {
 
 export type ViewKey =
   | "dashboard"
+  | "commandCenter"
   | "asset"
   | "watchlist"
   | "research"

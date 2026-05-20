@@ -50,11 +50,15 @@ release channel yet.
   status, freshness, evidence-quality labels, audit references where available,
   private-state exclusion language, and a release-artifact check for the first
   GitHub Release upload.
+- T69 adds a compact Command Center workspace for common reviewer and operator
+  actions: asset search, Research brief entry, provider refresh, local report
+  export, audit review, and no-secret readiness checks.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T69 will add a compact Command Center V1 for common reviewer and operator
-  actions.
+- T69# Temp will generate a video walkthrough of the real packaged desktop flow:
+  local unlock, asset selection, factor selection, strategy selection, and a
+  backtest run.

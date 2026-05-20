@@ -349,6 +349,7 @@ export type SettingsRuntimeResponse = {
 
 export type ViewKey =
   | "dashboard"
+  | "commandCenter"
   | "asset"
   | "watchlist"
   | "research"

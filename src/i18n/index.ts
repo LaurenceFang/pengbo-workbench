@@ -765,6 +765,7 @@ const dictionary: Dictionary = {
 export const viewLabels: Record<LanguagePreference, Record<string, string>> = {
   "zh-CN": {
     dashboard: "仪表盘",
+    commandCenter: "命令中心",
     asset: "资产",
     research: "研究",
     factorLab: "因子实验室",
@@ -779,6 +780,7 @@ export const viewLabels: Record<LanguagePreference, Record<string, string>> = {
   },
   "en-US": {
     dashboard: "Dashboard",
+    commandCenter: "Command Center",
     asset: "Asset",
     research: "Research",
     factorLab: "Factor Lab",
@@ -798,6 +800,7 @@ export const viewEyebrows: Record<LanguagePreference, Record<string, string>> = 
 export const viewTitles: Record<LanguagePreference, Record<string, string>> = {
   "zh-CN": {
     dashboard: "市场与运行时总览",
+    commandCenter: "常用研究与审核动作",
     asset: "单资产工作区",
     research: "研究工作区与笔记",
     factorLab: "本地因子研究实验室",
@@ -812,6 +815,7 @@ export const viewTitles: Record<LanguagePreference, Record<string, string>> = {
   },
   "en-US": {
     dashboard: "Market and runtime overview",
+    commandCenter: "Frequent research and review actions",
     asset: "Single-asset workspace",
     research: "Research workspace and notes",
     factorLab: "Local factor research lab",

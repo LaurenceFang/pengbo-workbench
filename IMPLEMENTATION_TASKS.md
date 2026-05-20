@@ -63,6 +63,7 @@ Updated: 2026-05-20
 - `T66 - Data Status Strip Everywhere` is now implemented. Asset, Research, and Data Sources share a compact frontend data-status strip for provider freshness, credential state, cache/degraded state, read-only or execution boundary, and cautious observed/cached/degraded/credential_required/blocked/audited wording.
 - `T67 - Research Brief Quality Upgrade` is now implemented. Research briefs now include an additive structured decision review with equity, crypto, portfolio, and macro templates, thesis, assumptions, supporting evidence, counter-evidence, risks, watch items, provenance, and a cautious conclusion boundary while preserving existing brief routes and handoffs.
 - `T68 - Report Export Evidence Pack` is now implemented. Research, Data Sources, and Strategy exports expose evidence-pack summaries, provider/freshness/evidence-quality boundaries, audit references where available, and explicit private-state exclusion notes; refreshed desktop EXE/MSI/NSIS artifacts are validated and uploaded to the first GitHub Release at `https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0`.
+- `T69 - Command Center V1` is now implemented. The desktop shell has a compact Command Center workspace for asset search, Research brief entry, provider refresh, local report export, audit review, and no-secret safe readiness checks while preserving existing workspace flows and local permission gates.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -929,32 +930,33 @@ Updated: 2026-05-20
 
 ## Recommended Next Task
 
-### T69 - Command Center V1
+### T69# Temp - Packaged Desktop Video Walkthrough
 
 Priority: P2
 Status: Planned
 
 Why this is next:
 
-- `T68` now closes the first release-upload loop with evidence-pack exports, refreshed desktop artifacts, installed startup validation, and the first GitHub Release.
-- The next product gap is making common actions easier to reach without navigating every workspace manually.
-- T69 should build a compact command center for asset search, brief opening, provider refresh, report export, audit review, and safe smoke checks.
+- `T69` now gives reviewers and operators a compact Command Center for frequent actions.
+- The user requested an immediate video deliverable after the T69 repo sync, using the configured Windows Computer Use, Browser, and Hyperframes tooling.
+- The video should prove the real packaged desktop flow, not a browser mock.
 
 Scope:
 
-- Build a compact command center for common actions: search asset, open research brief, refresh provider, export report, view audit, and run safe smoke checks.
-- Keep it operational and dense, not a marketing dashboard.
-- Reuse existing command palette, provider, research, export, and audit APIs where possible.
+- Launch `E:\彭博\src-tauri\target\release\pengbo-workbench.exe`.
+- Use the configured local unlock password `000000`.
+- Record or compose a complete walkthrough covering: unlock, asset selection, factor selection, strategy selection, and running a backtest.
+- Generate a final video artifact directly; this is not just a written task description.
 
 Acceptance:
 
-- Common reviewer/operator actions are reachable from one compact desktop surface.
-- Sensitive actions remain permission-gated and local-first.
-- Existing workspace flows remain compatible.
+- A video file exists and can be opened locally.
+- The walkthrough shows the packaged desktop app path and the full requested flow.
+- The narration or captions explain the local-first safety boundary and that the backtest is simulated rather than a live trade.
 
 Implementation notes:
 
-- Start from the existing command palette and current workspace store instead of building a parallel automation surface.
+- Use Windows Computer Use for the packaged EXE walkthrough, Browser only when useful for local preview or verification, and Hyperframes for the final video composition if raw capture needs title cards, captions, or editing.
 
 ## Priority Order
 
@@ -1408,7 +1410,7 @@ Completion:
 ### T69 - Command Center V1
 
 Priority: P2
-Status: Planned
+Status: Completed
 Target Window: 2026-09-05 to 2026-09-11
 Depends on: T68
 
@@ -1421,6 +1423,33 @@ Task:
 Done when:
 
 - Experienced users can move through frequent workflows quickly from one place.
+
+Completion:
+
+- Added a `Command Center` workspace to the desktop shell and navigation.
+- Added compact actions for asset search, opening or creating Research briefs, provider refresh/tests, Research and Data Sources report export, security and Binance audit review, and a no-secret local readiness check.
+- Preserved the existing workspace store, `/api/v1/...` API surfaces, local unlock/session permission behavior, and no-live-trade boundary.
+- Added stable automation anchors for `command-center`, asset results, provider actions, audit review, export actions, and safe checks.
+- Validation passed: `npm run typecheck`, `npm run check:public-boundary`, `npm run build`, `npm run smoke:page-polish`, `git diff --check`, and a Browser/Playwright visual check of the new `command-center` workspace plus no-secret safe check.
+
+### T69# Temp - Packaged Desktop Video Walkthrough
+
+Priority: P2
+Status: Planned
+Target Window: 2026-05-20
+Depends on: T69
+
+Task:
+
+- Launch `E:\彭博\src-tauri\target\release\pengbo-workbench.exe` through the configured Windows desktop automation path.
+- Use local unlock password `000000`.
+- Generate a final video walkthrough of: input password, select an asset, select a factor, select a strategy, and run a backtest.
+- Use Windows Computer Use for the packaged desktop walkthrough, Browser only for local preview or verification as useful, and Hyperframes for the final video composition if editing/captions/title cards are needed.
+
+Done when:
+
+- A local video artifact is generated and the final answer links to it.
+- The video makes clear that the strategy run is a local simulation/backtest, not live trading.
 
 ### T70 - First-Run Product Onboarding
 

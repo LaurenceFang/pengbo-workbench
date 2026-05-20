@@ -66,8 +66,9 @@ The active product-trust sequence is:
 - T66: data-status strip consistency. Completed.
 - T67: research-brief quality. Completed.
 - T68: report evidence packs and first GitHub Release upload. Completed.
-- T69+: command center,
-  data-source governance, local AI assistance,
+- T69: command center for frequent reviewer and operator actions. Completed.
+- T69# Temp: generate a real packaged-desktop video walkthrough. Next.
+- T70+: first-run onboarding, data-source governance, local AI assistance,
   China-market connectors, packaged signoff, and broader public-trust work.
 
 The current research-flow map is tracked in

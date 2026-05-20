@@ -792,6 +792,124 @@ button {
   align-items: start;
 }
 
+.command-center-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--density-gap);
+}
+
+.command-center-hero {
+  align-items: flex-start;
+}
+
+.command-center-hero-status,
+.compact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.command-center-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+  gap: var(--density-gap);
+  align-items: start;
+}
+
+.command-center-main {
+  grid-row: span 2;
+}
+
+.command-center-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.command-center-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+}
+
+.command-center-search input {
+  min-width: 0;
+  padding: 0.75rem 0.9rem;
+  color: var(--text);
+  border: 1px solid rgba(174, 203, 250, 0.18);
+  border-radius: var(--radius-panel);
+  background: rgba(5, 13, 24, 0.68);
+}
+
+.command-center-result-list,
+.command-center-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.command-center-result,
+.command-center-row-button,
+.command-center-provider {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 0.8rem 0.9rem;
+  color: var(--text);
+  text-align: left;
+  border: 1px solid rgba(174, 203, 250, 0.14);
+  border-radius: var(--radius-panel);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.command-center-result strong,
+.command-center-row-button strong,
+.command-center-provider strong {
+  display: block;
+}
+
+.command-center-result span,
+.command-center-row-button span,
+.command-center-provider span {
+  display: block;
+  margin-top: 0.22rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.command-center-row-button:hover,
+.command-center-provider:hover {
+  border-color: rgba(112, 243, 193, 0.32);
+  background: rgba(112, 243, 193, 0.08);
+}
+
+.command-center-provider-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.full-width-button {
+  justify-content: center;
+  width: 100%;
+}
+
+.command-center-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.command-center-feedback.success {
+  border-color: rgba(112, 243, 193, 0.28);
+}
+
+.command-center-feedback.error {
+  border-color: rgba(255, 179, 154, 0.28);
+}
+
 .stack-layout.horizontal {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2177,6 +2295,7 @@ button {
 @media (max-width: 1180px) {
   .app-shell,
   .workspace-grid,
+  .command-center-grid,
   .asset-layout,
   .watchlist-manager-layout,
   .portfolio-layout,
