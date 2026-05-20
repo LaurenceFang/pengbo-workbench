@@ -497,9 +497,9 @@ function localSecuritySettingsCopy(language: LanguagePreference) {
       initialized: "初始化状态",
       initializedHelper: "未初始化时，进入敏感工作区会要求设置新的本机 PIN 或口令。",
       lockState: "锁定状态",
-      lockHelper: "敏感工作区会在空闲后自动锁定。",
+      lockHelper: "敏感工作区会在空闲后自动锁定，也可以手动锁定。",
       failedAttempts: "失败次数",
-      failedHelper: "连续失败过多会临时锁定。",
+      failedHelper: "连续失败过多会临时锁定本地解锁。",
       idleTimeout: "空闲锁定",
       idleHelper: "解锁后无操作达到该时间会自动重新锁定。",
       currentSecret: "当前 PIN 或口令",
@@ -507,13 +507,14 @@ function localSecuritySettingsCopy(language: LanguagePreference) {
       confirmSecret: "确认新 PIN 或口令",
       changeAction: "修改 PIN/口令",
       shortSecret: "新 PIN 或口令至少需要 4 个字符。",
-      mismatch: "两次新 PIN 或口令不一致。",
+      mismatch: "两次输入的新 PIN 或口令不一致。",
       changed: "本地解锁 PIN/口令已修改。",
       changeFailed: "修改本地解锁 PIN/口令失败。",
-      resetCopy: "忘记 PIN 时可以重置本地解锁。它只清除本机解锁口令，不删除凭证、组合、研究记录或本地数据库。重置后下一次进入敏感区需要设置新的 PIN。",
+      resetCopy:
+        "忘记 PIN 或口令时可以重置本地解锁。重置只清除本机解锁状态，不删除 provider 凭证、组合、研究记录、工作流记录或本地数据库。重置后，下次进入敏感区域需要设置新的 PIN 或口令。",
       resetLabel: "输入 RESET LOCAL UNLOCK 确认",
       resetAction: "重置本地解锁",
-      resetDone: "本地解锁已重置，请设置新的 PIN 或口令。",
+      resetDone: "本地解锁已重置。下次进入敏感区域时请设置新的 PIN 或口令。",
       resetFailed: "重置本地解锁失败。",
     };
   }
@@ -544,10 +545,10 @@ function localSecuritySettingsCopy(language: LanguagePreference) {
     changed: "Local unlock PIN/passphrase changed.",
     changeFailed: "Failed to change local unlock PIN/passphrase.",
     resetCopy:
-      "If you forgot the PIN, reset local unlock. This only clears the local unlock secret; it does not delete credentials, portfolios, research, or local databases. You will set a new PIN next time you enter a sensitive area.",
+      "If you forgot the PIN or passphrase, reset local unlock. This only clears local unlock state; it does not delete provider credentials, portfolios, research, workflows, or local databases. You will set a new PIN or passphrase next time you enter a sensitive area.",
     resetLabel: "Type RESET LOCAL UNLOCK to confirm",
     resetAction: "Reset local unlock",
-    resetDone: "Local unlock reset. Set a new PIN or passphrase next.",
+    resetDone: "Local unlock reset. Set a new PIN or passphrase next time you enter a sensitive area.",
     resetFailed: "Failed to reset local unlock.",
   };
 }

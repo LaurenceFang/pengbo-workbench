@@ -55,6 +55,7 @@ Updated: 2026-05-20
 - `T59 - GitHub Actions CI Baseline` is now implemented as a no-secret source-level CI workflow. The workflow covers version consistency, public-boundary scanning, npm audit, frontend typecheck/build, and backend unit tests without provider credentials, packaged EXE smoke, Tauri release builds, signing, or live-trading permissions.
 - `T60 - Demo Mode And No-Key Startup` is now implemented. Fresh no-key runtimes expose `/api/v1/settings/demo-mode`, dashboard/sample evaluation guidance, portfolio and data-source sample states, visible missing-credential boundaries, Vite dev-origin allowance, and repeatable no-key smoke evidence in `logs/demo-no-key-smoke-latest.json`.
 - `T61 - First Release Packaging` is now implemented as a local unsigned Windows packaging baseline. The refreshed EXE, MSI, and NSIS artifacts are produced locally, `docs/RELEASE_CHECKLIST.md` records the validation sequence, and MSI/NSIS installed startup smokes now verify the onedir sidecar path without the root `pengbo-sidecar.exe` DLL-loading trap.
+- `T61# Temp - Manual Security Reset Refresh` is completed as a temporary T61 follow-up: the in-app Manual and Settings security copy now explain local PIN/passphrase reset behavior before T62 product-proof work.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -125,6 +126,14 @@ Updated: 2026-05-20
 - Added `docs/RELEASE_CHECKLIST.md` so the first reviewer packaging path, smoke evidence, unsigned/local status, and repo boundary are documented in one place.
 - Validation passed for T61 packaging: `npm run tauri:build`, `npm run smoke:packaged-startup`, `npm run smoke:installed-startup`, and `npm run smoke:installed-startup:nsis`.
 - `T62 - README Product Proof Upgrade` is now the next recommended task.
+
+- Started `T61# Temp - Manual Security Reset Refresh` on 2026-05-20 after reviewing the in-app Manual and Settings security copy.
+- Scope: fix the visible Manual mojibake, add explicit local PIN/passphrase reset guidance, and make Settings reset copy clear that reset only clears local unlock state while preserving credentials, portfolio, research records, and local databases.
+- Completed `T61# Temp - Manual Security Reset Refresh` on 2026-05-20.
+- Rewrote the in-app Manual page copy into readable Chinese, added a dedicated `本地安全` section, and documented local PIN/passphrase initialization, idle relock, manual lock, reset entry points, and the reset data boundary.
+- Updated Settings local-security copy so the reset control clearly says it only clears local unlock state and does not delete provider credentials, portfolios, research records, workflow records, or local databases.
+- Validation passed: `npm run typecheck`, `npm run build`, and `npm run smoke:page-polish`. The build still reports the existing large-chunk warning but completes successfully.
+- No backend security behavior, credential storage, provider route, live-trading path, packaging config, or GitHub Release flow changed in this temporary task.
 
 - Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
 - Treated `FinceptTerminal` as a product-pattern reference rather than a migration target; the local `Pengbo Workbench` stack remains the implementation baseline.

@@ -10,12 +10,25 @@ const SECTIONS = [
     label: "工作流",
     title: "从筛选到研究、因子、回测、模拟和证据导出",
     items: [
-      "筛选器到研究：运行受控 universe 和变体，选择结果后生成单资产研究简报。",
+      "筛选器到研究：运行受控 universe 和 variant，选择结果后生成单资产研究简报。",
       "数据源到研究：抽取宏观、事件或加密只读来源，带 provenance 写入研究上下文。",
       "研究到因子：围绕当前资产运行本地因子快照，保留研究来源和缺失数据说明。",
       "因子到回测：把可排名的因子结果交给 Top-N 轮动模板做本地模拟。",
       "回测到纸面交易：把策略结果转换为本地 paper session，不触达 broker。",
       "纸面交易到 Binance intent：只创建 Binance 意图，然后停在人工确认边界。",
+    ],
+  },
+  {
+    key: "security",
+    label: "本地安全",
+    title: "本机 PIN/口令、空闲锁定与重置边界",
+    items: [
+      "首次进入敏感工作区时，需要设置本机 PIN 或口令；它只以 salted hash 保存在本机 sidecar，不会发送到远程服务。",
+      "提供商凭证、执行/风控设置、安全审计等敏感表面需要先完成本地解锁。",
+      "解锁后如果长时间无操作，敏感表面会自动重新锁定；也可以从界面手动锁定。",
+      "如果忘记 PIN 或口令，可以在锁屏页或 Settings 的本地安全区域选择重置本地解锁。",
+      "重置只清除 local unlock state，不删除 EDGAR/FRED/CoinGecko/Binance 凭证、组合、研究记录、工作流记录或本地数据库。",
+      "重置后，下次进入敏感工作区会要求重新设置新的 PIN 或口令；旧口令不会被恢复，也不会写入日志或诊断包。",
     ],
   },
   {
@@ -43,11 +56,11 @@ const SECTIONS = [
   {
     key: "factors",
     label: "因子",
-    title: "免费数据可算的股票、指数和加密因子",
+    title: "免费数据可计算的股票、指数和加密因子",
     items: [
       "股票因子覆盖动量、价值、质量、保守成长和低波动风险。",
-      "加密因子新增动量强度、成交量确认和过热护栏。",
-      "指数/ETF 因子新增趋势结构和防御质量。",
+      "加密因子覆盖动量强度、成交量确认和过热护栏。",
+      "指数/ETF 因子覆盖趋势结构和防御质量。",
       "短期反转因子用于寻找中期仍有支撑但短期回撤的候选。",
       "所有因子都是 research-only 信号，不会直接发起真实订单。",
     ],
@@ -97,7 +110,7 @@ export function ManualView() {
         <div className="screeners-column-head">
           <div>
             <p className="eyebrow">Manual</p>
-            <strong>说明书二级页面</strong>
+            <strong>说明书</strong>
           </div>
           <BookOpen size={18} />
         </div>
@@ -138,6 +151,12 @@ export function ManualView() {
             <InlineState label="非 Binance 资产保持研究、回测、模拟或只读分析，不新增真实提交路径。" />
           </div>
         ) : null}
+        {active.key === "security" ? (
+          <div className="task-list">
+            <InlineState label="重置本地解锁不是清空应用数据；它只让你重新设置进入敏感区域所需的本机 PIN/口令。" />
+            <InlineState label="如果要删除凭证或本地研究数据，需要在对应模块中单独操作。" />
+          </div>
+        ) : null}
       </section>
 
       <section className="manual-side research-panel">
@@ -152,6 +171,7 @@ export function ManualView() {
           <MetricCard label="K线默认" value="30分钟" />
           <MetricCard label="交易边界" value="人工确认" />
           <MetricCard label="因子用途" value="研究信号" />
+          <MetricCard label="本地解锁" value="可重置" />
           <MetricCard label="翻译" value={translation.data?.provider ?? "local"} />
         </div>
         {translation.loading ? <InlineState label="正在读取翻译工具状态..." /> : null}
