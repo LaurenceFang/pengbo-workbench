@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 
 from ..models import (
     AppPreferences,
     DemoModeStatus,
+    OnboardingChecklistItem,
     OnboardingState,
+    OnboardingStepKey,
     SettingsRuntimeResponse,
     UpdateAppPreferencesRequest,
     UpdateOnboardingStateRequest,
@@ -22,6 +25,14 @@ DEFAULT_PREFERENCES = AppPreferences(
     diagnostics_export_enabled=True,
     language="zh-CN",
     density="standard",
+)
+
+ONBOARDING_STEPS: tuple[OnboardingStepKey, ...] = (
+    "demo_mode",
+    "provider_setup",
+    "local_unlock",
+    "privacy_boundary",
+    "execution_boundary",
 )
 
 
@@ -74,13 +85,61 @@ class SettingsService:
         return self.get_preferences()
 
     def get_onboarding(self) -> OnboardingState:
-        raw_values = self.sqlite_store.get_app_settings(["onboarding_seen_at"])
+        raw_values = self.sqlite_store.get_app_settings(["onboarding_seen_at", "onboarding_checklist"])
         raw_value = raw_values.get("onboarding_seen_at")
         onboarding_seen_at = json.loads(raw_value) if raw_value is not None else None
-        return OnboardingState(onboarding_seen_at=onboarding_seen_at)
+        raw_checklist = raw_values.get("onboarding_checklist")
+        checklist_values: dict[str, str | None] = {}
+        if raw_checklist is not None:
+            parsed = json.loads(raw_checklist)
+            if isinstance(parsed, dict):
+                checklist_values = {
+                    str(key): str(value) if value is not None else None
+                    for key, value in parsed.items()
+                }
+
+        checklist = [
+            OnboardingChecklistItem(key=step, completed_at=checklist_values.get(step))
+            for step in ONBOARDING_STEPS
+        ]
+        return OnboardingState(onboarding_seen_at=onboarding_seen_at, checklist=checklist)
 
     def update_onboarding(self, payload: UpdateOnboardingStateRequest) -> OnboardingState:
-        self.sqlite_store.upsert_app_settings(payload.model_dump())
+        checklist = {
+            item.key: item.completed_at
+            for item in payload.checklist
+            if item.key in ONBOARDING_STEPS
+        }
+        self.sqlite_store.upsert_app_settings(
+            {
+                "onboarding_seen_at": payload.onboarding_seen_at,
+                "onboarding_checklist": checklist,
+            }
+        )
+        return self.get_onboarding()
+
+    def reset_onboarding(self) -> OnboardingState:
+        self.sqlite_store.upsert_app_settings(
+            {
+                "onboarding_seen_at": None,
+                "onboarding_checklist": {step: None for step in ONBOARDING_STEPS},
+            }
+        )
+        return self.get_onboarding()
+
+    def complete_onboarding_step(self, step: OnboardingStepKey, completed: bool) -> OnboardingState:
+        state = self.get_onboarding()
+        completed_at = datetime.now(UTC).isoformat() if completed else None
+        checklist = {
+            item.key: (completed_at if item.key == step else item.completed_at)
+            for item in state.checklist
+        }
+        self.sqlite_store.upsert_app_settings(
+            {
+                "onboarding_seen_at": state.onboarding_seen_at,
+                "onboarding_checklist": checklist,
+            }
+        )
         return self.get_onboarding()
 
     def get_demo_mode(self) -> DemoModeStatus:

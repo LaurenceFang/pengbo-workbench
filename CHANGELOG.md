@@ -56,11 +56,14 @@ release channel yet.
 - T69# Temp generates a Hyperframes video walkthrough from real packaged
   desktop frames covering local unlock, AAPL selection, 12-1 Momentum factor
   selection, Top-N Factor Rotation selection, and a simulated backtest result.
+- T70 adds a local-only first-run onboarding checklist that explains no-key
+  demo mode, provider setup, local unlock, privacy and diagnostics boundaries,
+  and confirmation-gated execution before reviewers enter sensitive workspaces.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T70 will add first-run product onboarding for demo mode, provider setup,
-  local unlock, privacy boundaries, and safe execution boundaries.
+- T71 will add a provider capability matrix for asset classes, regions,
+  endpoint coverage, credential needs, freshness, and read/write status.

@@ -232,6 +232,113 @@ button {
   border-color: rgba(87, 214, 166, 0.24);
 }
 
+.first-run-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border-color: rgba(87, 214, 166, 0.26);
+}
+
+.first-run-hero,
+.onboarding-step {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+}
+
+.first-run-hero h3 {
+  margin: 0.25rem 0 0;
+  font-size: 1.3rem;
+}
+
+.first-run-progress {
+  display: grid;
+  place-items: center;
+  min-width: 116px;
+  min-height: 86px;
+  border: 1px solid rgba(87, 214, 166, 0.2);
+  border-radius: var(--radius-control);
+  background: rgba(87, 214, 166, 0.08);
+}
+
+.first-run-progress strong {
+  font-size: 1.65rem;
+}
+
+.first-run-progress span {
+  color: var(--text-secondary);
+}
+
+.onboarding-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.onboarding-status-grid > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.8rem;
+  border: 1px solid rgba(166, 183, 205, 0.12);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.onboarding-status-grid span {
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.onboarding-checklist {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.onboarding-step {
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  padding: 0.85rem;
+  border: 1px solid rgba(166, 183, 205, 0.12);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.onboarding-step.complete {
+  border-color: rgba(87, 214, 166, 0.32);
+  background: rgba(87, 214, 166, 0.07);
+}
+
+.onboarding-check {
+  color: var(--text-muted);
+}
+
+.onboarding-step.complete .onboarding-check {
+  color: var(--accent-data);
+}
+
+.onboarding-step-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-control);
+  color: #07120f;
+  background: linear-gradient(145deg, #70f3c1, #7eb7ff);
+}
+
+.onboarding-step h4,
+.onboarding-step p {
+  margin: 0;
+}
+
+.onboarding-step p {
+  margin-top: 0.25rem;
+  color: var(--text-secondary);
+  line-height: 1.48;
+}
+
 .demo-mode-grid,
 .sample-state-grid {
   display: grid;
@@ -883,6 +990,18 @@ button {
 .command-center-provider:hover {
   border-color: rgba(112, 243, 193, 0.32);
   background: rgba(112, 243, 193, 0.08);
+}
+
+.command-center-provider {
+  align-items: flex-start;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.command-center-provider strong,
+.command-center-provider span {
+  overflow-wrap: anywhere;
 }
 
 .command-center-provider-grid {
@@ -2388,6 +2507,22 @@ button {
 
   .search-box {
     min-width: 100%;
+  }
+
+  .first-run-hero,
+  .onboarding-step {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .first-run-progress {
+    min-height: 72px;
+  }
+
+  .onboarding-status-grid,
+  .demo-mode-grid,
+  .sample-state-grid {
+    grid-template-columns: 1fr;
   }
 }
 

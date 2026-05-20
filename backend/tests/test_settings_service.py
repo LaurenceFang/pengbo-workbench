@@ -85,6 +85,50 @@ class SettingsPreferencesTests(unittest.TestCase):
                 self.assertIn("Binance private account state", payload["credential_gated_surfaces"])
                 self.assertTrue(any("Live Binance submission remains disabled" in note for note in payload["safety_boundaries"]))
 
+    def test_onboarding_checklist_defaults_persists_and_resets_locally(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
+            app = create_app(make_settings(Path(temp_dir)))
+            with TestClient(app) as client:
+                defaults = client.get("/api/v1/settings/onboarding")
+                self.assertEqual(defaults.status_code, 200)
+                default_payload = defaults.json()
+                self.assertIsNone(default_payload["onboarding_seen_at"])
+                self.assertEqual(
+                    [item["key"] for item in default_payload["checklist"]],
+                    [
+                        "demo_mode",
+                        "provider_setup",
+                        "local_unlock",
+                        "privacy_boundary",
+                        "execution_boundary",
+                    ],
+                )
+                self.assertTrue(all(item["completed_at"] is None for item in default_payload["checklist"]))
+
+                payload = {
+                    "onboarding_seen_at": "2026-05-21T10:00:00+08:00",
+                    "checklist": [
+                        {"key": "demo_mode", "completed_at": "2026-05-21T10:01:00+08:00"},
+                        {"key": "provider_setup", "completed_at": None},
+                        {"key": "local_unlock", "completed_at": "2026-05-21T10:02:00+08:00"},
+                        {"key": "privacy_boundary", "completed_at": None},
+                        {"key": "execution_boundary", "completed_at": None},
+                    ],
+                }
+                updated = client.put("/api/v1/settings/onboarding", json=payload)
+                self.assertEqual(updated.status_code, 200)
+                self.assertEqual(updated.json()["onboarding_seen_at"], payload["onboarding_seen_at"])
+                self.assertEqual(updated.json()["checklist"][0]["completed_at"], "2026-05-21T10:01:00+08:00")
+
+                restored = client.get("/api/v1/settings/onboarding")
+                self.assertEqual(restored.status_code, 200)
+                self.assertEqual(restored.json()["checklist"][2]["completed_at"], "2026-05-21T10:02:00+08:00")
+
+                reset = client.post("/api/v1/settings/onboarding/reset")
+                self.assertEqual(reset.status_code, 200)
+                self.assertIsNone(reset.json()["onboarding_seen_at"])
+                self.assertTrue(all(item["completed_at"] is None for item in reset.json()["checklist"]))
+
 
 if __name__ == "__main__":
     unittest.main()

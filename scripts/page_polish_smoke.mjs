@@ -22,6 +22,7 @@ const languages = ["zh-CN", "en-US"];
 
 const pages = [
   { key: "dashboard", label: "Dashboard", nav: "nav-dashboard" },
+  { key: "commandCenter", label: "Command Center", nav: "nav-commandCenter" },
   { key: "asset", label: "Asset", nav: "nav-asset" },
   { key: "research", label: "Research", nav: "nav-research" },
   { key: "factorLab", label: "Factor Lab", nav: "nav-factorLab" },

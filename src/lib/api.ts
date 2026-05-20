@@ -372,8 +372,21 @@ export type AppPreferences = {
   density: "standard" | "compact";
 };
 
+export type OnboardingStepKey =
+  | "demo_mode"
+  | "provider_setup"
+  | "local_unlock"
+  | "privacy_boundary"
+  | "execution_boundary";
+
+export type OnboardingChecklistItem = {
+  key: OnboardingStepKey;
+  completed_at: string | null;
+};
+
 export type OnboardingState = {
   onboarding_seen_at: string | null;
+  checklist: OnboardingChecklistItem[];
 };
 
 export type DemoModeStatus = {
@@ -1565,6 +1578,7 @@ export const api = {
   getOnboardingState: () => apiFetch<OnboardingState>("/settings/onboarding"),
   updateOnboardingState: (payload: OnboardingState) =>
     jsonRequest<OnboardingState>("/settings/onboarding", "PUT", payload),
+  resetOnboardingState: () => jsonRequest<OnboardingState>("/settings/onboarding/reset", "POST"),
   getDemoModeStatus: () => apiFetch<DemoModeStatus>("/settings/demo-mode"),
   getLocalSecurityStatus: () => apiFetch<LocalSecurityStatus>("/security/local/status"),
   initializeLocalSecurity: (unlockSecret: string) =>

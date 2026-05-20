@@ -65,6 +65,7 @@ Updated: 2026-05-20
 - `T68 - Report Export Evidence Pack` is now implemented. Research, Data Sources, and Strategy exports expose evidence-pack summaries, provider/freshness/evidence-quality boundaries, audit references where available, and explicit private-state exclusion notes; refreshed desktop EXE/MSI/NSIS artifacts are validated and uploaded to the first GitHub Release at `https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0`.
 - `T69 - Command Center V1` is now implemented. The desktop shell has a compact Command Center workspace for asset search, Research brief entry, provider refresh, local report export, audit review, and no-secret safe readiness checks while preserving existing workspace flows and local permission gates.
 - `T69# Temp - Packaged Desktop Video Walkthrough` is now completed. A Hyperframes MP4 was generated from real `pengbo-workbench.exe` walkthrough frames covering local unlock with `000000`, AAPL asset selection, 12-1 Momentum factor selection, Top-N Factor Rotation strategy selection, and a simulated backtest result.
+- `T70 - First-Run Product Onboarding` is now implemented. First-time reviewers get a local-only, skippable checklist for demo mode, provider setup, local unlock, privacy/diagnostics boundaries, and confirmation-gated execution, with a Settings reset action for repeated walkthroughs.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -931,30 +932,29 @@ Updated: 2026-05-20
 
 ## Recommended Next Task
 
-### T70 - First-Run Product Onboarding
+### T71 - Provider Capability Matrix
 
-Priority: P2
+Priority: P1
 Status: Planned
 
 Why this is next:
 
-- `T69` made frequent operator actions easier to reach.
-- `T69# Temp` produced a real packaged-desktop walkthrough video for the research/factor/strategy/backtest loop.
-- The next product gap is helping first-time reviewers understand demo mode, provider setup, local unlock, privacy boundaries, and safe execution boundaries before they explore the product.
+- `T70` now explains the safe first-run product boundary to new reviewers.
+- The next product gap is a shared provider capability matrix for asset classes, regions, endpoint coverage, credential needs, freshness, and read/write status.
 
 Scope:
 
-- Add first-run guidance for demo mode, provider setup, local unlock, privacy boundary, and safe execution boundary.
-- Keep onboarding skippable and local-only.
-- Add a resettable checklist for new reviewers.
+- Create a provider capability matrix for current and planned providers.
+- Keep `/api/v1/connections/catalog` compatibility.
+- Make unsupported or credential-gated capabilities explicit.
 
 Acceptance:
 
-- A first-time user understands what Pengbo can do now and what is intentionally blocked.
+- Product and engineering can decide connector work from a shared source of truth.
 
 Implementation notes:
 
-- Reuse the existing onboarding state and Settings preference surfaces; do not add hosted accounts, remote sync, or public API behavior.
+- Stay additive to existing Data Sources and Connections contracts.
 
 ## Priority Order
 
@@ -1459,7 +1459,7 @@ Completion:
 ### T70 - First-Run Product Onboarding
 
 Priority: P2
-Status: Planned
+Status: Completed
 Target Window: 2026-09-12 to 2026-09-18
 Depends on: T69# Temp
 
@@ -1472,6 +1472,15 @@ Task:
 Done when:
 
 - A first-time user understands what Pengbo can do now and what is intentionally blocked.
+
+Completion:
+
+- Extended the local onboarding state from a single seen timestamp to a resettable checklist for demo mode, provider setup, local unlock, privacy boundary, and execution boundary.
+- Added a Dashboard first-run onboarding panel with reviewer-oriented guidance, progress state, checklist toggles, and direct handoffs to Dashboard, Connections, Settings, Data Sources, and Strategy Lab.
+- Added a Settings reset control so demos and reviews can replay first-run onboarding without deleting credentials, portfolios, research, workflows, or local databases.
+- Fixed visible first-run/demo/local setup Chinese mojibake in the shell path touched by T70.
+- Added `npm run smoke:onboarding` to validate reset, checklist persistence, Settings reset, and the local unlock gate needed to reach Settings.
+- Validation passed: `py -m unittest backend.tests.test_settings_service`, `npm run typecheck`, and `npm run smoke:onboarding`.
 
 ### T71 - Provider Capability Matrix
 

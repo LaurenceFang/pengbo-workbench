@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 ViewKey = Literal[
     "dashboard",
+    "commandCenter",
     "asset",
     "watchlist",
     "research",
@@ -22,6 +23,13 @@ ViewKey = Literal[
 ]
 LanguagePreference = Literal["zh-CN", "en-US"]
 DensityPreference = Literal["standard", "compact"]
+OnboardingStepKey = Literal[
+    "demo_mode",
+    "provider_setup",
+    "local_unlock",
+    "privacy_boundary",
+    "execution_boundary",
+]
 ConnectionHealth = Literal["ok", "error", "missing_credentials", "cached", "planned", "unsupported", "unavailable"]
 ProviderCapabilityStatusHint = Literal["available", "credential_required", "unsupported"]
 AssetCapabilityStatus = Literal["available", "credential_required", "unsupported", "temporarily_unavailable"]
@@ -811,8 +819,14 @@ class UpdateAppPreferencesRequest(AppPreferences):
     pass
 
 
+class OnboardingChecklistItem(BaseModel):
+    key: OnboardingStepKey
+    completed_at: str | None = None
+
+
 class OnboardingState(BaseModel):
     onboarding_seen_at: str | None = None
+    checklist: list[OnboardingChecklistItem] = Field(default_factory=list)
 
 
 class UpdateOnboardingStateRequest(OnboardingState):

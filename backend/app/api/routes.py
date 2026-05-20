@@ -599,6 +599,10 @@ def register_routes(app: FastAPI) -> None:
     def put_settings_onboarding(request: Request, payload: UpdateOnboardingStateRequest) -> OnboardingState:
         return _container(request).settings_service.update_onboarding(payload)
 
+    @app.post("/api/v1/settings/onboarding/reset", response_model=OnboardingState)
+    def post_settings_onboarding_reset(request: Request) -> OnboardingState:
+        return _container(request).settings_service.reset_onboarding()
+
     @app.get("/api/v1/settings/demo-mode", response_model=DemoModeStatus)
     def get_settings_demo_mode(request: Request) -> DemoModeStatus:
         return _container(request).settings_service.get_demo_mode()

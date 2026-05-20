@@ -18,7 +18,6 @@ import {
   Star,
   TriangleAlert,
   Workflow,
-  X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { CommandPalette } from "./components/command-palette";
@@ -36,8 +35,10 @@ import {
   type DiagnosticsExportResult,
   type LocalSecurityStatus,
   type OnboardingState,
+  type OnboardingStepKey,
   type SetupStatus,
 } from "./lib/api";
+import { FirstRunOnboarding } from "./components/first-run-onboarding";
 import { deriveDesktopConnectionStatus, getRuntimeConfig, type RuntimeConfig } from "./lib/runtime";
 import { useAppStore, type ViewKey } from "./store/app-store";
 import { AssetView } from "./views/asset-view";
@@ -83,6 +84,14 @@ const securitySurfaceByView: Partial<Record<ViewKey, string>> = {
   connections: "provider_credentials",
   settings: "settings_runtime",
 };
+
+const onboardingStepKeys: OnboardingStepKey[] = [
+  "demo_mode",
+  "provider_setup",
+  "local_unlock",
+  "privacy_boundary",
+  "execution_boundary",
+];
 
 function App() {
   const activeView = useAppStore((state) => state.activeView);
@@ -235,6 +244,10 @@ function App() {
   const diagnosticsEnabled = preferences.data?.diagnostics_export_enabled ?? true;
   const onboardingSeenAt =
     onboardingSeenOverride !== undefined ? onboardingSeenOverride : onboarding.data?.onboarding_seen_at;
+  const currentOnboarding: OnboardingState = onboarding.data ?? {
+    onboarding_seen_at: onboardingSeenAt ?? null,
+    checklist: onboardingStepKeys.map((key) => ({ key, completed_at: null })),
+  };
   const missingProviders = (connectionsStatus.data?.providers ?? [])
     .filter((provider) => provider.requires_credentials)
     .map((provider) => provider.label);
@@ -268,7 +281,6 @@ function App() {
             ? `请完成这些数据源设置：${setupStatus.missingProviders.join(", ")}。`
             : `Complete provider setup for: ${setupStatus.missingProviders.join(", ")}.`
           : language === "zh-CN" ? "当前运行环境已就绪。" : "The current runtime environment is ready.";
-
   const diagnosticsDisabledReason =
     preferences.data && !preferences.data.diagnostics_export_enabled
       ? i18n.t("settings.diagnosticsDisabled")
@@ -376,10 +388,35 @@ function App() {
     setOnboardingBusy(true);
     setShellActionError(null);
     try {
-      await api.updateOnboardingState({ onboarding_seen_at: nextSeenAt });
+      await api.updateOnboardingState({ ...currentOnboarding, onboarding_seen_at: nextSeenAt });
       setOnboardingSeenOverride(nextSeenAt);
+      onboarding.reload();
     } catch (error) {
       setShellActionError(error instanceof Error ? error.message : "Failed to update onboarding state.");
+    } finally {
+      setOnboardingBusy(false);
+    }
+  }
+
+  async function handleToggleOnboardingStep(stepKey: OnboardingStepKey, completed: boolean) {
+    const completedAt = completed ? new Date().toISOString() : null;
+    const knownKeys = new Set(currentOnboarding.checklist.map((item) => item.key));
+    const checklist = [
+      ...currentOnboarding.checklist.map((item) =>
+        item.key === stepKey ? { ...item, completed_at: completedAt } : item,
+      ),
+      ...onboardingStepKeys
+        .filter((key) => !knownKeys.has(key))
+        .map((key) => ({ key, completed_at: key === stepKey ? completedAt : null })),
+    ];
+
+    setOnboardingBusy(true);
+    setShellActionError(null);
+    try {
+      await api.updateOnboardingState({ ...currentOnboarding, checklist });
+      onboarding.reload();
+    } catch (error) {
+      setShellActionError(error instanceof Error ? error.message : "Failed to update onboarding checklist.");
     } finally {
       setOnboardingBusy(false);
     }
@@ -566,81 +603,19 @@ function App() {
 
         <div className="workspace-scroll">
           {isDashboardView && setupStatus.firstRun ? (
-            <section className="card panel-banner">
-              <div className="panel-banner-head">
-                <div>
-                  <p className="eyebrow">{i18n.t("setup.firstRun")}</p>
-                  <h3>
-                    {backendStatus === "connecting"
-                      ? i18n.t("setup.connectingTitle")
-                      : setupStatus.needsSetup
-                        ? i18n.t("setup.needsSetupTitle")
-                        : i18n.t("setup.readyTitle")}
-                  </h3>
-                </div>
-                <button
-                  className="icon-button"
-                  disabled={onboardingBusy}
-                  onClick={handleDismissOnboarding}
-                  type="button"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <p className="body-copy">{setupLead}</p>
-              <div className="setup-summary-list">
-                <div className="task-item">
-                  <TriangleAlert size={16} />
-                  <span>
-                    {setupStatus.sidecarOffline
-                      ? language === "zh-CN" ? "本地服务离线时，所有工作区都会保持降级或不可用状态。" : "When the local sidecar is offline, every workspace will stay degraded or unavailable."
-                      : backendStatus === "connecting"
-                        ? language === "zh-CN" ? "本地服务连接后，当前页面会自动刷新。" : "The current page will refresh automatically once the sidecar is connected."
-                        : language === "zh-CN" ? "连接页会显示数据源状态、测试结果和缓存新鲜度。" : "The connections page shows provider status, test results, and cache freshness."}
-                  </span>
-                </div>
-                <div className="task-item">
-                  <Cable size={16} />
-                  <span>
-                    {setupStatus.missingProviders.length > 0
-                      ? language === "zh-CN"
-                        ? `仍缺少这些配置：${setupStatus.missingProviders.join(", ")}。`
-                        : `Still missing configuration for: ${setupStatus.missingProviders.join(", ")}.`
-                      : language === "zh-CN" ? "核心数据源设置已就绪，应用可以继续使用实时数据。" : "Core data-provider setup is in place and the app can continue with live data."}
-                  </span>
-                </div>
-              </div>
-              <div className="hero-actions">
-                <button className="primary-button" type="button" onClick={() => setActiveView("connections")}>
-                  {i18n.t("setup.openConnections")}
-                  <ArrowRight size={16} />
-                </button>
-                <button className="ghost-button" type="button" onClick={() => setActiveView("settings")}>
-                  {i18n.t("setup.openSettings")}
-                </button>
-                <button
-                  className="ghost-button"
-                  disabled={actionBusy || runtime.data?.mode !== "tauri"}
-                  type="button"
-                  onClick={handleRestartSidecar}
-                >
-                  <RefreshCcw size={16} />
-                  {actionBusy ? i18n.t("runtime.restarting") : i18n.t("setup.restartSidecar")}
-                </button>
-                <button
-                  className="ghost-button"
-                  disabled={diagnosticsBusy || runtime.data?.mode !== "tauri" || !diagnosticsEnabled}
-                  type="button"
-                  onClick={handleExportDiagnostics}
-                >
-                  {diagnosticsBusy ? i18n.t("runtime.exporting") : i18n.t("setup.exportDiagnostics")}
-                </button>
-              </div>
-              {diagnosticsDisabledReason ? <p className="panel-note">{diagnosticsDisabledReason}</p> : null}
-              {diagnosticsExport ? <p className="panel-note">{i18n.t("setup.diagnosticsExported")} {diagnosticsExport.exportPath}</p> : null}
-            </section>
+            <FirstRunOnboarding
+              state={currentOnboarding}
+              demoMode={demoMode.data ?? null}
+              setupStatus={setupStatus}
+              localSecurity={localSecurity.data ?? null}
+              backendStatus={backendStatus}
+              language={language}
+              busy={onboardingBusy}
+              onToggleStep={handleToggleOnboardingStep}
+              onDismiss={handleDismissOnboarding}
+              onOpenView={setActiveView}
+            />
           ) : null}
-
           {isDashboardView && !setupStatus.firstRun && setupStatus.needsSetup ? (
             <section className="card panel-banner compact">
               <div className="panel-banner-head">

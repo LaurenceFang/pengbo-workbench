@@ -17,6 +17,7 @@ import { useAppStore, type DensityPreference, type LanguagePreference } from "..
 
 const navigation: Array<{ key: ViewKey }> = [
   { key: "dashboard" },
+  { key: "commandCenter" },
   { key: "asset" },
   { key: "watchlist" },
   { key: "research" },
@@ -54,6 +55,7 @@ export function SettingsView({
   const setDensity = useAppStore((state) => state.setDensity);
   const runtimeInfo = useAsyncResource<SettingsRuntimeResponse>(async () => api.getSettingsRuntime(), []);
   const preferences = useAsyncResource<AppPreferences>(async () => api.getSettingsPreferences(), []);
+  const onboarding = useAsyncResource(async () => api.getOnboardingState(), []);
   const localSecurity = useAsyncResource<LocalSecurityStatus>(async () => api.getLocalSecurityStatus(), []);
   const securityAudit = useAsyncResource<SecurityAuditEvent[]>(async () => api.getSecurityAudit(12, "local_security"), []);
   const [form, setForm] = useState<AppPreferences | null>(null);
@@ -63,6 +65,8 @@ export function SettingsView({
   const [newUnlockSecret, setNewUnlockSecret] = useState("");
   const [confirmUnlockSecret, setConfirmUnlockSecret] = useState("");
   const [resetConfirmation, setResetConfirmation] = useState("");
+  const [onboardingBusy, setOnboardingBusy] = useState(false);
+  const [onboardingMessage, setOnboardingMessage] = useState<string | null>(null);
   const [securityMessage, setSecurityMessage] = useState<string | null>(null);
   const diagnosticsEnabled = preferences.data?.diagnostics_export_enabled ?? true;
   const securityCopy = localSecuritySettingsCopy(language);
@@ -138,6 +142,21 @@ export function SettingsView({
       setSecurityMessage(error instanceof Error ? error.message : securityCopy.resetFailed);
     } finally {
       setSecurityBusy(false);
+    }
+  }
+
+  async function handleResetOnboarding() {
+    setOnboardingBusy(true);
+    setOnboardingMessage(null);
+    try {
+      await api.resetOnboardingState();
+      onboarding.reload();
+      setOnboardingMessage(language === "zh-CN" ? "新手导览已重置。回到仪表盘后会再次显示。" : "First-run onboarding reset. It will appear again on the dashboard.");
+      await onGlobalRefresh();
+    } catch (error) {
+      setOnboardingMessage(error instanceof Error ? error.message : language === "zh-CN" ? "重置新手导览失败。" : "Failed to reset first-run onboarding.");
+    } finally {
+      setOnboardingBusy(false);
     }
   }
 
@@ -373,6 +392,38 @@ export function SettingsView({
         ) : (
           <InlineState label={preferences.loading ? i18n.t("settings.loadingPreferences") : preferences.error ?? i18n.t("settings.unableToLoadPreferences")} />
         )}
+      </section>
+
+      <section className="card" aria-label="settings-onboarding-reset">
+        <div className="card-header">
+          <div>
+            <p className="eyebrow">{language === "zh-CN" ? "新手导览" : "Onboarding"}</p>
+            <h3>{language === "zh-CN" ? "重置 reviewer 的首次运行 checklist" : "Reset the reviewer first-run checklist"}</h3>
+          </div>
+          <span className="mini-pill">
+            {(onboarding.data?.checklist ?? []).filter((item) => item.completed_at).length}/{onboarding.data?.checklist.length ?? 5}
+          </span>
+        </div>
+        <p className="panel-note">
+          {language === "zh-CN"
+            ? "这个操作只清空本地 onboarding 状态，不会删除凭证、组合、研究记录、工作流记录或本地数据库。"
+            : "This only clears local onboarding state. It does not delete credentials, portfolios, research, workflows, or local databases."}
+        </p>
+        <div className="form-actions">
+          <button
+            aria-label="settings-reset-onboarding"
+            className="ghost-button"
+            disabled={onboardingBusy}
+            type="button"
+            onClick={() => void handleResetOnboarding()}
+          >
+            <RefreshCcw size={16} />
+            {onboardingBusy
+              ? language === "zh-CN" ? "重置中..." : "Resetting..."
+              : language === "zh-CN" ? "重置新手导览" : "Reset onboarding"}
+          </button>
+        </div>
+        {onboardingMessage ? <p className="panel-note">{onboardingMessage}</p> : null}
       </section>
 
       <section className="card">
