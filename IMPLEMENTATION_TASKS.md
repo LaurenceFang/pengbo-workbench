@@ -57,6 +57,7 @@ Updated: 2026-05-20
 - `T61 - First Release Packaging` is now implemented as a local unsigned Windows packaging baseline. The refreshed EXE, MSI, and NSIS artifacts are produced locally, `docs/RELEASE_CHECKLIST.md` records the validation sequence, and MSI/NSIS installed startup smokes now verify the onedir sidecar path without the root `pengbo-sidecar.exe` DLL-loading trap.
 - `T61# Temp - Manual Security Reset Refresh` is completed as a temporary T61 follow-up: the in-app Manual and Settings security copy now explain local PIN/passphrase reset behavior before T62 product-proof work.
 - `T62 - README Product Proof Upgrade` is now implemented. The README includes a practical reviewer journey and source-safe product screenshots generated from a temporary no-secret runtime, while generated logs, runtime databases, credentials, installers, and packaged binaries remain outside the public source boundary.
+- `T63 - Contributor Entry Kit` is now implemented. New contributors have a dedicated setup and validation guide, safe first-issue candidates, and issue templates that keep credentials, Stronghold vaults, runtime data, generated logs, binaries, installers, hosted support, signed releases, and live trading outside the default public contribution path.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -142,6 +143,13 @@ Updated: 2026-05-20
 - Updated README, CHANGELOG, PLAN, and this task board so T62 is complete and T63 is promoted next.
 - Validation passed: `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, `npm run smoke:page-polish`, and `git diff --check`.
 - No backend behavior, security model, credential storage, packaging config, GitHub Release flow, hosted account path, public network exposure, or live-trading route changed in T62.
+
+- Executed `T63 - Contributor Entry Kit` on 2026-05-20.
+- Added `CONTRIBUTING.md` with Windows-first setup, source-level baseline checks, no-key demo validation, packaged-smoke boundaries, safe contribution areas, sensitive areas, PR expectations, and first-issue candidates.
+- Added `.github/ISSUE_TEMPLATE/bug-report.md` and `.github/ISSUE_TEMPLATE/first-issue.md` with explicit warnings not to paste secrets, Stronghold material, local runtime data, real account identifiers, unredacted logs, or live-trading details.
+- Updated README, CHANGELOG, PLAN, and this task board so T63 is complete and T64 is promoted next.
+- Validation passed: `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, and `git diff --check`.
+- No runtime behavior, backend route, security model, credential storage, packaging config, GitHub Release flow, hosted support path, public API path, signed-release path, or live-trading path changed in T63.
 
 - Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
 - Treated `FinceptTerminal` as a product-pattern reference rather than a migration target; the local `Pengbo Workbench` stack remains the implementation baseline.
@@ -867,32 +875,32 @@ Updated: 2026-05-20
 
 ## Recommended Next Task
 
-### T63 - Contributor Entry Kit
+### T64 - Research Flow Definition
 
-Priority: P2
+Priority: P1
 Status: Planned
 
 Why this is next:
 
-- `T62` now gives external reviewers a credible product walkthrough with source-safe screenshots.
-- The next public-trust gap is making the repository easier to contribute to without accidentally touching credential-sensitive or execution-sensitive surfaces.
-- T63 should document setup expectations, safe contribution areas, validation commands, and first-issue candidates grounded in the current roadmap.
+- `T63` now gives public contributors a safe setup and validation entry point.
+- The next product gap is turning the existing workspaces into one explicit research loop instead of a collection of capable surfaces.
+- T64 should map asset, data status, evidence, report export, and audit handoffs before deeper UI or backend polish.
 
 Scope:
 
-- Add contributor setup notes for JavaScript, Python, no-key demo, CI checks, and packaged validation boundaries.
-- Document safe contribution areas versus credential, Stronghold, execution, gateway, and release-signing sensitive areas.
-- Add a small first-issue candidate list that does not require provider credentials or live trading.
+- Define the core user flow: open asset, inspect data status, review thesis, compare evidence, export report, and record audit trail.
+- Map existing pages and APIs to that flow.
+- Identify dead ends, duplicate concepts, and missing handoffs.
 
 Acceptance:
 
-- A new contributor can set up the source app and run the baseline checks without guessing.
-- The guide clearly warns against committing secrets, runtime artifacts, binaries, logs, Stronghold vaults, or live credentials.
-- First-issue candidates are useful and safe for public contributors.
+- The next research-polish work has a clear user journey and grounded implementation map.
+- The flow keeps credential, local-security, execution, and report-evidence boundaries visible.
+- Missing handoffs are captured as explicit follow-up tasks instead of implied product debt.
 
 Implementation notes:
 
-- Do not add issue templates that imply hosted support, signed binary releases, live trading support, or public API operation.
+- Treat this as a flow-definition pass first; avoid broad UI rewrites until the journey and gaps are documented.
 
 ## Priority Order
 
@@ -1189,7 +1197,7 @@ Completion notes:
 ### T63 - Contributor Entry Kit
 
 Priority: P2
-Status: Planned
+Status: Completed
 Target Window: 2026-08-05 to 2026-08-07
 Depends on: T62
 
@@ -1202,6 +1210,14 @@ Task:
 Done when:
 
 - A contributor can start safely without asking for private keys, private data, or unclear runtime assumptions.
+
+Completion notes:
+
+- Added `CONTRIBUTING.md` with Windows-first local setup, source-level baseline checks, no-key demo validation, packaged-smoke boundaries, safe contribution areas, sensitive areas, PR expectations, and first-issue candidates.
+- Added `.github/ISSUE_TEMPLATE/bug-report.md` and `.github/ISSUE_TEMPLATE/first-issue.md` with explicit no-secret, no-runtime-data, no-Stronghold, no-live-trading, no-hosted-support boundaries.
+- Updated README, CHANGELOG, PLAN, and this task board to mark T63 complete and promote T64.
+- Validation passed: `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, and `git diff --check`.
+- No runtime behavior, backend route, security model, credential storage, packaging config, GitHub Release flow, hosted support path, public API path, signed-release path, or live-trading path changed.
 
 ### T64 - Research Flow Definition
 

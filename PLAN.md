@@ -60,7 +60,7 @@ The active product-trust sequence is:
 - T60: demo mode and no-key startup. Completed.
 - T61: release artifact naming and checklist. Completed.
 - T62: README product proof upgrade. Completed.
-- T63: contributor entry kit.
+- T63: contributor entry kit. Completed.
 - T64+: research-flow polish, data-source governance, local AI assistance,
   China-market connectors, packaged signoff, and broader public-trust work.
 

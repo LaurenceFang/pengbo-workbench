@@ -30,8 +30,11 @@ release channel yet.
 - T62 upgrades README product proof with source-safe screenshots and a practical
   reviewer journey across Dashboard, Research, Data Sources, Workflow Studio,
   and Manual local-security boundaries.
+- T63 adds a contributor entry kit with setup expectations, safe contribution
+  boundaries, first-issue candidates, and issue templates that avoid hosted,
+  signed-release, live-trading, and credential-support promises.
 
 ## Upcoming
 
-- T63 will add a contributor entry kit with setup expectations, safe
-  contribution boundaries, and first-issue candidates.
+- T64 will define the core research flow across asset, data status, evidence,
+  report export, and audit handoffs.

@@ -19,9 +19,9 @@ The active roadmap is tracked in [IMPLEMENTATION_TASKS.md](IMPLEMENTATION_TASKS.
 3. `T55 - Future Public Auth And Session Layer` is implemented as a local-only session, permission, and audit boundary.
 4. `T56 - Public Exposure Gateway And Sidecar Hardening` is implemented as a local-only gateway boundary with loopback bind enforcement, unsafe-origin rejection, method handling, rate-limit hooks, and redacted gateway audit evidence.
 
-These tasks were intentionally prioritized before broader public, account, remote, team, AI, or China-market connector work. The next roadmap lane begins at `T57 - License And Open Source Boundary`, followed by open-source readiness, CI, releases, demo mode, research-flow polish, data governance, local AI assistance, China-market connectors, and security packaged signoff.
+These tasks were intentionally prioritized before broader public, account, remote, team, AI, or China-market connector work. The next roadmap lane begins at `T57 - License And Open Source Boundary`, followed by open-source readiness, CI, releases, demo mode, contributor readiness, research-flow polish, data governance, local AI assistance, China-market connectors, and security packaged signoff.
 
-`T58 - Version Governance Cleanup`, `T59 - GitHub Actions CI Baseline`, `T60 - Demo Mode And No-Key Startup`, and `T61 - First Release Packaging` are implemented. The next product-trust task is `T62 - README Product Proof Upgrade`.
+`T58 - Version Governance Cleanup`, `T59 - GitHub Actions CI Baseline`, `T60 - Demo Mode And No-Key Startup`, `T61 - First Release Packaging`, `T62 - README Product Proof Upgrade`, and `T63 - Contributor Entry Kit` are implemented. The next product-trust task is `T64 - Research Flow Definition`.
 
 For the product-team assessment behind this direction, see [docs/product-team-assessment-2026-05-17.md](docs/product-team-assessment-2026-05-17.md).
 
@@ -171,6 +171,12 @@ npm run smoke:workflow-studio:packaged
 ```
 
 Run only the smoke checks relevant to the files changed in a given task. Documentation-only and ignore-only changes normally do not require packaged smoke validation.
+
+## Contributing
+
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, source-level
+validation, safe first-issue areas, and the current credential, execution,
+gateway, and release-sensitive contribution boundaries.
 
 ## Repository Upload Notes
 
