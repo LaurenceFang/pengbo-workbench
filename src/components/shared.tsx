@@ -164,6 +164,38 @@ export function MetricCard({
   );
 }
 
+export type DataStatusTone = "observed" | "cached" | "degraded" | "credential_required" | "blocked" | "audited";
+
+export type DataStatusItem = {
+  label: string;
+  value: string;
+  detail?: string;
+  tone?: DataStatusTone;
+};
+
+export function DataStatusStrip({
+  ariaLabel,
+  items,
+  note,
+}: {
+  ariaLabel: string;
+  items: DataStatusItem[];
+  note?: string;
+}) {
+  return (
+    <div aria-label={ariaLabel} className="data-status-strip">
+      {items.map((item) => (
+        <div key={`${item.label}-${item.value}`} className={`data-status-tile status-${item.tone ?? "observed"}`}>
+          <span>{item.label}</span>
+          <strong>{item.value}</strong>
+          {item.detail ? <p>{item.detail}</p> : null}
+        </div>
+      ))}
+      {note ? <p className="data-status-note">{note}</p> : null}
+    </div>
+  );
+}
+
 export function SettingRow({ label, value, helper }: { label: string; value: string; helper: string }) {
   return (
     <div className="setting-item">

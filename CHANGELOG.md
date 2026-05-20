@@ -39,7 +39,11 @@ release channel yet.
 - T65 makes the Asset page a clearer symbol-first research entry with local data
   status, portfolio exposure, related brief state, and direct Research, evidence,
   report, and Data Sources actions.
+- T66 adds a shared data-status strip across Asset, Research, and Data Sources
+  so provider freshness, credentials, cache/degraded state, and read-only or
+  execution boundaries use consistent cautious language.
 
 ## Upcoming
 
-- T66 will add a consistent data-status strip across research-critical views.
+- T67 will upgrade Research briefs around thesis, evidence, counter-evidence,
+  risks, watch items, and source provenance.

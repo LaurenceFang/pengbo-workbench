@@ -63,7 +63,8 @@ The active product-trust sequence is:
 - T63: contributor entry kit. Completed.
 - T64: research flow definition. Completed.
 - T65: asset-page research entry. Completed.
-- T66+: data-status consistency, research-brief quality, report evidence packs,
+- T66: data-status strip consistency. Completed.
+- T67+: research-brief quality, report evidence packs,
   data-source governance, local AI assistance,
   China-market connectors, packaged signoff, and broader public-trust work.
 

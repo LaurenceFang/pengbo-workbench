@@ -8,7 +8,16 @@ import {
   type ResearchBriefListItem,
   type WatchlistAssetSnapshot,
 } from "../lib/api";
-import { InlineState, KLineChartPanel, PanelState, formatPercent, formatPrice, formatSignedMoney } from "../components/shared";
+import {
+  DataStatusStrip,
+  InlineState,
+  KLineChartPanel,
+  PanelState,
+  formatPercent,
+  formatPrice,
+  formatSignedMoney,
+  type DataStatusItem,
+} from "../components/shared";
 import { useI18n } from "../i18n";
 import { useAppStore } from "../store/app-store";
 
@@ -242,26 +251,24 @@ export function AssetView({
             {asset.stale ? "cached" : "observed"}
           </span>
         </div>
-        <div
-          aria-label={`asset-data-status symbol=${symbol} fundamentals=${asset.capabilities.fundamentals_status} filings=${asset.capabilities.filings_status} stale=${String(asset.stale)}`}
-          className="asset-research-status"
-        >
-          <div>
-            <span>Data</span>
-            <strong>{dataStatusCopy.title}</strong>
-            <p>{dataStatusCopy.copy}</p>
-          </div>
-          <div>
-            <span>Portfolio</span>
-            <strong>{holding ? `${holding.quantity} ${symbol}` : "Not held"}</strong>
-            <p>{holding ? "Local holding context is available for the Research handoff." : "Research can still create a portfolio handoff later."}</p>
-          </div>
-          <div>
-            <span>Brief</span>
-            <strong>{relatedBrief ? "Existing brief" : "Ready to create"}</strong>
-            <p>{relatedBrief ? `Updated ${new Date(relatedBrief.updated_at).toLocaleString()}` : "Research will open or create a local brief for this symbol."}</p>
-          </div>
-        </div>
+        <DataStatusStrip
+          ariaLabel={`asset-data-status symbol=${symbol} fundamentals=${asset.capabilities.fundamentals_status} filings=${asset.capabilities.filings_status} stale=${String(asset.stale)}`}
+          items={[
+            { label: "Data", value: dataStatusCopy.title, detail: dataStatusCopy.copy, tone: dataStatusCopy.tone },
+            {
+              label: "Portfolio",
+              value: holding ? `${holding.quantity} ${symbol}` : "Not held",
+              detail: holding ? "Local holding context is available for the Research handoff." : "Research can still create a portfolio handoff later.",
+              tone: holding ? "observed" : "audited",
+            },
+            {
+              label: "Brief",
+              value: relatedBrief ? "Existing brief" : "Ready to create",
+              detail: relatedBrief ? `Updated ${new Date(relatedBrief.updated_at).toLocaleString()}` : "Research will open or create a local brief for this symbol.",
+              tone: relatedBrief ? "audited" : "observed",
+            },
+          ]}
+        />
         {contextError ? <InlineState label={`Context fallback: ${contextError}`} /> : null}
         <div className="asset-next-actions">
           <button
@@ -396,35 +403,40 @@ function describeCoverageTitle(status: CoverageStatus, availableTitle: string, i
   }
 }
 
-function summarizeDataStatus(asset: AssetWorkspaceResponse): { title: string; copy: string } {
+function summarizeDataStatus(asset: AssetWorkspaceResponse): { title: string; copy: string; tone: NonNullable<DataStatusItem["tone"]> } {
   const statuses = [asset.capabilities.fundamentals_status, asset.capabilities.filings_status];
   if (asset.stale) {
     return {
       title: "Cached snapshot",
       copy: "This asset can still seed a brief, but the report should mention cached or stale data.",
+      tone: "cached",
     };
   }
   if (statuses.includes("credential_required")) {
     return {
       title: "Credential gated",
       copy: "Some provider coverage needs local credentials before a refreshed brief can include it.",
+      tone: "credential_required",
     };
   }
   if (statuses.includes("temporarily_unavailable")) {
     return {
       title: "Partially degraded",
       copy: "Supported coverage is temporarily unavailable; Research will preserve the observed state.",
+      tone: "degraded",
     };
   }
   if (statuses.every((status) => status === "unsupported")) {
     return {
       title: "Limited coverage",
       copy: "The asset is available for price research, but fundamentals and filings are unsupported.",
+      tone: "blocked",
     };
   }
   return {
     title: "Observed",
     copy: "Quote, provider state, and available source context are ready for a local research brief.",
+    tone: "observed",
   };
 }
 

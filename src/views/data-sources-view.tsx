@@ -1,6 +1,6 @@
 import { Download, ExternalLink, RefreshCcw, Save, ShieldCheck, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { InlineState } from "../components/shared";
+import { DataStatusStrip, InlineState } from "../components/shared";
 import { useAsyncResource } from "../hooks/use-async-resource";
 import { useI18n } from "../i18n";
 import {
@@ -292,7 +292,7 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
               {selectedStatus?.configured ? "configured" : selectedStatus?.health ?? "planned"}
             </span>
           </div>
-          {selectedStatus ? <ProviderStatusPanel status={selectedStatus} i18n={i18n} /> : null}
+          {selectedStatus ? <ProviderStatusPanel status={selectedStatus} catalog={selectedCatalog} i18n={i18n} /> : null}
           {selectedCatalog ? (
             <>
               <div
@@ -438,16 +438,57 @@ function isKeyedSource(provider: string): boolean {
   return provider === "fred" || provider === "coingecko";
 }
 
-function ProviderStatusPanel({ status, i18n }: { status: DataSourceRuntimeStatus; i18n: ReturnType<typeof useI18n> }) {
+function ProviderStatusPanel({
+  status,
+  catalog,
+  i18n,
+}: {
+  status: DataSourceRuntimeStatus;
+  catalog: ConnectionsCatalogResponse["providers"][number] | null | undefined;
+  i18n: ReturnType<typeof useI18n>;
+}) {
   return (
-    <div className="source-status-strip">
-      <Metric label="Health" value={status.health} />
-      <Metric label={i18n.t("dataSources.credentials")} value={status.requires_credentials ? i18n.t("dataSources.required") : i18n.t("dataSources.notRequired")} />
-      <Metric label={i18n.t("dataSources.cache")} value={status.cache_updated_at ?? "--"} />
-      <Metric label={i18n.t("dataSources.stale")} value={status.stale ? i18n.t("dataSources.yes") : i18n.t("dataSources.no")} />
-      <p className="data-source-message">{status.message}</p>
-    </div>
+    <DataStatusStrip
+      ariaLabel={`data-source-status-strip provider=${status.provider} health=${status.health} stale=${String(status.stale)} read_only=${String(catalog?.read_only ?? true)} live_trading=${String(catalog?.live_trading ?? false)}`}
+      items={[
+        { label: "Health", value: status.health, detail: status.message, tone: statusTone(status.health, status.stale) },
+        {
+          label: i18n.t("dataSources.credentials"),
+          value: status.requires_credentials ? i18n.t("dataSources.required") : i18n.t("dataSources.notRequired"),
+          detail: status.configured ? "configured" : "no local secret material exposed",
+          tone: status.requires_credentials && !status.configured ? "credential_required" : "observed",
+        },
+        {
+          label: i18n.t("dataSources.freshness"),
+          value: status.cache_updated_at ?? "--",
+          detail: status.stale ? "cached or stale source context" : "observed provider state",
+          tone: status.stale ? "cached" : "observed",
+        },
+        {
+          label: "Boundary",
+          value: catalog?.read_only === false ? "mutation capable" : "read-only",
+          detail: catalog?.live_trading ? "live trading path; protected by execution gates" : "no live trading path",
+          tone: catalog?.live_trading ? "blocked" : "audited",
+        },
+      ]}
+    />
   );
+}
+
+function statusTone(health: DataSourceRuntimeStatus["health"], stale: boolean) {
+  if (stale || health === "cached") {
+    return "cached";
+  }
+  if (health === "missing_credentials") {
+    return "credential_required";
+  }
+  if (health === "error" || health === "unavailable") {
+    return "degraded";
+  }
+  if (health === "unsupported" || health === "planned") {
+    return "blocked";
+  }
+  return "observed";
 }
 
 function MacroPreview({ macro, i18n }: { macro: AsyncResource<MacroSeriesResponse>; i18n: ReturnType<typeof useI18n> }) {

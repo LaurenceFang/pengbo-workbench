@@ -1394,18 +1394,18 @@ button {
   min-width: 9rem;
 }
 
-.asset-research-status,
+.data-status-strip,
 .asset-next-actions {
   display: grid;
   gap: 0.75rem;
 }
 
-.asset-research-status {
+.data-status-strip {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 1rem 0;
 }
 
-.asset-research-status > div {
+.data-status-tile {
   min-width: 0;
   padding: 0.85rem;
   border-radius: var(--radius-panel);
@@ -1413,25 +1413,44 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
-.asset-research-status span {
+.data-status-tile span {
   display: block;
   color: rgba(211, 224, 242, 0.62);
   font-size: 0.76rem;
   text-transform: uppercase;
 }
 
-.asset-research-status strong {
+.data-status-tile strong {
   display: block;
   margin-top: 0.25rem;
   color: #f5f8ff;
   font-size: 0.95rem;
 }
 
-.asset-research-status p {
+.data-status-tile p,
+.data-status-note {
   margin: 0.35rem 0 0;
   color: rgba(217, 227, 242, 0.72);
   font-size: 0.82rem;
   line-height: 1.45;
+}
+
+.data-status-note {
+  grid-column: 1 / -1;
+}
+
+.data-status-tile.status-cached,
+.data-status-tile.status-degraded {
+  border-color: rgba(247, 181, 93, 0.35);
+}
+
+.data-status-tile.status-credential_required,
+.data-status-tile.status-blocked {
+  border-color: rgba(255, 138, 138, 0.36);
+}
+
+.data-status-tile.status-audited {
+  border-color: rgba(110, 168, 254, 0.35);
 }
 
 .asset-next-actions {
@@ -2108,7 +2127,7 @@ button {
     grid-row: auto;
   }
 
-  .asset-research-status,
+  .data-status-strip,
   .asset-next-actions {
     grid-template-columns: 1fr;
   }
@@ -2232,7 +2251,6 @@ button {
   padding: var(--space-3);
 }
 
-.source-status-strip,
 .source-contract-grid {
   display: grid;
   gap: var(--space-2);
@@ -2240,12 +2258,12 @@ button {
 }
 
 .source-contract-grid .metric-tile,
-.source-status-strip .metric-tile {
+.data-status-strip .metric-tile {
   min-width: 0;
 }
 
 .source-contract-grid .metric-tile strong,
-.source-status-strip .metric-tile strong {
+.data-status-strip .metric-tile strong {
   display: block;
   font-size: var(--font-size-sm);
   line-height: 1.35;

@@ -2,12 +2,14 @@ import { Download, FileSearch, FolderPlus, RefreshCcw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnalysisModuleList } from "../components/analysis-cards";
 import {
+  DataStatusStrip,
   InlineState,
   MetricCard,
   PanelState,
   formatPercent,
   formatPrice,
   type BackendStatus,
+  type DataStatusItem,
 } from "../components/shared";
 import { useAsyncResource } from "../hooks/use-async-resource";
 import {
@@ -364,6 +366,11 @@ export function ResearchView({
                     </div>
                     <span className="mini-pill accent">{activeBrief.stale ? "cached" : "live"}</span>
                   </div>
+                  <DataStatusStrip
+                    ariaLabel={`research-data-status brief=${activeBrief.brief_id} symbol=${activeBrief.symbol} stale=${String(activeBrief.stale)} fundamentals=${activeBrief.asset_snapshot.capabilities.fundamentals_status} filings=${activeBrief.asset_snapshot.capabilities.filings_status}`}
+                    items={researchStatusItems(activeBrief)}
+                    note="Research evidence stays local; credential-gated fields remain visibly marked and live execution stays behind explicit Binance gates."
+                  />
                   <div className="metric-grid">
                     <MetricCard
                       label="Price"
@@ -675,4 +682,43 @@ function formatResearchCapabilityStatus(status: ResearchBrief["asset_snapshot"][
     default:
       return "Unsupported";
   }
+}
+
+function researchStatusItems(brief: ResearchBrief): DataStatusItem[] {
+  const capabilities = brief.asset_snapshot.capabilities;
+  const credentialRequired =
+    capabilities.fundamentals_status === "credential_required" ||
+    capabilities.filings_status === "credential_required";
+  const degraded =
+    brief.stale ||
+    capabilities.fundamentals_status === "temporarily_unavailable" ||
+    capabilities.filings_status === "temporarily_unavailable";
+  return [
+    {
+      label: "Provider",
+      value: brief.asset_snapshot.asset.provider,
+      detail: brief.stale ? "cached brief snapshot" : "observed brief snapshot",
+      tone: brief.stale ? "cached" : "observed",
+    },
+    {
+      label: "Credentials",
+      value: credentialRequired ? "credential_required" : "not required",
+      detail: credentialRequired ? "Refresh may need local provider credentials." : "Current snapshot can be reviewed without secrets.",
+      tone: credentialRequired ? "credential_required" : "observed",
+    },
+    {
+      label: "Coverage",
+      value: degraded ? "degraded" : "observed",
+      detail: `Fundamentals ${capabilities.fundamentals_status}; filings ${capabilities.filings_status}.`,
+      tone: degraded ? "degraded" : "observed",
+    },
+    {
+      label: "Evidence",
+      value: brief.evidence_context ? "audited" : "pending",
+      detail: brief.evidence_context
+        ? `${brief.evidence_context.data_quality_notes.length} data-quality note(s) attached.`
+        : "Evidence chain appears after linked artifacts are available.",
+      tone: brief.evidence_context ? "audited" : "blocked",
+    },
+  ];
 }

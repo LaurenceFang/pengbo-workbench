@@ -107,8 +107,9 @@ packs, not unrelated diagnostics.
 - Asset has rich quote, history, fundamentals, and filings state, but it does
   not yet feel like the obvious first step into a research brief and final
   report.
-- Data status is visible in several places, but the same provider/freshness/
-  credential/degraded semantics are not yet presented as one consistent strip.
+- Data status now uses one shared strip on research-critical Asset, Research,
+  and Data Sources surfaces. T67 should build on that strip when structuring
+  brief thesis, assumptions, evidence, and risk boundaries.
 - Research has evidence-chain content, but the thesis, assumptions, conclusion,
   and risk-boundary structure still depends too much on free-form notes.
 - Export flows exist for research, data sources, strategy, and workflow
@@ -126,9 +127,9 @@ packs, not unrelated diagnostics.
 - T65 - Asset Page Research Entry Polish: implemented as an additive Asset page
   research-entry panel with local data status, portfolio exposure, related brief
   state, and direct Research/evidence/report/Data Sources actions.
-- T66 - Data Status Strip Everywhere: define and reuse one compact status strip
-  for provider, freshness, read-only/trading capability, credential reason, and
-  degraded/cache state.
+- T66 - Data Status Strip Everywhere: implemented with a shared frontend status
+  strip for provider, freshness, read-only/trading capability, credential reason,
+  and degraded/cache state across Asset, Research, and Data Sources.
 - T67 - Research Brief Quality Upgrade: structure the brief around thesis,
   assumptions, evidence, notes, conclusion, and risk boundaries while preserving
   current export and evidence contracts.

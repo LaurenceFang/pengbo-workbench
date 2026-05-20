@@ -60,6 +60,7 @@ Updated: 2026-05-20
 - `T63 - Contributor Entry Kit` is now implemented. New contributors have a dedicated setup and validation guide, safe first-issue candidates, and issue templates that keep credentials, Stronghold vaults, runtime data, generated logs, binaries, installers, hosted support, signed releases, and live trading outside the default public contribution path.
 - `T64 - Research Flow Definition` is now implemented. The product has a grounded primary research journey from Asset/Data Sources into Research briefs, evidence comparison, local report export, and redacted audit handoffs, with follow-up gaps mapped into T65-T68.
 - `T65 - Asset Page Research Entry Polish` is now implemented. The Asset page has an additive research-entry panel with local data status, portfolio exposure, related brief state, and direct Research, evidence, report, and Data Sources actions while preserving backend contracts and sensitive boundaries.
+- `T66 - Data Status Strip Everywhere` is now implemented. Asset, Research, and Data Sources share a compact frontend data-status strip for provider freshness, credential state, cache/degraded state, read-only or execution boundary, and cautious observed/cached/degraded/credential_required/blocked/audited wording.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -168,6 +169,15 @@ Updated: 2026-05-20
 - Updated `docs/research-flow-definition.md`, README, CHANGELOG, PLAN, and this task board so T65 is complete and T66 is promoted next.
 - Validation passed: `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, `npm run smoke:page-polish`, and `git diff --check`.
 - No backend route, Research API contract, credential storage, Stronghold behavior, local-security/session/gateway model, packaging config, hosted support path, public API path, signed-release path, or live-trading path changed in T65.
+
+- Executed `T66 - Data Status Strip Everywhere` on 2026-05-20.
+- Added a shared `DataStatusStrip` frontend component for compact provider, freshness, credential, degraded/cache, read-only, live-trading boundary, and audit/evidence status.
+- Replaced the Asset research-entry status summary with the shared strip while preserving the `asset-data-status`, `asset-research-entry`, `asset-open-research`, and `asset-next-action` anchors from T65.
+- Added a Research brief `research-data-status` strip that summarizes provider, stale/cache state, credential-required coverage, degraded coverage, and evidence/audit note count.
+- Reworked the Data Sources provider status panel to use the same strip with provider health, credential setup, freshness/cache state, read-only state, and live-trading boundary.
+- Updated `docs/research-flow-definition.md`, README, CHANGELOG, PLAN, and this task board so T66 is complete and T67 is promoted next.
+- Validation passed: `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, `npm run smoke:page-polish`, and `git diff --check`.
+- No backend route, provider data model, Research API contract, credential storage, Stronghold behavior, local-security/session/gateway model, packaging config, hosted support path, public API path, signed-release path, or live-trading path changed in T66.
 
 - Re-reviewed the live `Tauri + React + FastAPI + SQLite/DuckDB` desktop architecture against the current packaged-smoke workflow before extending the roadmap.
 - Treated `FinceptTerminal` as a product-pattern reference rather than a migration target; the local `Pengbo Workbench` stack remains the implementation baseline.
@@ -893,32 +903,32 @@ Updated: 2026-05-20
 
 ## Recommended Next Task
 
-### T66 - Data Status Strip Everywhere
+### T67 - Research Brief Quality Upgrade
 
 Priority: P1
 Status: Planned
 
 Why this is next:
 
-- `T65` now gives the Asset page a practical symbol-first research entry.
-- The next product gap is making provider freshness, credential requirements, read-only/trading capability, and degraded/cache state consistent across research-critical views.
-- T66 should reuse the T65 Asset status semantics across Asset, Research, Data Sources, and report-facing surfaces.
+- `T66` now gives Asset, Research, and Data Sources a consistent data-status strip.
+- The next product gap is making Research briefs read like structured decisions instead of a snapshot plus free-form notes.
+- T67 should turn thesis, evidence, counter-evidence, risks, watch items, and provenance into a reusable brief shape.
 
 Scope:
 
-- Add a consistent data-status strip to research-critical views.
-- Show provider, freshness, read-only/trading capability, missing credential reason, and degradation state.
-- Keep wording cautious: observed, cached, simulated, degraded, blocked, audited.
+- Upgrade briefs from summary text into structured thesis, evidence, counter-evidence, risks, watch items, and source provenance.
+- Add brief templates for equity, crypto, portfolio, and macro use cases.
+- Make unsupported or stale evidence explicit.
 
 Acceptance:
 
-- Research-critical pages show the same compact data-state language for provider freshness, credentials, cache/degraded state, and execution boundary.
-- The strip does not expose secrets or imply live-trading support for non-Binance providers.
-- Existing Asset-to-Research handoff anchors remain stable.
+- Research briefs support a complete thesis review without relying only on free-form notes.
+- Stale, unsupported, simulated, blocked, and audited evidence remains clearly labeled.
+- Existing export, evidence, and Asset-to-Research handoff paths remain compatible.
 
 Implementation notes:
 
-- Prefer a shared frontend component or helper before duplicating status logic across pages.
+- Preserve current Research API compatibility unless a small additive field is clearly needed and covered by tests.
 
 ## Priority Order
 
@@ -1294,7 +1304,7 @@ Completion notes:
 ### T66 - Data Status Strip Everywhere
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-08-17 to 2026-08-21
 Depends on: T65
 
@@ -1307,6 +1317,16 @@ Task:
 Done when:
 
 - Every research decision surface explains where its data came from and whether it is fresh enough.
+
+Completion notes:
+
+- Added a shared `DataStatusStrip` frontend component for compact provider, freshness, credential, degraded/cache, read-only, live-trading boundary, and audit/evidence status.
+- Replaced the Asset research-entry status summary with the shared strip while preserving T65 anchors.
+- Added a Research `research-data-status` strip that summarizes provider, stale/cache state, credential-required coverage, degraded coverage, and evidence/audit note count.
+- Reworked the Data Sources provider status panel to use the same strip with provider health, credential setup, freshness/cache state, read-only state, and live-trading boundary.
+- Updated `docs/research-flow-definition.md`, README, CHANGELOG, PLAN, and this task board to mark T66 complete and promote T67.
+- Validation passed: `npm run check:public-boundary`, `npm run typecheck`, `npm run build`, `npm run smoke:page-polish`, and `git diff --check`.
+- No backend route, provider data model, Research API contract, credential storage, Stronghold behavior, local-security/session/gateway model, packaging config, hosted support path, public API path, signed-release path, or live-trading path changed.
 
 ### T67 - Research Brief Quality Upgrade
 
