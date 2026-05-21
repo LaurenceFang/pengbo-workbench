@@ -9,6 +9,7 @@ import {
   type CryptoMarketsResponse,
   type DataSourceRuntimeStatus,
   type DataSourceStatusResponse,
+  type FreshnessState,
   type MacroSeriesResponse,
   type NewsEventsResponse,
 } from "../lib/api";
@@ -449,7 +450,7 @@ function ProviderStatusPanel({
 }) {
   return (
     <DataStatusStrip
-      ariaLabel={`data-source-status-strip provider=${status.provider} health=${status.health} stale=${String(status.stale)} read_only=${String(catalog?.read_only ?? true)} live_trading=${String(catalog?.live_trading ?? false)}`}
+      ariaLabel={`data-source-status-strip provider=${status.provider} health=${status.health} freshness=${status.freshness_state} stale=${String(status.stale)} read_only=${String(catalog?.read_only ?? true)} live_trading=${String(catalog?.live_trading ?? false)}`}
       items={[
         { label: "Health", value: status.health, detail: status.message, tone: statusTone(status.health, status.stale) },
         {
@@ -460,9 +461,9 @@ function ProviderStatusPanel({
         },
         {
           label: i18n.t("dataSources.freshness"),
-          value: status.cache_updated_at ?? "--",
-          detail: status.stale ? "cached or stale source context" : "observed provider state",
-          tone: status.stale ? "cached" : "observed",
+          value: formatFreshnessState(status.freshness_state),
+          detail: freshnessDetail(status),
+          tone: freshnessTone(status.freshness_state),
         },
         {
           label: "Boundary",
@@ -473,6 +474,27 @@ function ProviderStatusPanel({
       ]}
     />
   );
+}
+
+function formatFreshnessState(state: FreshnessState): string {
+  return state.replace("_", " ");
+}
+
+function freshnessDetail(status: DataSourceRuntimeStatus): string {
+  const age = status.cache_age_seconds == null ? "no cached success yet" : `cache age ${formatDuration(status.cache_age_seconds)}`;
+  const ttl =
+    status.freshness?.cache_ttl_seconds == null ? "TTL not specified" : `TTL ${formatDuration(status.freshness.cache_ttl_seconds)}`;
+  const behavior = status.freshness_state === "credential_required" ? status.freshness?.refresh_behavior : status.freshness?.offline_behavior;
+  return [age, ttl, behavior].filter(Boolean).join("; ");
+}
+
+function freshnessTone(state: FreshnessState) {
+  if (state === "fresh") return "observed";
+  if (state === "cached" || state === "stale" || state === "refresh_failed") return "cached";
+  if (state === "credential_required") return "credential_required";
+  if (state === "offline" || state === "unavailable") return "degraded";
+  if (state === "unsupported") return "blocked";
+  return "audited";
 }
 
 function statusTone(health: DataSourceRuntimeStatus["health"], stale: boolean) {
@@ -491,16 +513,25 @@ function statusTone(health: DataSourceRuntimeStatus["health"], stale: boolean) {
   return "observed";
 }
 
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours}h`;
+  return `${Math.round(hours / 24)}d`;
+}
+
 function MacroPreview({ macro, i18n }: { macro: AsyncResource<MacroSeriesResponse>; i18n: ReturnType<typeof useI18n> }) {
   if (macro.loading) return <InlineState label={i18n.t("dataSources.loadingMacro")} />;
   if (macro.error) return <InlineState label={macro.error} actionLabel={i18n.t("dataSources.retryMacro")} onAction={macro.reload} />;
   if (!macro.data) return null;
   return (
-    <div className="data-preview-block" aria-label={`data-source-preview kind=macro state=${macro.data.provenance.stale ? "cached" : "ok"} provider=${macro.data.provider}`}>
+    <div className="data-preview-block" aria-label={`data-source-preview kind=macro state=${macro.data.provenance.freshness_state} provider=${macro.data.provider}`}>
       <div className="capability-block-head">
         <strong>{macro.data.title}</strong>
         <span className={`mini-pill ${macro.data.provenance.stale ? "status-cached" : "status-ok"}`}>
-          {macro.data.provenance.stale ? "cached" : macro.data.provider}
+          {macro.data.provenance.stale ? formatFreshnessState(macro.data.provenance.freshness_state) : macro.data.provider}
         </span>
       </div>
       <table className="macro-series-table">
@@ -552,11 +583,11 @@ function CryptoPreview({
   if (crypto.error) return <InlineState label={crypto.error} actionLabel={i18n.t("dataSources.retryCrypto")} onAction={crypto.reload} />;
   if (!crypto.data) return null;
   return (
-    <div className="data-preview-block" aria-label={`data-source-preview kind=crypto state=${crypto.data.provenance.stale ? "cached" : "ok"} provider=${crypto.data.provider}`}>
+    <div className="data-preview-block" aria-label={`data-source-preview kind=crypto state=${crypto.data.provenance.freshness_state} provider=${crypto.data.provider}`}>
       <div className="capability-block-head">
         <strong>{i18n.t("dataSources.cryptoContext")}</strong>
         <span className={`mini-pill ${crypto.data.provenance.stale ? "status-cached" : "status-ok"}`}>
-          {crypto.data.provenance.stale ? "cached" : crypto.data.provider}
+          {crypto.data.provenance.stale ? formatFreshnessState(crypto.data.provenance.freshness_state) : crypto.data.provider}
         </span>
       </div>
       <div className="mini-table">
@@ -577,7 +608,7 @@ function NewsPreview({ news, i18n }: { news: AsyncResource<NewsEventsResponse>; 
   if (news.error) return <InlineState label={news.error} actionLabel={i18n.t("dataSources.retryNews")} onAction={news.reload} />;
   if (!news.data) return null;
   return (
-    <div className="event-list" aria-label={`data-source-preview kind=news state=${news.data.provenance.stale ? "cached" : "ok"} provider=${news.data.provider}`}>
+    <div className="event-list" aria-label={`data-source-preview kind=news state=${news.data.provenance.freshness_state} provider=${news.data.provider}`}>
       {news.data.events.map((event) => (
         <a className="event-row" href={event.url} key={`${event.title}-${event.published_at}`} target="_blank" rel="noreferrer">
           <ShieldCheck size={16} />
@@ -596,12 +627,13 @@ function SourceLine({
   provenance,
   i18n,
 }: {
-  provenance: { provider: string; label: string; fetched_at: string | null; source_url: string; stale: boolean; unavailable_reason: string | null };
+  provenance: { provider: string; label: string; fetched_at: string | null; source_url: string; stale: boolean; freshness_state: FreshnessState; cache_age_seconds: number | null; unavailable_reason: string | null };
   i18n: ReturnType<typeof useI18n>;
 }) {
   return (
-    <p className="source-line" aria-label={`data-source-provenance provider=${provenance.provider} stale=${provenance.stale}`}>
-      {provenance.label} / {provenance.fetched_at ?? i18n.t("dataSources.notFetched")}
+    <p className="source-line" aria-label={`data-source-provenance provider=${provenance.provider} freshness=${provenance.freshness_state} stale=${provenance.stale}`}>
+      {provenance.label} / {formatFreshnessState(provenance.freshness_state)} / {provenance.fetched_at ?? i18n.t("dataSources.notFetched")}
+      {provenance.cache_age_seconds == null ? "" : ` / cache age ${formatDuration(provenance.cache_age_seconds)}`}
       {provenance.unavailable_reason ? ` / ${provenance.unavailable_reason}` : ""}
     </p>
   );

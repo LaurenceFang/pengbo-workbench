@@ -130,6 +130,16 @@ export type RuntimeCommandResponse = {
 };
 
 export type ConnectionHealth = "ok" | "error" | "missing_credentials" | "cached" | "planned" | "unsupported" | "unavailable";
+export type FreshnessState =
+  | "fresh"
+  | "cached"
+  | "stale"
+  | "refresh_failed"
+  | "offline"
+  | "credential_required"
+  | "unavailable"
+  | "unsupported"
+  | "unknown";
 export type CredentialState =
   | "missing"
   | "configured"
@@ -209,6 +219,10 @@ export type SourceFreshnessMetadata = {
   label: string;
   expected_lag: string | null;
   as_of_field: string | null;
+  cache_ttl_seconds: number | null;
+  stale_after_seconds: number | null;
+  refresh_behavior: string | null;
+  offline_behavior: string | null;
 };
 
 export type SourceProvenanceMetadata = {
@@ -280,6 +294,9 @@ export type DataSourceRuntimeStatus = {
   requires_credentials: boolean;
   cache_updated_at: string | null;
   cache_age_seconds: number | null;
+  freshness_state: FreshnessState;
+  freshness: SourceFreshnessMetadata | null;
+  last_success_at: string | null;
   registration_url: string | null;
   paid_setup_url: string | null;
 };
@@ -294,6 +311,8 @@ export type DataSourceProvenance = {
   source_url: string;
   fetched_at: string | null;
   freshness: SourceFreshnessMetadata | null;
+  freshness_state: FreshnessState;
+  cache_age_seconds: number | null;
   stale: boolean;
   unavailable_reason: string | null;
 };
@@ -345,6 +364,11 @@ export type DataSourceReportSourceSummary = {
   configured: boolean;
   stale: boolean;
   fetched_at: string | null;
+  freshness_state: FreshnessState;
+  cache_age_seconds: number | null;
+  cache_ttl_seconds: number | null;
+  refresh_behavior: string | null;
+  offline_behavior: string | null;
   source_url: string | null;
   unavailable_reason: string | null;
   read_only: boolean;

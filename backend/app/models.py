@@ -31,6 +31,17 @@ OnboardingStepKey = Literal[
     "execution_boundary",
 ]
 ConnectionHealth = Literal["ok", "error", "missing_credentials", "cached", "planned", "unsupported", "unavailable"]
+FreshnessState = Literal[
+    "fresh",
+    "cached",
+    "stale",
+    "refresh_failed",
+    "offline",
+    "credential_required",
+    "unavailable",
+    "unsupported",
+    "unknown",
+]
 CredentialState = Literal[
     "missing",
     "configured",
@@ -281,6 +292,10 @@ class SourceFreshnessMetadata(BaseModel):
     label: str
     expected_lag: str | None = None
     as_of_field: str | None = None
+    cache_ttl_seconds: int | None = None
+    stale_after_seconds: int | None = None
+    refresh_behavior: str | None = None
+    offline_behavior: str | None = None
 
 
 class SourceProvenanceMetadata(BaseModel):
@@ -396,6 +411,9 @@ class DataSourceRuntimeStatus(BaseModel):
     requires_credentials: bool = False
     cache_updated_at: str | None = None
     cache_age_seconds: int | None = None
+    freshness_state: FreshnessState = "unknown"
+    freshness: SourceFreshnessMetadata | None = None
+    last_success_at: str | None = None
     registration_url: str | None = None
     paid_setup_url: str | None = None
 
@@ -410,6 +428,8 @@ class DataSourceProvenance(BaseModel):
     source_url: str
     fetched_at: str | None = None
     freshness: SourceFreshnessMetadata | None = None
+    freshness_state: FreshnessState = "unknown"
+    cache_age_seconds: int | None = None
     stale: bool = False
     unavailable_reason: str | None = None
 
@@ -480,6 +500,11 @@ class DataSourceReportSourceSummary(BaseModel):
     configured: bool
     stale: bool = False
     fetched_at: str | None = None
+    freshness_state: FreshnessState = "unknown"
+    cache_age_seconds: int | None = None
+    cache_ttl_seconds: int | None = None
+    refresh_behavior: str | None = None
+    offline_behavior: str | None = None
     source_url: str | None = None
     unavailable_reason: str | None = None
     read_only: bool = True

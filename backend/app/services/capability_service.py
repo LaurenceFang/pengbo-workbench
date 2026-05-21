@@ -40,6 +40,10 @@ class CapabilityDefinition:
     locales: tuple[str, ...] = ()
     rate_limit_note: str | None = None
     cache_policy: str | None = None
+    cache_ttl_seconds: int | None = None
+    stale_after_seconds: int | None = None
+    refresh_behavior: str | None = None
+    offline_behavior: str | None = None
     freshness_label: str | None = None
     expected_lag: str | None = None
     as_of_field: str | None = None
@@ -65,6 +69,10 @@ class ProviderSourceDefinition:
     credential_note: str | None = None
     rate_limit_note: str | None = None
     cache_policy: str | None = None
+    cache_ttl_seconds: int | None = None
+    stale_after_seconds: int | None = None
+    refresh_behavior: str | None = None
+    offline_behavior: str | None = None
     freshness_label: str | None = None
     expected_lag: str | None = None
     as_of_field: str | None = None
@@ -100,6 +108,10 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         locales=("en-US",),
         rate_limit_note="Public upstream access can throttle or fail; callers must keep cache-aware degradation.",
         cache_policy="Quotes and history can be cached in DuckDB by the consuming service.",
+        cache_ttl_seconds=900,
+        stale_after_seconds=3600,
+        refresh_behavior="Refresh on asset, watchlist, screener, research, or factor workspace fetch.",
+        offline_behavior="Use the latest local quote/history snapshot when live upstream access fails; mark stale after one hour.",
         freshness_label="Latest quote or history timestamp returned by the upstream feed.",
         expected_lag="near realtime to delayed, depending on upstream symbol coverage",
         as_of_field="quote.as_of",
@@ -125,6 +137,10 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         locales=("en-US",),
         rate_limit_note="Public upstream availability varies by symbol and session.",
         cache_policy="Fundamental snapshots degrade independently from quote/history data.",
+        cache_ttl_seconds=86400,
+        stale_after_seconds=604800,
+        refresh_behavior="Refresh when the asset workspace is fetched for a supported equity.",
+        offline_behavior="Use the latest local fundamentals snapshot when live upstream access fails; mark stale after one day.",
         freshness_label="Latest successful fundamentals snapshot for the asset workspace.",
         expected_lag="snapshot-based; refreshed when the asset workspace is fetched",
         as_of_field="asset.provider",
@@ -150,6 +166,10 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         credential_note="Requires EDGAR_IDENTITY or a saved desktop EDGAR identity.",
         rate_limit_note="EDGAR requests must identify the user and should remain polite to SEC infrastructure.",
         cache_policy="Recent filings are cached in DuckDB and can be reused when live EDGAR fails.",
+        cache_ttl_seconds=600,
+        stale_after_seconds=86400,
+        refresh_behavior="Reuse filings fetched in the last ten minutes, then perform a credential-gated refresh.",
+        offline_behavior="Use the latest local filing index when EDGAR is unavailable; label credential gaps separately.",
         freshness_label="Latest filings fetch timestamp for the EDGAR probe symbol or requested asset.",
         expected_lag="latest available SEC filing metadata",
         as_of_field="filings.filed_at",
@@ -177,6 +197,10 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         credential_note="Requires PENGBO_BINANCE_API_KEY and PENGBO_BINANCE_SECRET or saved desktop Binance credentials.",
         rate_limit_note="Private account probes depend on Binance API availability and configured key permissions.",
         cache_policy="Account snapshots are cached in DuckDB and marked stale when reused after live failure.",
+        cache_ttl_seconds=300,
+        stale_after_seconds=1800,
+        refresh_behavior="Refresh only from an explicit account readiness or execution safety probe.",
+        offline_behavior="Use cached account snapshots only as read-only readiness context; never use them for live submission.",
         freshness_label="Latest successful private-account snapshot timestamp.",
         expected_lag="latest successful account probe",
         as_of_field="account.fetched_at",
@@ -202,6 +226,10 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         locales=("en-US",),
         rate_limit_note="Public API access can throttle; callers must keep cache-aware fallback.",
         cache_policy="Indicator responses are cached in DuckDB by provider and query.",
+        cache_ttl_seconds=86400,
+        stale_after_seconds=604800,
+        refresh_behavior="Refresh when a macro query, workflow step, or report sample requests the provider/query pair.",
+        offline_behavior="Use the cached provider/query response when public API access fails; label stale after one day.",
         freshness_label="Latest successful World Bank indicator response.",
         expected_lag="monthly, quarterly, or annual depending on indicator",
         as_of_field="provenance.fetched_at",
@@ -226,6 +254,10 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         locales=("en-US",),
         rate_limit_note="Public API availability depends on the selected dataset and provider.",
         cache_policy="Series responses are cached in DuckDB by provider and query.",
+        cache_ttl_seconds=86400,
+        stale_after_seconds=604800,
+        refresh_behavior="Refresh when a macro query, workflow step, or report sample requests the provider/query pair.",
+        offline_behavior="Use the cached provider/query response when DBnomics is unavailable; label stale after one day.",
         freshness_label="Latest successful DBnomics series response.",
         expected_lag="dataset-dependent",
         as_of_field="provenance.fetched_at",
@@ -250,6 +282,10 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         locales=("en-US", "zh-CN"),
         rate_limit_note="Feed availability and ordering depend on upstream publishers.",
         cache_policy="News/event responses are cached in DuckDB by query.",
+        cache_ttl_seconds=3600,
+        stale_after_seconds=86400,
+        refresh_behavior="Refresh when an event query, workflow step, or report sample requests the feed query.",
+        offline_behavior="Use cached event links when RSS access fails; label stale after one hour.",
         freshness_label="Latest successful event feed response.",
         expected_lag="minutes to hours depending on feed",
         as_of_field="event.published_at",
@@ -276,6 +312,10 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         credential_note="Requires PENGBO_FRED_API_KEY or FRED_API_KEY in the local sidecar environment.",
         rate_limit_note="FRED API access depends on a user-owned free API key.",
         cache_policy="Series responses are cached in DuckDB by series id.",
+        cache_ttl_seconds=86400,
+        stale_after_seconds=604800,
+        refresh_behavior="Refresh when a FRED series query or report sample requests the configured series.",
+        offline_behavior="Use the cached series after live API failure when a key is configured; missing keys remain credential_required.",
         freshness_label="Latest successful FRED series response.",
         expected_lag="series-dependent",
         as_of_field="observation.date",
@@ -302,6 +342,10 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         credential_note="Requires PENGBO_COINGECKO_DEMO_API_KEY for enabled demo access; Pro key setup is documented but not activated automatically.",
         rate_limit_note="Demo and Pro plans have separate rate limits; paid signup is user-controlled.",
         cache_policy="Crypto market responses are cached in DuckDB by asset list.",
+        cache_ttl_seconds=300,
+        stale_after_seconds=3600,
+        refresh_behavior="Refresh when a crypto market query, workflow step, or report sample requests the configured asset list.",
+        offline_behavior="Use the latest cached crypto market response after live API failure; Binance remains the only execution provider.",
         freshness_label="Latest successful CoinGecko market response.",
         expected_lag="near realtime to delayed by plan",
         as_of_field="market.last_updated",
@@ -362,6 +406,38 @@ class CapabilityService:
     def source_definitions(self) -> tuple[ProviderSourceDefinition, ...]:
         return PROVIDER_REGISTRY
 
+    def _freshness_payload(
+        self,
+        definition: ProviderSourceDefinition,
+        capability: CapabilityDefinition | None = None,
+    ) -> dict[str, object | None]:
+        return {
+            "label": (capability.freshness_label if capability and capability.freshness_label else definition.freshness_label)
+            or "No freshness contract is registered for this provider.",
+            "expected_lag": capability.expected_lag if capability and capability.expected_lag else definition.expected_lag,
+            "as_of_field": capability.as_of_field if capability and capability.as_of_field else definition.as_of_field,
+            "cache_ttl_seconds": (
+                capability.cache_ttl_seconds
+                if capability and capability.cache_ttl_seconds is not None
+                else definition.cache_ttl_seconds
+            ),
+            "stale_after_seconds": (
+                capability.stale_after_seconds
+                if capability and capability.stale_after_seconds is not None
+                else definition.stale_after_seconds
+            ),
+            "refresh_behavior": (
+                capability.refresh_behavior
+                if capability and capability.refresh_behavior
+                else definition.refresh_behavior
+            ),
+            "offline_behavior": (
+                capability.offline_behavior
+                if capability and capability.offline_behavior
+                else definition.offline_behavior
+            ),
+        }
+
     def _provider_capability(self, definition: ProviderSourceDefinition, capability_key: str) -> ProviderCapability:
         capability = next((item for item in definition.capabilities if item.key == capability_key), None)
         supported = capability is not None
@@ -374,7 +450,6 @@ class CapabilityService:
                 else "credential_required"
             )
         notes = tuple() if capability is None else capability.notes
-        freshness_label = (capability.freshness_label if capability else None) or definition.freshness_label
         unsupported_reason = None
         if not supported:
             unsupported_reason = (
@@ -396,11 +471,7 @@ class CapabilityService:
             locales=list((capability.locales if capability and capability.locales else definition.locales)),
             rate_limit_note=(capability.rate_limit_note if capability and capability.rate_limit_note else definition.rate_limit_note),
             cache_policy=(capability.cache_policy if capability and capability.cache_policy else definition.cache_policy),
-            freshness={
-                "label": freshness_label or "No freshness contract is registered for this capability.",
-                "expected_lag": (capability.expected_lag if capability and capability.expected_lag else definition.expected_lag),
-                "as_of_field": (capability.as_of_field if capability and capability.as_of_field else definition.as_of_field),
-            },
+            freshness=self._freshness_payload(definition, capability),
             provenance={
                 "provider": definition.label,
                 "upstream": definition.provenance_upstream,
@@ -430,11 +501,7 @@ class CapabilityService:
                     credential_note=definition.credential_note,
                     rate_limit_note=definition.rate_limit_note,
                     cache_policy=definition.cache_policy,
-                    freshness={
-                        "label": definition.freshness_label or "No freshness contract is registered for this provider.",
-                        "expected_lag": definition.expected_lag,
-                        "as_of_field": definition.as_of_field,
-                    },
+                    freshness=self._freshness_payload(definition),
                     provenance={
                         "provider": definition.label,
                         "upstream": definition.provenance_upstream,

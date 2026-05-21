@@ -59,11 +59,15 @@ release channel yet.
 - T70 adds a local-only first-run onboarding checklist that explains no-key
   demo mode, provider setup, local unlock, privacy and diagnostics boundaries,
   and confirmation-gated execution before reviewers enter sensitive workspaces.
+- T71-T73 add provider capability governance, normalized credential states, and
+  provider freshness/cache policy metadata so Connections, Data Sources,
+  provenance, and evidence-pack exports can distinguish fresh, cached, stale,
+  refresh-failed, offline, credential-required, and unsupported evidence.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T71 will add a provider capability matrix for asset classes, regions,
-  endpoint coverage, credential needs, freshness, and read/write status.
+- T74 will add a structured data-quality status contract across research,
+  portfolio, screener, reports, and provider diagnostics.

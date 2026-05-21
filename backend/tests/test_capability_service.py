@@ -47,6 +47,9 @@ class CapabilityServiceTests(unittest.TestCase):
         self.assertTrue(all(item.write_status == "read_only" for item in catalog.providers))
         self.assertTrue(all(item.endpoint_coverage for item in catalog.providers))
         self.assertTrue(all(item.matrix_summary for item in catalog.providers))
+        self.assertTrue(all(item.freshness is not None and item.freshness.cache_ttl_seconds is not None for item in catalog.providers))
+        self.assertTrue(all(item.freshness is not None and item.freshness.refresh_behavior for item in catalog.providers))
+        self.assertTrue(all(item.freshness is not None and item.freshness.offline_behavior for item in catalog.providers))
 
         edgar = next(item for item in catalog.providers if item.provider == "edgar")
         self.assertTrue(edgar.testable)
@@ -55,6 +58,7 @@ class CapabilityServiceTests(unittest.TestCase):
         self.assertIn("Supported US equities", edgar.asset_coverage)
         self.assertIn("asset filings", edgar.endpoint_coverage)
         self.assertIsNotNone(edgar.freshness)
+        self.assertEqual(edgar.freshness.cache_ttl_seconds, 600)
         self.assertIsNotNone(edgar.provenance)
         filings = next(item for item in edgar.capabilities if item.key == "filings")
         self.assertTrue(filings.supported)

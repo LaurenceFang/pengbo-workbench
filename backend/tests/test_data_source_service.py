@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 
@@ -69,10 +70,14 @@ class DataSourceServiceTests(unittest.TestCase):
 
                 self.assertGreaterEqual(len(providers), 5)
                 self.assertEqual(providers["worldbank"]["health"], "ok")
+                self.assertEqual(providers["worldbank"]["freshness_state"], "unknown")
+                self.assertIsNotNone(providers["worldbank"]["freshness"]["cache_ttl_seconds"])
                 self.assertEqual(providers["dbnomics"]["health"], "ok")
                 self.assertEqual(providers["rss_events"]["health"], "ok")
                 self.assertEqual(providers["fred"]["health"], "missing_credentials")
+                self.assertEqual(providers["fred"]["freshness_state"], "credential_required")
                 self.assertEqual(providers["coingecko"]["health"], "missing_credentials")
+                self.assertEqual(providers["coingecko"]["freshness_state"], "credential_required")
                 self.assertTrue(providers["fred"]["requires_credentials"])
                 self.assertTrue(providers["coingecko"]["requires_credentials"])
 
@@ -105,11 +110,54 @@ class DataSourceServiceTests(unittest.TestCase):
                 self.assertEqual(first.status_code, 200)
                 self.assertEqual(first.json()["observations"][0]["value"], 100.5)
                 self.assertFalse(first.json()["provenance"]["stale"])
+                self.assertEqual(first.json()["provenance"]["freshness_state"], "fresh")
 
                 cached = client.get("/api/v1/data-sources/macro/series?provider=worldbank&seriesId=NY.GDP.MKTP.CD&country=CN&limit=1")
                 self.assertEqual(cached.status_code, 200)
                 self.assertTrue(cached.json()["provenance"]["stale"])
+                self.assertEqual(cached.json()["provenance"]["freshness_state"], "refresh_failed")
                 self.assertIn("offline", cached.json()["provenance"]["unavailable_reason"])
+
+    def test_status_marks_cached_and_stale_by_provider_ttl(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            app = create_app(make_settings(Path(temp_dir)))
+            with TestClient(app) as client:
+                service = app.state.container.data_source_service
+                service.session = QueueSession(
+                    [
+                        FakeResponse(
+                            [
+                                {},
+                                [
+                                    {
+                                        "date": "2025",
+                                        "value": 100.5,
+                                        "indicator": {"value": "GDP"},
+                                        "country": {"value": "China"},
+                                    }
+                                ],
+                            ],
+                            url="https://api.worldbank.org/v2/country/CN/indicator/NY.GDP.MKTP.CD",
+                        ),
+                    ]
+                )
+
+                first = client.get("/api/v1/data-sources/macro/series?provider=worldbank&seriesId=NY.GDP.MKTP.CD&country=CN&limit=1")
+                self.assertEqual(first.status_code, 200)
+                fresh = client.get("/api/v1/data-sources/sources/worldbank/status").json()
+                self.assertEqual(fresh["freshness_state"], "fresh")
+                self.assertFalse(fresh["stale"])
+
+                stale_timestamp = datetime.now(UTC) - timedelta(days=8)
+                service.duck_store.connection.execute(
+                    "UPDATE data_source_snapshots SET fetched_at = ? WHERE provider = ?",
+                    [stale_timestamp.isoformat(), "worldbank"],
+                )
+
+                stale = client.get("/api/v1/data-sources/sources/worldbank/status").json()
+                self.assertEqual(stale["freshness_state"], "stale")
+                self.assertTrue(stale["stale"])
+                self.assertGreater(stale["cache_age_seconds"], stale["freshness"]["stale_after_seconds"])
 
     def test_dbnomics_macro_series_fetch_and_cached_fallback(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -152,6 +200,7 @@ class DataSourceServiceTests(unittest.TestCase):
                 cached = client.get("/api/v1/data-sources/macro/series?provider=dbnomics&seriesId=WB/WDI/A-NY.GDP.MKTP.CD-CHN&limit=2")
                 self.assertEqual(cached.status_code, 200)
                 self.assertTrue(cached.json()["provenance"]["stale"])
+                self.assertEqual(cached.json()["provenance"]["freshness_state"], "refresh_failed")
                 self.assertIn("dbnomics offline", cached.json()["provenance"]["unavailable_reason"])
 
     def test_dbnomics_legacy_wdi_id_is_normalized(self) -> None:
@@ -217,6 +266,7 @@ class DataSourceServiceTests(unittest.TestCase):
                 cached = client.get("/api/v1/data-sources/macro/series?provider=fred&seriesId=GDP&limit=2")
                 self.assertEqual(cached.status_code, 200)
                 self.assertTrue(cached.json()["provenance"]["stale"])
+                self.assertEqual(cached.json()["provenance"]["freshness_state"], "refresh_failed")
                 self.assertIn("fred offline", cached.json()["provenance"]["unavailable_reason"])
 
     def test_fred_macro_series_error_redacts_key_without_cache(self) -> None:
@@ -291,6 +341,7 @@ class DataSourceServiceTests(unittest.TestCase):
                 cached = client.get("/api/v1/data-sources/crypto/markets?ids=bitcoin&limit=1")
                 self.assertEqual(cached.status_code, 200)
                 self.assertTrue(cached.json()["provenance"]["stale"])
+                self.assertEqual(cached.json()["provenance"]["freshness_state"], "refresh_failed")
                 self.assertIn("coingecko offline", cached.json()["provenance"]["unavailable_reason"])
 
     def test_rss_events_fetch_and_cached_fallback(self) -> None:
@@ -328,6 +379,7 @@ class DataSourceServiceTests(unittest.TestCase):
                 cached = client.get("/api/v1/data-sources/news/events?query=AAPL&limit=1")
                 self.assertEqual(cached.status_code, 200)
                 self.assertTrue(cached.json()["provenance"]["stale"])
+                self.assertEqual(cached.json()["provenance"]["freshness_state"], "refresh_failed")
                 self.assertIn("rss offline", cached.json()["provenance"]["unavailable_reason"])
 
     def test_public_connector_probe_reports_unavailable_without_cache(self) -> None:
@@ -388,6 +440,8 @@ class DataSourceServiceTests(unittest.TestCase):
                 self.assertIn("# Data Sources Report", contents)
                 self.assertIn("## Evidence Pack Summary", contents)
                 self.assertIn("## Evidence Quality Table", contents)
+                self.assertIn("Freshness", contents)
+                self.assertIn("Cache age", contents)
                 self.assertIn("Private-state boundary", contents)
                 self.assertIn("World Bank Indicators", contents)
                 self.assertIn("CoinGecko Public Crypto", contents)
@@ -397,8 +451,11 @@ class DataSourceServiceTests(unittest.TestCase):
 
                 summaries = {item["provider"]: item for item in payload["included_sources"]}
                 self.assertEqual(summaries["worldbank"]["health"], "ok")
+                self.assertEqual(summaries["worldbank"]["freshness_state"], "fresh")
                 self.assertEqual(summaries["rss_events"]["health"], "unavailable")
+                self.assertEqual(summaries["rss_events"]["freshness_state"], "offline")
                 self.assertEqual(summaries["coingecko"]["health"], "missing_credentials")
+                self.assertEqual(summaries["coingecko"]["freshness_state"], "credential_required")
                 self.assertFalse(any(item["live_trading"] for item in payload["included_sources"]))
                 self.assertTrue(all(item["read_only"] for item in payload["included_sources"]))
                 self.assertGreaterEqual(len(payload["provenance_summary"]), 5)

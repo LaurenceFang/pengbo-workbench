@@ -68,6 +68,7 @@ Updated: 2026-05-21
 - `T70 - First-Run Product Onboarding` is now implemented. First-time reviewers get a local-only, skippable checklist for demo mode, provider setup, local unlock, privacy/diagnostics boundaries, and confirmation-gated execution, with a Settings reset action for repeated walkthroughs.
 - `T71 - Provider Capability Matrix` is now implemented. `/api/v1/connections/catalog` remains compatible while exposing endpoint coverage, asset coverage, regions, credential needs, freshness, read/write status, execution boundaries, decision notes, and explicit unsupported reasons from the shared provider registry.
 - `T72 - Provider Credential State Model` is now implemented. Connections and provider tests expose normalized credential states, labels, redacted reasons, and next actions for missing, configured, invalid, disabled, read-only, trading-gated, and blocked provider paths while keeping existing health fields compatible.
+- `T73 - Provider Freshness And Cache Policy` is now implemented. Provider catalog, Data Sources runtime status, provenance payloads, and evidence-pack exports expose additive TTL, stale-after, refresh behavior, offline fallback, cache-age, and freshness-state fields for fresh, cached, stale, refresh-failed, offline, credential-required, unavailable, unsupported, and unknown evidence.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -934,34 +935,34 @@ Updated: 2026-05-21
 
 ## Recommended Next Task
 
-### T73 - Provider Freshness And Cache Policy
+### T74 - Data Quality Status Contract
 
 Priority: P1
 Status: Planned
 
 Why this is next:
 
-- `T72` now separates provider credential readiness from provider health and live-trading permission.
-- The next product gap is defining freshness, cache TTL, refresh behavior, and offline fallback per provider class.
+- `T73` now defines provider freshness, cache TTL, refresh behavior, and offline fallback without breaking existing Data Sources or Connections contracts.
+- The next product gap is a broader machine-readable data-quality contract for completeness, timeliness, source confidence, and limitation notes across research, portfolio, screener, reports, and diagnostics.
 
 Scope:
 
-- Define cache TTL, stale data labeling, refresh behavior, and offline fallback per provider class.
-- Add visible freshness rules to research surfaces and exports.
-- Add tests for stale, cached, failed refresh, and offline states.
+- Add structured data-quality fields for completeness, timeliness, source confidence, and limitation notes.
+- Use the contract across research, portfolio, screener, reports, and provider diagnostics.
+- Avoid performance claims where evidence is simulated or blocked.
 
 Acceptance:
 
-- Users and reviewers can tell whether provider evidence is fresh, cached, stale, failed, or offline before relying on it.
+- Data quality is machine-readable and user-visible across the product.
 
 Implementation notes:
 
-- `T72` added additive credential state fields to connection status and test responses while preserving existing `health`, `requires_credentials`, and `credential_summary` compatibility.
-- Connections now shows a provider-level credential state panel with a redacted reason and next action before the source contract and capability matrix.
-- Binance account readiness now surfaces as `trading_gated` to keep credentials separate from live order permission.
-- Validation passed: `py -m unittest backend.tests.test_account_scoped_credentials`, `py -m unittest backend.tests.test_capability_service`, `npm run typecheck`, `py -m unittest discover -s backend/tests -p "test_*.py"`, and `npm run build`.
+- `T73` added additive freshness policy fields to `SourceFreshnessMetadata`, `DataSourceRuntimeStatus`, `DataSourceProvenance`, and report source summaries.
+- Data Sources now distinguishes `fresh`, `cached`, `stale`, `refresh_failed`, `offline`, `credential_required`, `unavailable`, `unsupported`, and `unknown` states while preserving existing `health`, `stale`, and cache timestamp fields.
+- Evidence-pack exports now include freshness state, cache age, TTL, refresh behavior, and offline fallback alongside provider health and read-only boundaries.
+- Validation passed on 2026-05-21: `py -m unittest backend.tests.test_capability_service backend.tests.test_data_source_service` and `npm run typecheck`.
 
-- Stay additive to existing Data Sources and Connections contracts.
+- Stay additive to existing research, portfolio, screener, report, and provider diagnostics contracts.
 
 ## Priority Order
 
@@ -1542,7 +1543,7 @@ Implementation notes:
 ### T73 - Provider Freshness And Cache Policy
 
 Priority: P1
-Status: Planned
+Status: Completed (2026-05-21)
 Target Window: 2026-09-29 to 2026-10-03
 Depends on: T72
 
@@ -1555,6 +1556,15 @@ Task:
 Done when:
 
 - The app cannot silently treat stale or simulated data as current market evidence.
+
+Completion:
+
+- Added additive freshness policy fields for cache TTL, stale-after windows, refresh behavior, and offline fallback to provider capability metadata.
+- Extended Data Sources runtime status and provenance with freshness states for `fresh`, `cached`, `stale`, `refresh_failed`, `offline`, `credential_required`, `unavailable`, `unsupported`, and `unknown` evidence while preserving existing `health`, `stale`, `cache_updated_at`, and `cache_age_seconds` compatibility.
+- Updated Data Sources UI status strips and provenance anchors so users can see freshness state, cache age, TTL, refresh behavior, and offline fallback before relying on provider evidence.
+- Updated Data Sources evidence-pack exports to include freshness state, cache age, TTL, refresh behavior, and offline fallback in source summaries and the evidence-quality table.
+- Added focused backend coverage for provider freshness policy metadata, credential-required freshness separation, TTL-based stale status, refresh-failed cached fallback, offline states, and export summaries.
+- Validation passed on 2026-05-21: `py -m unittest backend.tests.test_capability_service backend.tests.test_data_source_service` and `npm run typecheck`.
 
 ### T74 - Data Quality Status Contract
 
@@ -1619,6 +1629,10 @@ Task:
 - Validate the provider catalog, credential states, freshness labels, cache behavior, provenance, and exports in the packaged EXE.
 - Save evidence artifacts for no-key, configured-key, offline, stale, and blocked states.
 - Update the board with exact outcomes and follow-ups.
+
+Local tooling follow-up:
+
+- Found after T72: Codex can still commit and push with plain Git, but this Windows environment currently does not expose the GitHub CLI (`gh`). Install and authenticate `gh` before workflows that require PR creation, CI run inspection, review-comment triage, issue management, or GitHub Release automation from the local shell.
 
 Done when:
 

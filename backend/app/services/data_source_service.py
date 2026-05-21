@@ -17,6 +17,7 @@ from ..models import (
     DataSourceReportExportResponse,
     DataSourceReportSourceSummary,
     DataSourceRuntimeStatus,
+    FreshnessState,
     DataSourceStatusResponse,
     MacroSeriesPoint,
     MacroSeriesResponse,
@@ -78,7 +79,42 @@ class DataSourceService:
             label=definition.freshness_label or "Latest successful source response.",
             expected_lag=definition.expected_lag,
             as_of_field=definition.as_of_field,
+            cache_ttl_seconds=definition.cache_ttl_seconds,
+            stale_after_seconds=definition.stale_after_seconds,
+            refresh_behavior=definition.refresh_behavior,
+            offline_behavior=definition.offline_behavior,
         )
+
+    def _freshness_state(
+        self,
+        provider: str,
+        *,
+        configured: bool,
+        health: str,
+        cache_updated_at: str | None,
+        refresh_failed: bool = False,
+    ) -> FreshnessState:
+        definition = self.capability_service.get_source_definition(provider)
+        if definition is None:
+            return "unsupported"
+        if health == "missing_credentials" or (provider in KEYED_DATA_SOURCE_PROVIDERS and not configured):
+            return "credential_required"
+        if health == "unsupported":
+            return "unsupported"
+        if health == "unavailable" and not cache_updated_at:
+            return "offline"
+        cache_age_seconds = self._age_seconds(cache_updated_at)
+        if refresh_failed and cache_updated_at:
+            return "refresh_failed"
+        if cache_age_seconds is None:
+            return "unknown" if health in {"ok", "planned"} else "unavailable"
+        ttl = definition.cache_ttl_seconds
+        stale_after = definition.stale_after_seconds or ttl
+        if stale_after is not None and cache_age_seconds > stale_after:
+            return "stale"
+        if ttl is not None and cache_age_seconds > ttl:
+            return "cached"
+        return "fresh"
 
     def _provenance(
         self,
@@ -89,15 +125,53 @@ class DataSourceService:
         stale: bool = False,
         unavailable_reason: str | None = None,
     ) -> DataSourceProvenance:
+        state = self._freshness_state(
+            provider,
+            configured=self._configured(provider),
+            health="cached" if stale else "ok",
+            cache_updated_at=fetched_at,
+            refresh_failed=stale and unavailable_reason is not None,
+        )
         return DataSourceProvenance(
             provider=provider,
             label=self._definition_label(provider),
             source_url=source_url,
             fetched_at=fetched_at,
             freshness=self._freshness(provider),
+            freshness_state=state,
+            cache_age_seconds=self._age_seconds(fetched_at),
             stale=stale,
             unavailable_reason=unavailable_reason,
         )
+
+    def _cached_payload_after_refresh_failure(
+        self,
+        provider: str,
+        cached: dict[str, Any],
+        unavailable_reason: str,
+    ) -> dict[str, Any]:
+        provenance = cached.get("provenance") or {}
+        fetched_at = provenance.get("fetched_at")
+        freshness = provenance.get("freshness") or self._freshness(provider).model_dump()
+        cache_age_seconds = self._age_seconds(fetched_at)
+        state = self._freshness_state(
+            provider,
+            configured=self._configured(provider),
+            health="cached",
+            cache_updated_at=fetched_at,
+            refresh_failed=True,
+        )
+        return {
+            **cached,
+            "provenance": {
+                **provenance,
+                "freshness": freshness,
+                "freshness_state": state,
+                "cache_age_seconds": cache_age_seconds,
+                "stale": state in {"cached", "stale", "refresh_failed"},
+                "unavailable_reason": unavailable_reason,
+            },
+        }
 
     def _configured(self, provider: str) -> bool:
         if provider == "fred":
@@ -161,15 +235,25 @@ class DataSourceService:
             message = "Save a FRED API key in the desktop Data Sources panel or set PENGBO_FRED_API_KEY/FRED_API_KEY."
         if normalized == "coingecko" and not configured:
             message = "Save a CoinGecko demo API key in the desktop Data Sources panel or set PENGBO_COINGECKO_DEMO_API_KEY."
+        freshness_state = self._freshness_state(
+            normalized,
+            configured=configured,
+            health=health,
+            cache_updated_at=cache_updated_at,
+        )
         return DataSourceRuntimeStatus(
             provider=normalized,
             label=definition.label,
             configured=configured,
             health=health,
             message=message,
+            stale=freshness_state in {"cached", "stale", "refresh_failed"},
             requires_credentials=normalized in KEYED_DATA_SOURCE_PROVIDERS and not configured,
             cache_updated_at=cache_updated_at,
             cache_age_seconds=self._age_seconds(cache_updated_at),
+            freshness_state=freshness_state,
+            freshness=self._freshness(normalized),
+            last_success_at=cache_updated_at,
             registration_url=self.registration_url(normalized),
             paid_setup_url="https://www.coingecko.com/en/api/pricing" if normalized == "coingecko" else None,
         )
@@ -257,8 +341,9 @@ class DataSourceService:
             safe_error = self.safe_error_message(error)
             cached = self.duck_store.get_data_source_snapshot(normalized, cache_key)
             if cached is not None:
-                cached["provenance"] = {**cached["provenance"], "stale": True, "unavailable_reason": safe_error}
-                return MacroSeriesResponse.model_validate(cached)
+                return MacroSeriesResponse.model_validate(
+                    self._cached_payload_after_refresh_failure(normalized, cached, safe_error)
+                )
             raise RuntimeError(safe_error) from error
 
     def _fetch_worldbank_series(self, *, series_id: str, country: str, limit: int) -> dict[str, Any]:
@@ -406,8 +491,9 @@ class DataSourceService:
             safe_error = self.safe_error_message(error)
             cached = self.duck_store.get_data_source_snapshot(provider, cache_key)
             if cached is not None:
-                cached["provenance"] = {**cached["provenance"], "stale": True, "unavailable_reason": safe_error}
-                return CryptoMarketsResponse.model_validate(cached)
+                return CryptoMarketsResponse.model_validate(
+                    self._cached_payload_after_refresh_failure(provider, cached, safe_error)
+                )
             raise RuntimeError(safe_error) from error
 
     def get_news_events(self, *, query: str = "market", limit: int = 20) -> NewsEventsResponse:
@@ -447,8 +533,9 @@ class DataSourceService:
             safe_error = self.safe_error_message(error)
             cached = self.duck_store.get_data_source_snapshot(provider, cache_key)
             if cached is not None:
-                cached["provenance"] = {**cached["provenance"], "stale": True, "unavailable_reason": safe_error}
-                return NewsEventsResponse.model_validate(cached)
+                return NewsEventsResponse.model_validate(
+                    self._cached_payload_after_refresh_failure(provider, cached, safe_error)
+                )
             raise RuntimeError(safe_error) from error
 
     def _parse_rss_timestamp(self, value: str | None) -> str | None:
@@ -502,6 +589,11 @@ class DataSourceService:
                 configured=status.configured,
                 stale=status.stale,
                 fetched_at=status.cache_updated_at,
+                freshness_state=status.freshness_state,
+                cache_age_seconds=status.cache_age_seconds,
+                cache_ttl_seconds=status.freshness.cache_ttl_seconds if status.freshness else None,
+                refresh_behavior=status.freshness.refresh_behavior if status.freshness else None,
+                offline_behavior=status.freshness.offline_behavior if status.freshness else None,
                 unavailable_reason=status.message if status.health in {"missing_credentials", "unavailable"} else None,
                 read_only=True if catalog_item is None else catalog_item.read_only,
                 live_trading=False if catalog_item is None else catalog_item.live_trading,
@@ -510,7 +602,7 @@ class DataSourceService:
             summaries.append(summary)
             sections.extend(
                 [
-                    f"- {summary.label} (`{summary.provider}`): health={summary.health}, configured={summary.configured}, read_only={summary.read_only}, live_trading={summary.live_trading}",
+                    f"- {summary.label} (`{summary.provider}`): health={summary.health}, freshness={summary.freshness_state}, configured={summary.configured}, cache_age_seconds={summary.cache_age_seconds if summary.cache_age_seconds is not None else 'not cached'}, read_only={summary.read_only}, live_trading={summary.live_trading}",
                 ]
             )
 
@@ -524,7 +616,7 @@ class DataSourceService:
         sections.extend(self._render_report_sample_lines(sample_summaries))
         sections.extend(["", "## Provenance Summary", ""])
         provenance_summary = [
-            f"{item.label}: health={item.health}, stale={item.stale}, fetched_at={item.fetched_at or 'not fetched'}, source={item.source_url or 'catalog'}"
+            f"{item.label}: health={item.health}, freshness={item.freshness_state}, stale={item.stale}, fetched_at={item.fetched_at or 'not fetched'}, cache_age_seconds={item.cache_age_seconds if item.cache_age_seconds is not None else 'not cached'}, source={item.source_url or 'catalog'}"
             + (f", unavailable={item.unavailable_reason}" if item.unavailable_reason else "")
             for item in summaries
         ]
@@ -534,14 +626,13 @@ class DataSourceService:
                 "",
                 "## Evidence Quality Table",
                 "",
-                "| Provider | Health | Freshness | Read-only | Live trading | Source |",
-                "| --- | --- | --- | --- | --- | --- |",
+                "| Provider | Health | Freshness | Cache age | TTL | Read-only | Live trading | Source |",
+                "| --- | --- | --- | --- | --- | --- | --- | --- |",
             ]
         )
         for item in summaries:
-            freshness = "cached" if item.stale else "observed"
             sections.append(
-                f"| {item.provider} | {item.health} | {freshness} | {item.read_only} | {item.live_trading} | {item.source_url or 'catalog'} |"
+                f"| {item.provider} | {item.health} | {item.freshness_state} | {item.cache_age_seconds if item.cache_age_seconds is not None else 'not cached'} | {item.cache_ttl_seconds if item.cache_ttl_seconds is not None else 'not specified'} | {item.read_only} | {item.live_trading} | {item.source_url or 'catalog'} |"
             )
         sections.extend(
             [
@@ -602,6 +693,11 @@ class DataSourceService:
             configured=self._configured(provenance.provider),
             stale=provenance.stale,
             fetched_at=provenance.fetched_at,
+            freshness_state=provenance.freshness_state,
+            cache_age_seconds=provenance.cache_age_seconds,
+            cache_ttl_seconds=provenance.freshness.cache_ttl_seconds if provenance.freshness else None,
+            refresh_behavior=provenance.freshness.refresh_behavior if provenance.freshness else None,
+            offline_behavior=provenance.freshness.offline_behavior if provenance.freshness else None,
             source_url=provenance.source_url,
             unavailable_reason=provenance.unavailable_reason,
             read_only=True if definition is None else definition.read_only,
@@ -611,13 +707,24 @@ class DataSourceService:
     def _summary_from_status(self, provider: str, *, health: str, reason: str) -> DataSourceReportSourceSummary:
         status = self.get_provider_status(provider)
         definition = self.capability_service.get_source_definition(status.provider)
+        freshness_state = self._freshness_state(
+            status.provider,
+            configured=status.configured,
+            health=health,
+            cache_updated_at=status.cache_updated_at,
+        )
         return DataSourceReportSourceSummary(
             provider=status.provider,
             label=status.label,
             health=health,
             configured=status.configured,
-            stale=status.stale,
+            stale=freshness_state in {"cached", "stale", "refresh_failed"},
             fetched_at=status.cache_updated_at,
+            freshness_state=freshness_state,
+            cache_age_seconds=status.cache_age_seconds,
+            cache_ttl_seconds=status.freshness.cache_ttl_seconds if status.freshness else None,
+            refresh_behavior=status.freshness.refresh_behavior if status.freshness else None,
+            offline_behavior=status.freshness.offline_behavior if status.freshness else None,
             source_url=None if definition is None else definition.provenance_source_url,
             unavailable_reason=reason,
             read_only=True if definition is None else definition.read_only,
@@ -628,7 +735,7 @@ class DataSourceService:
         if not samples:
             return ["- No sample source queries were included."]
         return [
-            f"- {item.label}: health={item.health}, stale={item.stale}, fetched_at={item.fetched_at or 'not fetched'}"
+            f"- {item.label}: health={item.health}, freshness={item.freshness_state}, stale={item.stale}, fetched_at={item.fetched_at or 'not fetched'}, cache_age_seconds={item.cache_age_seconds if item.cache_age_seconds is not None else 'not cached'}"
             + (f", unavailable={item.unavailable_reason}" if item.unavailable_reason else "")
             for item in samples
         ]
