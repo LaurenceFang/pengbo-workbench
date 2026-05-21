@@ -605,9 +605,25 @@ class DataSourceService:
             "- Private-state boundary: `no API keys, Stronghold vaults, unlock secrets, session tokens, runtime databases, or diagnostics bundles are included`",
             "- Audit references: `provider health and provenance only; security audit records are not exported from this report`",
             "",
-            "## Source Status",
+            "## Provider Catalog Contract",
             "",
+            "| Provider | Read-only | Live trading | Write status | Test mode | Capability count | Credential-gated capabilities | Source |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- |",
         ]
+        for item in catalog.providers:
+            credential_gated = ", ".join(
+                capability.key for capability in item.capabilities if capability.requires_credentials
+            )
+            sections.append(
+                f"| {item.provider} | {item.read_only} | {item.live_trading} | {item.write_status} | {item.test_mode or 'not testable'} | {len(item.capabilities)} | {credential_gated or 'none'} | {item.provenance.source_url if item.provenance else 'catalog'} |"
+            )
+        sections.extend(
+            [
+                "",
+                "## Source Status",
+                "",
+            ]
+        )
 
         for provider in sorted(DATA_SOURCE_PROVIDERS):
             status = self.get_provider_status(provider)

@@ -43,7 +43,7 @@ is implemented.
 - Factor Lab: local research-only factor runs and handoffs.
 - Strategy Lab: local backtests, paper ledgers, Binance intents, and evidence.
 - Workflow Studio: template-driven workflows with explicit manual boundaries.
-- Data Sources: read-only source catalog, provenance, cache state, and export.
+- Data Sources: packaged source-catalog coverage, provenance, cache state, and export.
 - Connections: provider capability, credential status, and local secret bridge.
 - Settings: runtime paths, preferences, diagnostics, and version evidence.
 - Manual: product guidance and safety boundaries.
@@ -75,8 +75,9 @@ The active product-trust sequence is:
 - T74: data-quality status contract. Completed.
 - T75: provenance UI/export sync. Completed.
 - T76: existing provider audit. Completed.
-- T77+: Data Sources packaged signoff, local AI assistance,
-  China-market connectors, and broader public-trust work.
+- T77: Data Sources packaged signoff. Completed.
+- T78+: local AI assistance, China-market connectors, and broader
+  public-trust work.
 
 The current research-flow map is tracked in
 [docs/research-flow-definition.md](docs/research-flow-definition.md).

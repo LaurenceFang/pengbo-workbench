@@ -76,11 +76,17 @@ release channel yet.
   Events points to Google News RSS, CoinGecko demo/pro credentials are
   described consistently, and CoinGecko history is shown as unsupported until
   implemented.
+- T77 validates Data Sources in the packaged desktop EXE: the page now shows a
+  packaged catalog summary for nine read-only providers, the data-source report
+  includes the full provider contract table, and
+  `npm run smoke:data-sources:packaged` records source-safe evidence for
+  catalog contracts, credential state, freshness/cache readiness, provenance,
+  exports, configured-key state, and unsupported capability boundaries.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T77 will validate provider catalog, credential states, freshness/cache
-  behavior, provenance, and exports in the packaged EXE.
+- T78 will probe local LLM runtime practicality while keeping AI features
+  disabled unless explicitly enabled.

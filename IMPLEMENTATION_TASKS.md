@@ -941,7 +941,7 @@ Updated: 2026-05-21
 ### T77 - Data Sources Packaged Signoff V2
 
 Priority: P1
-Status: Planned
+Status: Completed
 
 Why this is next:
 
@@ -957,11 +957,14 @@ Scope:
 Acceptance:
 
 - Packaged Data Sources behavior matches source-level provider contract evidence.
+- Completed on 2026-05-22 with `npm run smoke:data-sources:packaged` writing source-safe evidence to `logs/data-sources-packaged-smoke-latest.json`.
 
 Implementation notes:
 
 - `T76` corrected Public Market Data/Yahoo plus Binance public provenance, Google News RSS provenance, CoinGecko demo/pro credential copy, and unsupported CoinGecko history status.
 - Validation passed on 2026-05-22: `py -m unittest backend.tests.test_capability_service backend.tests.test_data_source_service`, `py -m unittest backend.tests.test_research_service backend.tests.test_portfolio_service`, `npm run typecheck`, `npm run build`, and `npm run smoke:page-polish`.
+- `T77` adds a visible packaged catalog summary on Data Sources, expands the data-source report export with the full provider contract table, and upgrades the packaged smoke to assert 9 catalog providers, 5 runtime source providers, read-only/no-live-trading/write-status boundaries, credential-state evidence, freshness/cache/provenance metadata, configured-key summaries, unsupported capability boundaries, and source-safe export paths.
+- Validation passed on 2026-05-22: `py -m unittest backend.tests.test_capability_service backend.tests.test_data_source_service`, `py -m unittest backend.tests.test_research_service backend.tests.test_portfolio_service`, `npm run typecheck`, `npm run build`, `npm run check:public-boundary`, `npm run check:version`, `npm run tauri:build`, and `npm run smoke:data-sources:packaged`.
 
 - Keep packaged evidence source-safe. Do not commit secrets, logs, runtime databases, or generated desktop artifacts.
 
@@ -1648,7 +1651,7 @@ Completion notes:
 ### T77 - Data Sources Packaged Signoff V2
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-10-19 to 2026-10-23
 Depends on: T76
 
@@ -1665,6 +1668,14 @@ Local tooling follow-up:
 Done when:
 
 - Data-source behavior is trustworthy enough to support broader AI and China-market work.
+
+Completed on 2026-05-22:
+
+- Data Sources now shows a packaged catalog summary with 9 providers, 9 read-only contracts, 0 live-trading paths, and 4 credential-gated providers.
+- `scripts/packaged_data_sources_smoke.ps1` now asserts the packaged EXE exposes 9 catalog providers and 5 runtime Data Sources, with read-only/no-live-trading/write-status boundaries, freshness/cache/provenance metadata, credential-state summaries, configured-key or identity evidence, unsupported capability boundaries, and source-safe export paths.
+- `backend/app/services/data_source_service.py` now includes a full provider catalog contract table in the data-source report export.
+- Latest source-safe packaged evidence: `logs/data-sources-packaged-smoke-latest.json` reported `catalog_provider_count=9`, `provider_count=5`, `catalog_summary providers=9 read_only=9 live_trading=0 credential_gated=4`, configured-key evidence for `fred`, `coingecko`, `edgar`, and `binance`, and no source-safe check failures.
+- Validation passed: `py -m unittest backend.tests.test_capability_service backend.tests.test_data_source_service`, `py -m unittest backend.tests.test_research_service backend.tests.test_portfolio_service`, `npm run typecheck`, `npm run build`, `npm run check:public-boundary`, `npm run check:version`, `npm run tauri:build`, and `npm run smoke:data-sources:packaged`.
 
 ### T78 - Local LLM Runtime Probe
 

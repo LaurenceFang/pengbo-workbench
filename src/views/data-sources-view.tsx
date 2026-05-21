@@ -142,6 +142,12 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
     () => new Map((catalog.data?.providers ?? []).map((item) => [item.provider, item] as const)),
     [catalog.data?.providers],
   );
+  const catalogProviders = catalog.data?.providers ?? [];
+  const readOnlyProviderCount = catalogProviders.filter((item) => item.read_only).length;
+  const liveTradingProviderCount = catalogProviders.filter((item) => item.live_trading).length;
+  const credentialGatedProviderCount = catalogProviders.filter((item) =>
+    item.capabilities.some((capability) => capability.requires_credentials),
+  ).length;
   const selectedCatalog = selectedStatus ? catalogMap.get(selectedStatus.provider) : null;
 
   async function refreshAll() {
@@ -278,6 +284,17 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
             </button>
           ))}
         </div>
+        {catalogProviders.length > 0 ? (
+          <div
+            aria-label={`data-source-catalog-summary providers=${catalogProviders.length} read_only=${readOnlyProviderCount} live_trading=${liveTradingProviderCount} credential_gated=${credentialGatedProviderCount}`}
+            className="source-contract-grid"
+          >
+            <Metric label="Catalog providers" value={String(catalogProviders.length)} />
+            <Metric label="Read-only contracts" value={`${readOnlyProviderCount}/${catalogProviders.length}`} />
+            <Metric label="Live trading paths" value={String(liveTradingProviderCount)} />
+            <Metric label="Credential-gated" value={String(credentialGatedProviderCount)} />
+          </div>
+        ) : null}
       </section>
 
       <div className="data-source-main">

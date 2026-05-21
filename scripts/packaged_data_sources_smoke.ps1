@@ -13,6 +13,8 @@ Add-Type -AssemblyName UIAutomationTypes
 
 $baseUrl = "http://127.0.0.1:8765/api/v1"
 $sidecarPath = (Join-Path (Join-Path $PSScriptRoot "..") "src-tauri\\target\\release\\binaries\\pengbo-sidecar\\pengbo-sidecar.exe")
+$expectedCatalogProviders = @("market", "fundamentals", "edgar", "binance", "worldbank", "dbnomics", "rss_events", "fred", "coingecko")
+$expectedDataSourceProviders = @("worldbank", "dbnomics", "rss_events", "fred", "coingecko")
 $result = [ordered]@{
     exe_path = ""
     started_at = (Get-Date).ToString("o")
@@ -20,12 +22,21 @@ $result = [ordered]@{
     health_ready = $false
     data_dir = $null
     log_dir = $null
+    catalog_provider_count = 0
     provider_count = 0
+    catalog_contracts_by_provider = [ordered]@{}
     status_by_provider = [ordered]@{}
+    credential_state_by_provider = [ordered]@{}
+    scenario_results = [ordered]@{}
     report_export_path = $null
     report_export_exists = $false
     report_source_count = 0
     ui_markers = [ordered]@{}
+    source_safe_checks = [ordered]@{
+        export_path_inside_repo = $false
+        export_path_contains_secret_marker = $false
+        smoke_log_contains_secret_marker = $false
+    }
     failures = New-Object System.Collections.Generic.List[string]
 }
 
@@ -251,6 +262,21 @@ function Invoke-UiElement {
     throw "Element '$($Element.Current.Name)' does not support Invoke or SelectionItem."
 }
 
+function Assert-Condition {
+    param([bool]$Condition, [string]$Message)
+    if (-not $Condition) {
+        throw $Message
+    }
+}
+
+function Test-ContainsSecretMarker {
+    param([string]$Value)
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return $false
+    }
+    return $Value -match '(?i)(api[_-]?key=|secret=|token=|password=|x-cg-demo-api-key|x-cg-pro-api-key)'
+}
+
 function Ensure-DataSourcesDefaultView {
     $preferences = Invoke-ApiJson -Method Get -Path "/settings/preferences"
     $script:originalPreferences = $preferences
@@ -306,9 +332,11 @@ try {
     $nav = Wait-ForElementByName -Root $window -Name "nav-dataSources" -TimeoutSeconds $UiTimeoutSeconds
     Invoke-UiElement -Element $nav
 
-    $viewMarker = Wait-ForElementNameStartsWith -Root $window -Prefix "data-sources-view providers=" -TimeoutSeconds $UiTimeoutSeconds
+    $viewMarker = Wait-ForElementNameStartsWith -Root $window -Prefix "data-sources-view providers=$($expectedDataSourceProviders.Count)" -TimeoutSeconds $UiTimeoutSeconds
     $result.ui_markers.view = $viewMarker.name
-    foreach ($provider in @("worldbank", "dbnomics", "rss_events", "fred", "coingecko")) {
+    $catalogSummary = Wait-ForElementNameStartsWith -Root $window -Prefix "data-source-catalog-summary providers=" -TimeoutSeconds $UiTimeoutSeconds
+    $result.ui_markers.catalog_summary = $catalogSummary.name
+    foreach ($provider in $expectedDataSourceProviders) {
         $marker = Wait-ForElementNameStartsWith -Root $window -Prefix "data-source-provider provider=$provider health=" -TimeoutSeconds $UiTimeoutSeconds
         $result.ui_markers[$provider] = $marker.name
     }
@@ -332,11 +360,22 @@ try {
             health = $providerStatus.health
             configured = $providerStatus.configured
             requires_credentials = $providerStatus.requires_credentials
+            freshness_state = $providerStatus.freshness_state
+            stale = $providerStatus.stale
+            cache_age_seconds = $providerStatus.cache_age_seconds
+            cache_ttl_seconds = if ($providerStatus.freshness) { $providerStatus.freshness.cache_ttl_seconds } else { $null }
+            data_quality = if ($providerStatus.data_quality) { $providerStatus.data_quality.overall } else { $null }
         }
+    }
+    Assert-Condition (@($status.providers).Count -eq $expectedDataSourceProviders.Count) "Data Sources runtime status did not return the expected source provider count."
+    foreach ($provider in $expectedDataSourceProviders) {
+        Assert-Condition ($null -ne $result.status_by_provider[$provider]) "Data Sources runtime status omitted '$provider'."
     }
 
     $catalog = Invoke-ApiJson -Method Get -Path "/connections/catalog"
-    foreach ($provider in @("worldbank", "dbnomics", "rss_events", "fred", "coingecko")) {
+    $result.catalog_provider_count = @($catalog.providers).Count
+    Assert-Condition ($result.catalog_provider_count -eq $expectedCatalogProviders.Count) "Connections catalog returned $($result.catalog_provider_count) providers instead of $($expectedCatalogProviders.Count)."
+    foreach ($provider in $expectedCatalogProviders) {
         $catalogItem = @($catalog.providers | Where-Object { $_.provider -eq $provider })[0]
         if ($null -eq $catalogItem) {
             throw "Catalog did not include provider '$provider'."
@@ -344,7 +383,52 @@ try {
         if (-not $catalogItem.read_only -or $catalogItem.live_trading) {
             throw "Provider '$provider' violated the read-only/no-live-trading contract."
         }
+        Assert-Condition ($catalogItem.write_status -eq "read_only") "Provider '$provider' did not expose read_only write_status."
+        Assert-Condition ($catalogItem.freshness -and $catalogItem.freshness.cache_ttl_seconds) "Provider '$provider' did not expose freshness metadata."
+        Assert-Condition ($catalogItem.provenance -and $catalogItem.provenance.source_url) "Provider '$provider' did not expose provenance metadata."
+        $capabilities = @($catalogItem.capabilities)
+        Assert-Condition ($capabilities.Count -ge 7) "Provider '$provider' did not expose the full capability matrix."
+        $result.catalog_contracts_by_provider[$provider] = [ordered]@{
+            label = $catalogItem.label
+            read_only = $catalogItem.read_only
+            live_trading = $catalogItem.live_trading
+            write_status = $catalogItem.write_status
+            testable = $catalogItem.testable
+            test_mode = $catalogItem.test_mode
+            freshness_ttl_seconds = $catalogItem.freshness.cache_ttl_seconds
+            provenance_source_url = $catalogItem.provenance.source_url
+            credential_gated_capabilities = @($capabilities | Where-Object { $_.requires_credentials } | ForEach-Object { $_.key })
+            unsupported_capabilities = @($capabilities | Where-Object { -not $_.supported } | ForEach-Object { $_.key })
+        }
     }
+    $credentialStatus = Invoke-ApiJson -Method Get -Path "/connections/status"
+    foreach ($providerStatus in $credentialStatus.providers) {
+        $result.credential_state_by_provider[$providerStatus.provider] = [ordered]@{
+            configured = $providerStatus.configured
+            health = $providerStatus.health
+            requires_credentials = $providerStatus.requires_credentials
+            credential_state = $providerStatus.credential_state
+            credential_action_kind = $providerStatus.credential_action_kind
+            has_credential_summary = -not [string]::IsNullOrWhiteSpace([string]$providerStatus.credential_summary)
+            stale = $providerStatus.stale
+        }
+    }
+    $result.scenario_results.no_key_or_missing_credentials = @(
+        $credentialStatus.providers | Where-Object { -not $_.configured -and ($_.requires_credentials -or $_.credential_state -eq "missing") } | ForEach-Object { $_.provider }
+    )
+    $result.scenario_results.configured_key_or_identity = @(
+        $credentialStatus.providers | Where-Object { $_.configured -and -not [string]::IsNullOrWhiteSpace([string]$_.credential_summary) } | ForEach-Object { $_.provider }
+    )
+    $result.scenario_results.offline_or_stale_ready = @(
+        $status.providers | Where-Object { $_.freshness -and $_.freshness.offline_behavior } | ForEach-Object { $_.provider }
+    )
+    $result.scenario_results.blocked_or_unsupported_capabilities = @(
+        $catalog.providers |
+            ForEach-Object {
+                $provider = $_.provider
+                @($_.capabilities | Where-Object { -not $_.supported } | ForEach-Object { "$provider/$($_.key)" })
+            }
+    )
 
     $session = Invoke-ApiJson -Method Post -Path "/security/session" -Body @{}
     $script:sessionHeaders = @{ "X-Pengbo-Session" = [string]$session.session_id }
@@ -364,6 +448,12 @@ try {
     if ($result.report_source_count -lt 5) {
         throw "Data source report did not include the expected source summaries."
     }
+    $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+    $resolvedReportPath = [System.IO.Path]::GetFullPath([string]$report.export_path)
+    $result.source_safe_checks.export_path_inside_repo = $resolvedReportPath.StartsWith($repoRoot, [System.StringComparison]::OrdinalIgnoreCase)
+    $result.source_safe_checks.export_path_contains_secret_marker = Test-ContainsSecretMarker -Value $resolvedReportPath
+    Assert-Condition (-not $result.source_safe_checks.export_path_inside_repo) "Data source report export should not be written inside the repository."
+    Assert-Condition (-not $result.source_safe_checks.export_path_contains_secret_marker) "Data source report export path contains a secret-like marker."
 
     Restore-Preferences
 }
@@ -383,6 +473,13 @@ finally {
         New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
     }
     $result | ConvertTo-Json -Depth 10 | Set-Content -Path $script:resolvedOutputPath -Encoding UTF8
+    try {
+        $smokeLog = Get-Content -Path $script:resolvedOutputPath -Raw -Encoding UTF8
+        $result.source_safe_checks.smoke_log_contains_secret_marker = Test-ContainsSecretMarker -Value $smokeLog
+        $result | ConvertTo-Json -Depth 10 | Set-Content -Path $script:resolvedOutputPath -Encoding UTF8
+    }
+    catch {
+    }
 }
 
 if ($result.failures.Count -gt 0) {
