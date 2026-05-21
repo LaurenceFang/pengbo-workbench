@@ -1404,6 +1404,45 @@ button {
   line-height: 1.55;
 }
 
+.capability-matrix-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0.75rem 0 0;
+}
+
+.capability-matrix-details div {
+  min-width: 0;
+}
+
+.capability-matrix-details dt {
+  color: rgba(212, 224, 241, 0.62);
+  font-size: 0.72rem;
+}
+
+.capability-matrix-details dd {
+  margin: 0.2rem 0 0;
+  color: var(--text-primary);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.capability-boundary,
+.capability-decision {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(166, 183, 205, 0.1);
+  border-radius: var(--radius-control);
+}
+
+.capability-boundary {
+  background: rgba(240, 120, 108, 0.08);
+}
+
+.capability-decision {
+  background: rgba(87, 214, 166, 0.08);
+}
+
 .connection-metrics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

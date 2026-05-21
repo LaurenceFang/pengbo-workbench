@@ -495,15 +495,18 @@ function SourceMetadataStrip({ item }: { item: ProviderCapabilityProviderItem })
     <div className="capability-block">
       <div className="capability-block-head">
         <strong>Source contract</strong>
-        <span className="mini-pill">{item.read_only ? "Read-only" : "Mutation capable"}</span>
+        <span className="mini-pill">{formatWriteStatus(item)}</span>
       </div>
       <div className="connection-metrics">
         <StatusMetric label="Domains" value={formatMetadataList(item.data_domains)} />
         <StatusMetric label="Coverage" value={formatMetadataList(item.asset_coverage)} />
+        <StatusMetric label="Regions" value={formatMetadataList(item.regions)} />
+        <StatusMetric label="Endpoints" value={formatMetadataList(item.endpoint_coverage)} />
         <StatusMetric label="Freshness" value={item.freshness?.expected_lag ?? item.freshness?.label ?? "Not specified"} />
         <StatusMetric label="Testing" value={item.testable ? item.test_mode ?? "Testable" : "Planned"} />
       </div>
-      <p>{item.cache_policy ?? item.description ?? "No source metadata registered."}</p>
+      <p>{item.matrix_summary ?? item.cache_policy ?? item.description ?? "No source metadata registered."}</p>
+      {item.execution_boundary ? <p className="capability-boundary">{item.execution_boundary}</p> : null}
     </div>
   );
 }
@@ -532,14 +535,35 @@ function CapabilityMatrix({
               <strong>{capability.label}</strong>
               <span className={`mini-pill status-${capability.status_hint}`}>{formatCapabilityStatus(capability.status_hint)}</span>
             </div>
-            {capability.notes[0] ? <p>{capability.notes[0]}</p> : <p>No extra note.</p>}
-            {capability.supported ? (
-              <p>
-                {formatMetadataList(capability.data_domains)}
-                {" / "}
-                {capability.read_only ? "read-only" : "mutation capable"}
-              </p>
-            ) : null}
+            <p>{capability.notes[0] ?? capability.unsupported_reason ?? "No extra note."}</p>
+            <dl className="capability-matrix-details">
+              <div>
+                <dt>Endpoints</dt>
+                <dd>{formatMetadataList(capability.endpoint_coverage)}</dd>
+              </div>
+              <div>
+                <dt>Assets</dt>
+                <dd>{formatMetadataList(capability.asset_coverage)}</dd>
+              </div>
+              <div>
+                <dt>Regions</dt>
+                <dd>{formatMetadataList(capability.regions)}</dd>
+              </div>
+              <div>
+                <dt>Credential</dt>
+                <dd>{capability.requires_credentials ? capability.credential_note ?? "Required" : "Not required"}</dd>
+              </div>
+              <div>
+                <dt>Freshness</dt>
+                <dd>{capability.freshness?.expected_lag ?? capability.freshness?.label ?? "Not specified"}</dd>
+              </div>
+              <div>
+                <dt>Write</dt>
+                <dd>{capability.read_only ? "Read-only" : "Mutation capable"}</dd>
+              </div>
+            </dl>
+            {capability.unsupported_reason ? <p className="capability-boundary">{capability.unsupported_reason}</p> : null}
+            {capability.decision_note ? <p className="capability-decision">{capability.decision_note}</p> : null}
           </div>
         ))}
       </div>
@@ -661,6 +685,16 @@ function formatRelativeDuration(totalSeconds: number): string {
 
 function formatMetadataList(values: string[]): string {
   return values.length > 0 ? values.join(", ") : "Not specified";
+}
+
+function formatWriteStatus(item: ProviderCapabilityProviderItem): string {
+  if (item.live_trading) {
+    return "Live trading";
+  }
+  if (item.write_status === "read_only" || item.read_only) {
+    return "Read-only";
+  }
+  return item.write_status;
 }
 
 function translateHealth(value: string): string {

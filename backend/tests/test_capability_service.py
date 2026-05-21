@@ -44,12 +44,16 @@ class CapabilityServiceTests(unittest.TestCase):
         self.assertTrue(all(len(item.capabilities) == 7 for item in catalog.providers))
         self.assertTrue(all(item.read_only for item in catalog.providers))
         self.assertTrue(all(not item.live_trading for item in catalog.providers))
+        self.assertTrue(all(item.write_status == "read_only" for item in catalog.providers))
+        self.assertTrue(all(item.endpoint_coverage for item in catalog.providers))
+        self.assertTrue(all(item.matrix_summary for item in catalog.providers))
 
         edgar = next(item for item in catalog.providers if item.provider == "edgar")
         self.assertTrue(edgar.testable)
         self.assertEqual(edgar.test_mode, "credential_probe")
         self.assertIn("filings", edgar.data_domains)
         self.assertIn("Supported US equities", edgar.asset_coverage)
+        self.assertIn("asset filings", edgar.endpoint_coverage)
         self.assertIsNotNone(edgar.freshness)
         self.assertIsNotNone(edgar.provenance)
         filings = next(item for item in edgar.capabilities if item.key == "filings")
@@ -59,6 +63,13 @@ class CapabilityServiceTests(unittest.TestCase):
         self.assertTrue(filings.testable)
         self.assertTrue(filings.read_only)
         self.assertIn("filings", filings.data_domains)
+        self.assertIn("asset filings", filings.endpoint_coverage)
+        self.assertIsNotNone(filings.decision_note)
+
+        edgar_account = next(item for item in edgar.capabilities if item.key == "account")
+        self.assertFalse(edgar_account.supported)
+        self.assertEqual(edgar_account.status_hint, "unsupported")
+        self.assertIn("does not provide account", edgar_account.unsupported_reason or "")
 
         market = next(item for item in catalog.providers if item.provider == "market")
         quotes = next(item for item in market.capabilities if item.key == "quotes")
@@ -66,7 +77,11 @@ class CapabilityServiceTests(unittest.TestCase):
         self.assertFalse(quotes.requires_credentials)
         self.assertEqual(quotes.status_hint, "available")
         self.assertFalse(market.testable)
+        self.assertIn("asset workspace", market.endpoint_coverage)
         self.assertIn("price_history", market.data_domains)
+
+        binance = next(item for item in catalog.providers if item.provider == "binance")
+        self.assertIn("confirmation-gated execution APIs", binance.execution_boundary or "")
 
     def test_asset_applicability_distinguishes_unsupported_credentials_and_temporary_failures(self) -> None:
         settings = RuntimeSettings(
@@ -131,11 +146,16 @@ class ConnectionsCatalogApiTests(unittest.TestCase):
                 self.assertEqual(len(payload["providers"][0]["capabilities"]), 7)
                 self.assertTrue(all(item["read_only"] for item in payload["providers"]))
                 self.assertTrue(all(not item["live_trading"] for item in payload["providers"]))
+                self.assertTrue(all(item["write_status"] == "read_only" for item in payload["providers"]))
+                self.assertTrue(all(item["endpoint_coverage"] for item in payload["providers"]))
                 market = next(item for item in payload["providers"] if item["provider"] == "market")
                 self.assertEqual(market["health"] if "health" in market else None, None)
                 self.assertIn("quotes", market["data_domains"])
                 self.assertIsNotNone(market["freshness"])
                 self.assertIsNotNone(market["provenance"])
+                unsupported = next(item for item in market["capabilities"] if item["key"] == "filings")
+                self.assertEqual(unsupported["status_hint"], "unsupported")
+                self.assertIn("does not provide filings", unsupported["unsupported_reason"])
 
     def test_public_read_only_provider_test_records_planned_health_without_credentials(self) -> None:
         with TemporaryDirectory() as temp_dir:

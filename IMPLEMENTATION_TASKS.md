@@ -1,6 +1,6 @@
 # Pengbo Workbench Task Board
 
-Updated: 2026-05-20
+Updated: 2026-05-21
 
 ## Current Assessment
 
@@ -66,6 +66,7 @@ Updated: 2026-05-20
 - `T69 - Command Center V1` is now implemented. The desktop shell has a compact Command Center workspace for asset search, Research brief entry, provider refresh, local report export, audit review, and no-secret safe readiness checks while preserving existing workspace flows and local permission gates.
 - `T69# Temp - Packaged Desktop Video Walkthrough` is now completed. A Hyperframes MP4 was generated from real `pengbo-workbench.exe` walkthrough frames covering local unlock with `000000`, AAPL asset selection, 12-1 Momentum factor selection, Top-N Factor Rotation strategy selection, and a simulated backtest result.
 - `T70 - First-Run Product Onboarding` is now implemented. First-time reviewers get a local-only, skippable checklist for demo mode, provider setup, local unlock, privacy/diagnostics boundaries, and confirmation-gated execution, with a Settings reset action for repeated walkthroughs.
+- `T71 - Provider Capability Matrix` is now implemented. `/api/v1/connections/catalog` remains compatible while exposing endpoint coverage, asset coverage, regions, credential needs, freshness, read/write status, execution boundaries, decision notes, and explicit unsupported reasons from the shared provider registry.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -932,27 +933,31 @@ Updated: 2026-05-20
 
 ## Recommended Next Task
 
-### T71 - Provider Capability Matrix
+### T72 - Provider Credential State Model
 
 Priority: P1
 Status: Planned
 
 Why this is next:
 
-- `T70` now explains the safe first-run product boundary to new reviewers.
-- The next product gap is a shared provider capability matrix for asset classes, regions, endpoint coverage, credential needs, freshness, and read/write status.
+- `T71` now gives product and engineering a shared provider capability matrix without breaking `/api/v1/connections/catalog`.
+- The next product gap is normalizing credential states so each capability can explain the exact next action for missing, configured, invalid, expired, disabled, read-only, trading-gated, and blocked providers.
 
 Scope:
 
-- Create a provider capability matrix for current and planned providers.
-- Keep `/api/v1/connections/catalog` compatibility.
-- Make unsupported or credential-gated capabilities explicit.
+- Normalize provider credential states across Connections, provider tests, and capability surfaces.
+- Surface exact user next actions for missing, configured, invalid, expired, disabled, read-only, trading-gated, and blocked states.
+- Keep audit output redacted and preserve local-first credential boundaries.
 
 Acceptance:
 
-- Product and engineering can decide connector work from a shared source of truth.
+- Users and reviewers can understand credential readiness and next actions without exposing secret material.
 
 Implementation notes:
+
+- `T71` extended the shared provider registry with endpoint coverage, write status, execution boundary, matrix summary, per-capability endpoint coverage, decision notes, and explicit unsupported reasons.
+- Connections now renders a fuller provider capability matrix while preserving existing `provider-capability provider=... capability=... status=...` automation anchors.
+- Validation passed: `py -m unittest backend.tests.test_capability_service`, `npm run typecheck`, `py -m unittest discover -s backend/tests -p "test_*.py"`, and `npm run build`.
 
 - Stay additive to existing Data Sources and Connections contracts.
 
@@ -1485,7 +1490,7 @@ Completion:
 ### T71 - Provider Capability Matrix
 
 Priority: P1
-Status: Planned
+Status: Implemented
 Target Window: 2026-09-19 to 2026-09-23
 Depends on: T70
 
@@ -1498,6 +1503,13 @@ Task:
 Done when:
 
 - Product and engineering can decide connector work from a shared source of truth.
+
+Implementation notes:
+
+- Extended `ProviderSourceDefinition`, `CapabilityDefinition`, and `/api/v1/connections/catalog` response models with additive matrix fields for endpoint coverage, write status, execution boundary, matrix summary, unsupported reasons, and decision notes.
+- Preserved existing provider and capability fields, existing capability keys, read-only defaults, and the Binance execution boundary.
+- Upgraded Connections capability rendering into a decision-oriented matrix covering endpoints, assets, regions, credential needs, freshness, and write status while preserving packaged smoke anchors.
+- Validation passed on 2026-05-21: `py -m unittest backend.tests.test_capability_service`, `npm run typecheck`, `py -m unittest discover -s backend/tests -p "test_*.py"`, and `npm run build`.
 
 ### T72 - Provider Credential State Model
 

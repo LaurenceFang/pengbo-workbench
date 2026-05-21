@@ -311,6 +311,7 @@ class ProviderCapability(BaseModel):
     requires_credentials: bool
     status_hint: ProviderCapabilityStatusHint
     notes: list[str] = Field(default_factory=list)
+    endpoint_coverage: list[str] = Field(default_factory=list)
     data_domains: list[str] = Field(default_factory=list)
     asset_coverage: list[str] = Field(default_factory=list)
     regions: list[str] = Field(default_factory=list)
@@ -323,12 +324,15 @@ class ProviderCapability(BaseModel):
     test_mode: str | None = None
     read_only: bool = True
     credential_note: str | None = None
+    unsupported_reason: str | None = None
+    decision_note: str | None = None
 
 
 class ProviderCapabilityProviderItem(BaseModel):
     provider: str
     label: str
     description: str | None = None
+    endpoint_coverage: list[str] = Field(default_factory=list)
     data_domains: list[str] = Field(default_factory=list)
     asset_coverage: list[str] = Field(default_factory=list)
     regions: list[str] = Field(default_factory=list)
@@ -342,6 +346,9 @@ class ProviderCapabilityProviderItem(BaseModel):
     test_mode: str | None = None
     read_only: bool = True
     live_trading: bool = False
+    write_status: str = "read_only"
+    execution_boundary: str | None = None
+    matrix_summary: str | None = None
     capabilities: list[ProviderCapability] = Field(default_factory=list)
 
 

@@ -197,6 +197,7 @@ export type ProviderCapability = {
   requires_credentials: boolean;
   status_hint: "available" | "credential_required" | "unsupported";
   notes: string[];
+  endpoint_coverage: string[];
   data_domains: string[];
   asset_coverage: string[];
   regions: string[];
@@ -209,12 +210,15 @@ export type ProviderCapability = {
   test_mode: string | null;
   read_only: boolean;
   credential_note: string | null;
+  unsupported_reason: string | null;
+  decision_note: string | null;
 };
 
 export type ProviderCapabilityProviderItem = {
   provider: string;
   label: string;
   description: string | null;
+  endpoint_coverage: string[];
   data_domains: string[];
   asset_coverage: string[];
   regions: string[];
@@ -228,6 +232,9 @@ export type ProviderCapabilityProviderItem = {
   test_mode: string | null;
   read_only: boolean;
   live_trading: boolean;
+  write_status: string;
+  execution_boundary: string | null;
+  matrix_summary: string | null;
   capabilities: ProviderCapability[];
 };
 

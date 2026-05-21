@@ -33,6 +33,7 @@ CAPABILITY_LABELS: dict[str, str] = {
 class CapabilityDefinition:
     key: str
     notes: tuple[str, ...] = ()
+    endpoint_coverage: tuple[str, ...] = ()
     data_domains: tuple[str, ...] = ()
     asset_coverage: tuple[str, ...] = ()
     regions: tuple[str, ...] = ()
@@ -45,6 +46,8 @@ class CapabilityDefinition:
     testable: bool | None = None
     test_mode: str | None = None
     credential_note: str | None = None
+    unsupported_reason: str | None = None
+    decision_note: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,6 +57,7 @@ class ProviderSourceDefinition:
     description: str
     capabilities: tuple[CapabilityDefinition, ...]
     credential_gated_capabilities: tuple[str, ...] = ()
+    endpoint_coverage: tuple[str, ...] = ()
     data_domains: tuple[str, ...] = ()
     asset_coverage: tuple[str, ...] = ()
     regions: tuple[str, ...] = ()
@@ -71,6 +75,9 @@ class ProviderSourceDefinition:
     test_mode: str | None = None
     read_only: bool = True
     live_trading: bool = False
+    write_status: str = "read_only"
+    execution_boundary: str | None = None
+    matrix_summary: str | None = None
 
     @property
     def supported_capability_keys(self) -> set[str]:
@@ -86,6 +93,7 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         provider="market",
         label="Yahoo Market Data",
         description="Public market quotes and recent price history used by assets, screeners, research, and factors.",
+        endpoint_coverage=("asset workspace", "price history", "watchlist", "screeners", "research evidence", "factor snapshots"),
         data_domains=("quotes", "price_history"),
         asset_coverage=("US equities", "ETFs", "public crypto pairs in the local catalog"),
         regions=("US", "Global crypto"),
@@ -99,16 +107,18 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         provenance_license_note="Public research use; not a broker or exchange execution feed.",
         provenance_source_url="https://finance.yahoo.com/",
         capabilities=(
-            CapabilityDefinition("quotes", notes=("Public quotes are available without credentials.",), testable=False),
-            CapabilityDefinition("history", notes=("Recent price history is available without credentials.",), testable=False),
-            CapabilityDefinition("screeners", notes=("Screeners run on the controlled local market universe.",), testable=False),
-            CapabilityDefinition("research", notes=("Research can use quote and history context from the market feed.",), testable=False),
+            CapabilityDefinition("quotes", notes=("Public quotes are available without credentials.",), endpoint_coverage=("asset workspace", "watchlist", "dashboard"), testable=False),
+            CapabilityDefinition("history", notes=("Recent price history is available without credentials.",), endpoint_coverage=("price history", "charts", "portfolio valuation"), testable=False),
+            CapabilityDefinition("screeners", notes=("Screeners run on the controlled local market universe.",), endpoint_coverage=("screeners", "factor lab inputs"), testable=False),
+            CapabilityDefinition("research", notes=("Research can use quote and history context from the market feed.",), endpoint_coverage=("research brief", "evidence context"), testable=False),
         ),
+        matrix_summary="Default no-key market context for local evaluation and research flows.",
     ),
     ProviderSourceDefinition(
         provider="fundamentals",
         label="Yahoo Fundamentals",
         description="Public company overview and ratio snapshots for supported equities.",
+        endpoint_coverage=("asset workspace fundamentals", "research brief fundamentals", "factor missing-data checks"),
         data_domains=("fundamentals", "ratios"),
         asset_coverage=("Supported US equities",),
         regions=("US",),
@@ -122,15 +132,17 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         provenance_license_note="Public research use; unsupported assets must surface explicit unavailable states.",
         provenance_source_url="https://finance.yahoo.com/",
         capabilities=(
-            CapabilityDefinition("fundamentals", notes=("Fundamental overview and ratios are limited to supported equities.",), testable=False),
-            CapabilityDefinition("research", notes=("Research can enrich supported equities with overview and ratio context.",), testable=False),
+            CapabilityDefinition("fundamentals", notes=("Fundamental overview and ratios are limited to supported equities.",), endpoint_coverage=("asset overview", "ratio cards"), testable=False),
+            CapabilityDefinition("research", notes=("Research can enrich supported equities with overview and ratio context.",), endpoint_coverage=("research brief", "analysis modules"), testable=False),
         ),
+        matrix_summary="Equity-only fundamentals enrichment with explicit unsupported states for crypto and macro assets.",
     ),
     ProviderSourceDefinition(
         provider="edgar",
         label="SEC EDGAR",
         description="SEC filing metadata for supported US equities.",
         credential_gated_capabilities=("filings", "research"),
+        endpoint_coverage=("asset filings", "research filing modules", "provider credential probe"),
         data_domains=("filings", "company_events"),
         asset_coverage=("Supported US equities",),
         regions=("US",),
@@ -147,15 +159,17 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         testable=True,
         test_mode="credential_probe",
         capabilities=(
-            CapabilityDefinition("filings", notes=("An EDGAR identity is required before live SEC filings can be fetched.",), testable=True, test_mode="credential_probe"),
-            CapabilityDefinition("research", notes=("Research filing modules depend on the EDGAR identity for live coverage.",), testable=True, test_mode="credential_probe"),
+            CapabilityDefinition("filings", notes=("An EDGAR identity is required before live SEC filings can be fetched.",), endpoint_coverage=("asset filings", "filing freshness"), testable=True, test_mode="credential_probe"),
+            CapabilityDefinition("research", notes=("Research filing modules depend on the EDGAR identity for live coverage.",), endpoint_coverage=("research brief filings", "export evidence"), testable=True, test_mode="credential_probe"),
         ),
+        matrix_summary="Credential-gated official US filing source; unsupported outside eligible US equity coverage.",
     ),
     ProviderSourceDefinition(
         provider="binance",
         label="Binance Account",
         description="Binance private-account readiness and account snapshot source. Order submission remains isolated under execution APIs.",
         credential_gated_capabilities=("account",),
+        endpoint_coverage=("account readiness", "private account snapshot", "execution safety checks"),
         data_domains=("account", "balances"),
         asset_coverage=("User-owned Binance account assets",),
         regions=("Global crypto",),
@@ -171,14 +185,17 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         provenance_source_url="https://www.binance.com/",
         testable=True,
         test_mode="credential_probe",
+        execution_boundary="Live order submission is isolated under confirmation-gated execution APIs, not this read-only catalog.",
         capabilities=(
-            CapabilityDefinition("account", notes=("Binance private-account data requires API key and secret.",), testable=True, test_mode="credential_probe"),
+            CapabilityDefinition("account", notes=("Binance private-account data requires API key and secret.",), endpoint_coverage=("connections account snapshot", "execution readiness"), testable=True, test_mode="credential_probe"),
         ),
+        matrix_summary="Private-account readiness only; execution stays separate, default-off, audited, and user-confirmed.",
     ),
     ProviderSourceDefinition(
         provider="worldbank",
         label="World Bank Indicators",
         description="Public country and regional economic indicators for macro and China/Asia context.",
+        endpoint_coverage=("data-source macro series", "workflow data-source step", "data-source report export"),
         data_domains=("macro", "economics", "country_indicators"),
         asset_coverage=("Global macro", "China/Asia indicators", "Country-level economics"),
         regions=("Global", "China", "Asia"),
@@ -194,13 +211,15 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         testable=True,
         test_mode="public_probe",
         capabilities=(
-            CapabilityDefinition("research", notes=("Research can include World Bank macro and regional context.",), testable=True, test_mode="public_probe"),
+            CapabilityDefinition("research", notes=("Research can include World Bank macro and regional context.",), endpoint_coverage=("macro series", "research context", "data-source report"), testable=True, test_mode="public_probe"),
         ),
+        matrix_summary="Public macro source for global and China/Asia research context.",
     ),
     ProviderSourceDefinition(
         provider="dbnomics",
         label="DBnomics",
         description="Public macroeconomic series from DBnomics-hosted datasets.",
+        endpoint_coverage=("data-source macro series", "workflow data-source step", "data-source report export"),
         data_domains=("macro", "economics", "time_series"),
         asset_coverage=("Global macro series", "OECD/IMF-style datasets where available"),
         regions=("Global",),
@@ -216,13 +235,15 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         testable=True,
         test_mode="public_probe",
         capabilities=(
-            CapabilityDefinition("research", notes=("Research can include DBnomics macro series context.",), testable=True, test_mode="public_probe"),
+            CapabilityDefinition("research", notes=("Research can include DBnomics macro series context.",), endpoint_coverage=("macro series", "research context", "data-source report"), testable=True, test_mode="public_probe"),
         ),
+        matrix_summary="Public macro time-series source for dataset-dependent global coverage.",
     ),
     ProviderSourceDefinition(
         provider="rss_events",
         label="RSS / GDELT Events",
         description="Public market news and event monitoring through RSS-compatible feeds.",
+        endpoint_coverage=("data-source news events", "workflow data-source step", "data-source report export"),
         data_domains=("news", "events", "company_events"),
         asset_coverage=("Market news", "Company/event monitoring"),
         regions=("Global",),
@@ -238,14 +259,16 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         testable=True,
         test_mode="public_probe",
         capabilities=(
-            CapabilityDefinition("research", notes=("Research can include recent event links and summaries.",), testable=True, test_mode="public_probe"),
+            CapabilityDefinition("research", notes=("Research can include recent event links and summaries.",), endpoint_coverage=("news/event search", "research context", "data-source report"), testable=True, test_mode="public_probe"),
         ),
+        matrix_summary="Public event context source for market and company monitoring.",
     ),
     ProviderSourceDefinition(
         provider="fred",
         label="FRED",
         description="Federal Reserve Economic Data macro series. Free API key required.",
         credential_gated_capabilities=("research",),
+        endpoint_coverage=("data-source macro series", "workflow data-source step", "data-source report export"),
         data_domains=("macro", "economics", "time_series"),
         asset_coverage=("US macro series",),
         regions=("US",),
@@ -262,14 +285,16 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         testable=True,
         test_mode="credential_probe",
         capabilities=(
-            CapabilityDefinition("research", notes=("Research can include FRED macro time series when a key is configured.",), testable=True, test_mode="credential_probe"),
+            CapabilityDefinition("research", notes=("Research can include FRED macro time series when a key is configured.",), endpoint_coverage=("macro series", "research context", "data-source report"), testable=True, test_mode="credential_probe"),
         ),
+        matrix_summary="Credential-gated US macro series source with user-owned free API key.",
     ),
     ProviderSourceDefinition(
         provider="coingecko",
         label="CoinGecko Public Crypto",
         description="Crypto public market context. Demo key preferred; Pro remains a user-enabled paid option.",
         credential_gated_capabilities=("quotes", "history", "research"),
+        endpoint_coverage=("data-source crypto markets", "workflow data-source step", "data-source report export"),
         data_domains=("crypto_public", "quotes", "market_context"),
         asset_coverage=("Public crypto assets",),
         regions=("Global crypto",),
@@ -286,10 +311,11 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         testable=True,
         test_mode="credential_probe",
         capabilities=(
-            CapabilityDefinition("quotes", notes=("CoinGecko crypto market snapshots require a configured demo key.",), testable=True, test_mode="credential_probe"),
-            CapabilityDefinition("history", notes=("Historical public crypto context is planned after demo-key market snapshots.",), testable=True, test_mode="credential_probe"),
-            CapabilityDefinition("research", notes=("Research can use public crypto market context when a key is configured.",), testable=True, test_mode="credential_probe"),
+            CapabilityDefinition("quotes", notes=("CoinGecko crypto market snapshots require a configured demo key.",), endpoint_coverage=("crypto market snapshots", "data-source report"), testable=True, test_mode="credential_probe"),
+            CapabilityDefinition("history", notes=("Historical public crypto context is planned after demo-key market snapshots.",), endpoint_coverage=("planned crypto history"), testable=True, test_mode="credential_probe", decision_note="Treat as planned history coverage until a dedicated endpoint is implemented."),
+            CapabilityDefinition("research", notes=("Research can use public crypto market context when a key is configured.",), endpoint_coverage=("crypto research context", "data-source report"), testable=True, test_mode="credential_probe"),
         ),
+        matrix_summary="Credential-gated public crypto context; not an execution provider.",
     ),
 )
 
@@ -349,6 +375,13 @@ class CapabilityService:
             )
         notes = tuple() if capability is None else capability.notes
         freshness_label = (capability.freshness_label if capability else None) or definition.freshness_label
+        unsupported_reason = None
+        if not supported:
+            unsupported_reason = (
+                capability.unsupported_reason
+                if capability and capability.unsupported_reason
+                else f"{definition.label} does not provide {CAPABILITY_LABELS[capability_key].lower()} in the current desktop contract."
+            )
         return ProviderCapability(
             key=capability_key,
             label=CAPABILITY_LABELS[capability_key],
@@ -356,6 +389,7 @@ class CapabilityService:
             requires_credentials=requires_credentials,
             status_hint=status_hint,
             notes=list(notes),
+            endpoint_coverage=list((capability.endpoint_coverage if capability and capability.endpoint_coverage else definition.endpoint_coverage)),
             data_domains=list((capability.data_domains if capability and capability.data_domains else definition.data_domains)),
             asset_coverage=list((capability.asset_coverage if capability and capability.asset_coverage else definition.asset_coverage)),
             regions=list((capability.regions if capability and capability.regions else definition.regions)),
@@ -377,6 +411,8 @@ class CapabilityService:
             test_mode=(capability.test_mode if capability and capability.test_mode else definition.test_mode),
             read_only=definition.read_only,
             credential_note=(capability.credential_note if capability and capability.credential_note else definition.credential_note),
+            unsupported_reason=unsupported_reason,
+            decision_note=(capability.decision_note if capability else None) or definition.matrix_summary,
         )
 
     def get_connections_catalog(self) -> ConnectionsCatalogResponse:
@@ -386,6 +422,7 @@ class CapabilityService:
                     provider=definition.provider,
                     label=definition.label,
                     description=definition.description,
+                    endpoint_coverage=list(definition.endpoint_coverage),
                     data_domains=list(definition.data_domains),
                     asset_coverage=list(definition.asset_coverage),
                     regions=list(definition.regions),
@@ -408,6 +445,9 @@ class CapabilityService:
                     test_mode=definition.test_mode,
                     read_only=definition.read_only,
                     live_trading=definition.live_trading,
+                    write_status=definition.write_status,
+                    execution_boundary=definition.execution_boundary,
+                    matrix_summary=definition.matrix_summary,
                     capabilities=[self._provider_capability(definition, capability_key) for capability_key in CAPABILITY_ORDER],
                 )
                 for definition in PROVIDER_REGISTRY
