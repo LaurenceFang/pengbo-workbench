@@ -19,6 +19,7 @@ import {
   type ResearchBriefEvidenceItem,
   type ResearchBriefListItem,
   type ResearchEvidenceContext,
+  type PortfolioProvenanceItem,
 } from "../lib/api";
 import { useAppStore } from "../store/app-store";
 
@@ -655,6 +656,9 @@ function EvidenceChainPanel({
             <div className="table-main">
               <strong>Audit events</strong>
               <span>{evidence.audit.event_types.join(", ") || "none"}</span>
+              {evidence.audit.event_ids.length ? (
+                <span className="mono">IDs {evidence.audit.event_ids.join(", ")}</span>
+              ) : null}
             </div>
             <div className="table-meta">
               <span>{evidence.audit.event_count}</span>
@@ -703,8 +707,30 @@ function DecisionReviewPanel({ brief }: { brief: ResearchBrief }) {
           </div>
         ))}
       </div>
+      <PortfolioProvenanceGrid items={brief.portfolio_context.provenance} />
       <p className="decision-conclusion">{review.conclusion}</p>
     </section>
+  );
+}
+
+function PortfolioProvenanceGrid({ items }: { items: PortfolioProvenanceItem[] }) {
+  if (!items.length) {
+    return null;
+  }
+
+  return (
+    <div className="portfolio-provenance-grid" aria-label={`portfolio-provenance references=${items.length}`}>
+      {items.map((item) => (
+        <div className="portfolio-provenance-item" key={`${item.label}-${item.source_id ?? item.detail}`}>
+          <span className={`mini-pill status-${item.status}`}>{item.status}</span>
+          <strong>{item.label}</strong>
+          <p>{item.detail}</p>
+          <small>
+            {item.provider ?? "local"} {item.source_id ? `/ ${item.source_id}` : ""}
+          </small>
+        </div>
+      ))}
+    </div>
   );
 }
 

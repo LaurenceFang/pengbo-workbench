@@ -70,6 +70,7 @@ Updated: 2026-05-21
 - `T72 - Provider Credential State Model` is now implemented. Connections and provider tests expose normalized credential states, labels, redacted reasons, and next actions for missing, configured, invalid, disabled, read-only, trading-gated, and blocked provider paths while keeping existing health fields compatible.
 - `T73 - Provider Freshness And Cache Policy` is now implemented. Provider catalog, Data Sources runtime status, provenance payloads, and evidence-pack exports expose additive TTL, stale-after, refresh behavior, offline fallback, cache-age, and freshness-state fields for fresh, cached, stale, refresh-failed, offline, credential-required, unavailable, unsupported, and unknown evidence.
 - `T74 - Data Quality Status Contract` is now implemented. Data Sources, Research, Portfolio, Screeners, Factor Lab, provenance payloads, and evidence-pack exports expose additive data-quality status for completeness, timeliness, source confidence, limitations, notes, and machine tags while preserving existing stale, missing, health, and evidence-note fields.
+- `T75 - Provenance UI And Export Sync` is now implemented. Research evidence and decision review surfaces expose audit IDs and portfolio provenance, Portfolio summary and holdings expose additive provenance tiles/references, and Research evidence-pack Markdown exports now carry the same portfolio provenance plus audit IDs.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -936,33 +937,33 @@ Updated: 2026-05-21
 
 ## Recommended Next Task
 
-### T75 - Provenance UI And Export Sync
+### T76 - Existing Providers Audit
 
 Priority: P1
 Status: Planned
 
 Why this is next:
 
-- `T74` now gives provider, research, portfolio, screener, factor, and export paths a shared data-quality contract.
-- The next product gap is making provenance equally visible and consistent in critical UI surfaces and exported reports.
+- `T75` now makes provenance and audit references visible in Research, Portfolio, and Research evidence-pack exports.
+- The next product gap is auditing existing provider implementations against the now-explicit capability, credential, freshness, quality, and provenance contracts.
 
 Scope:
 
-- Show source provenance inline on critical research and portfolio views.
-- Carry the same provenance into exports.
-- Add audit links or IDs where available.
+- Audit every existing provider implementation against capability, credential, freshness, quality, and provenance contracts.
+- Fix drift or mark unsupported states honestly.
+- Confirm no new live-trading path is introduced.
 
 Acceptance:
 
-- The UI and exported report tell the same evidence story.
+- Existing providers match the product contract instead of relying on implied behavior.
 
 Implementation notes:
 
-- `T74` added additive `DataQualityStatus` fields for completeness, timeliness, source confidence, limitations, notes, and machine tags.
-- Data Sources, Research, Portfolio, Screeners, Factor Lab, provenance payloads, and evidence-pack exports now expose structured data quality while preserving existing stale, health, missing, and notes fields.
-- Validation passed on 2026-05-21: `py -m unittest backend.tests.test_data_source_service backend.tests.test_research_service backend.tests.test_screener_service backend.tests.test_portfolio_service` and `npm run typecheck`.
+- `T75` added additive `PortfolioProvenanceItem` references to Portfolio summary/holdings and Research portfolio context.
+- Research evidence-pack Markdown exports now include Portfolio Context, Portfolio Provenance, and audit IDs where available.
+- Validation passed on 2026-05-22: `py -m unittest backend.tests.test_research_service backend.tests.test_portfolio_service`, `npm run typecheck`, `npm run build`, and `npm run smoke:page-polish`.
 
-- Stay additive to existing provenance, audit, research, portfolio, screener, report, and provider diagnostics contracts.
+- Stay additive to existing provider behavior. Do not introduce non-Binance trading paths.
 
 ## Priority Order
 
@@ -1596,7 +1597,7 @@ Completion:
 ### T75 - Provenance UI And Export Sync
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-10-09 to 2026-10-13
 Depends on: T74
 
@@ -1609,6 +1610,14 @@ Task:
 Done when:
 
 - The UI and exported report tell the same evidence story.
+
+Completion notes:
+
+- Added additive portfolio provenance references to Portfolio summary, Portfolio holdings, and Research portfolio context.
+- Research Evidence Chain now shows audit event IDs inline when audit references exist.
+- Research Decision Review now includes linked portfolio provenance references, and Portfolio shows provenance status/source references beside summary and holding data.
+- Research evidence-pack Markdown exports now include Portfolio Context, Portfolio Provenance, and audit IDs so the exported report matches the visible Research/Portfolio evidence story.
+- Validation passed on 2026-05-22: `py -m unittest backend.tests.test_research_service backend.tests.test_portfolio_service`, `npm run typecheck`, `npm run build`, and `npm run smoke:page-polish`.
 
 ### T76 - Existing Providers Audit
 

@@ -130,8 +130,11 @@ class PortfolioServiceTests(unittest.TestCase):
         self.assertEqual(summary.performance, [])
         self.assertIsNotNone(holdings[0].data_quality)
         self.assertEqual(holdings[0].data_quality.overall, "blocked")
+        self.assertEqual(holdings[0].provenance[0].source_id, "portfolio:holding:AAPL:valuation")
+        self.assertEqual(holdings[0].provenance[0].status, "unavailable")
         self.assertIsNotNone(summary.data_quality)
         self.assertEqual(summary.data_quality.overall, "blocked")
+        self.assertIn("portfolio:summary:performance", {item.source_id for item in summary.provenance})
 
     def test_benchmark_failure_only_degrades_that_benchmark(self):
         service = self.make_service(
@@ -210,6 +213,8 @@ class PortfolioServiceTests(unittest.TestCase):
         self.assertEqual(windows["today"].status, "unavailable")
         self.assertEqual(summary.analytics.allocation["asset"][0].key, "AAPL")
         self.assertEqual(summary.analytics.allocation["sector"][0].key, "Technology Hardware")
+        self.assertIn("portfolio:summary:valuations", {item.source_id for item in summary.provenance})
+        self.assertIn("portfolio:holding:AAPL:transactions", {item.source_id for item in service.get_holdings()[0].provenance})
 
     def test_timeout_degrades_to_unavailable_without_waiting_for_provider_timeout(self):
         store = FakeSqliteStore(

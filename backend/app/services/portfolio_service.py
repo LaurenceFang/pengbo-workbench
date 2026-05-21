@@ -6,7 +6,7 @@ from datetime import UTC, date, datetime, timedelta
 from math import sqrt
 from queue import Queue
 from threading import Thread
-from typing import Any
+from typing import Any, Literal
 
 from ..data_seed import AssetCatalogEntry
 from ..models import (
@@ -16,6 +16,7 @@ from ..models import (
     PortfolioDataStatus,
     PortfolioHolding,
     PortfolioPnlBreakdown,
+    PortfolioProvenanceItem,
     PortfolioSummaryResponse,
     PortfolioTransaction,
     PortfolioTransactionCreate,
@@ -83,6 +84,23 @@ def _status_from_stale(stale: bool) -> PortfolioDataStatus:
 def _add_unique_note(notes: list[str], message: str) -> None:
     if message not in notes:
         notes.append(message)
+
+
+def _portfolio_provenance(
+    *,
+    label: str,
+    detail: str,
+    status: PortfolioDataStatus | Literal["audited"],
+    provider: str | None = None,
+    source_id: str | None = None,
+) -> PortfolioProvenanceItem:
+    return PortfolioProvenanceItem(
+        label=label,
+        detail=detail,
+        status=status,
+        provider=provider,
+        source_id=source_id,
+    )
 
 
 def _pct_change(start_value: float, end_value: float) -> float | None:
@@ -309,6 +327,25 @@ class PortfolioService:
                         limitations=notes,
                         unavailable=quote_snapshot.status == "unavailable",
                     ),
+                    "provenance": [
+                        _portfolio_provenance(
+                            label="Valuation quote",
+                            detail=(
+                                f"{quote_snapshot.entry.symbol} valuation uses {quote_snapshot.entry.provider}; "
+                                f"status is {quote_snapshot.status}."
+                            ),
+                            status=quote_snapshot.status,
+                            provider=quote_snapshot.entry.provider,
+                            source_id=f"portfolio:holding:{quote_snapshot.entry.symbol}:valuation",
+                        ),
+                        _portfolio_provenance(
+                            label="Local transaction ledger",
+                            detail="Quantity and cost basis are computed from the local portfolio transaction table.",
+                            status="audited",
+                            provider="local_sqlite",
+                            source_id=f"portfolio:holding:{quote_snapshot.entry.symbol}:transactions",
+                        ),
+                    ],
                 }
             )
 
@@ -788,6 +825,38 @@ class PortfolioService:
             or any(status != "live" for status in performance_result.benchmark_status.values())
             or bool(performance_result.missing_symbols)
         )
+        provenance: list[PortfolioProvenanceItem] = [
+            _portfolio_provenance(
+                label="Portfolio valuations",
+                detail=(
+                    f"{len(holdings)} open position(s); "
+                    f"{len(valuation_missing_symbols)} position(s) excluded from totals because valuation is unavailable."
+                ),
+                status="unavailable" if valuation_missing_symbols else ("cached" if any(holding.stale for holding in holdings) else "live"),
+                provider="portfolio",
+                source_id="portfolio:summary:valuations",
+            ),
+            _portfolio_provenance(
+                label="Performance curve",
+                detail=(
+                    f"{len(performance_result.performance)} point(s); "
+                    f"missing symbols: {', '.join(sorted(missing_symbols)) or 'none'}."
+                ),
+                status="unavailable" if missing_symbols or not performance_result.performance else ("cached" if performance_result.stale else "live"),
+                provider="portfolio",
+                source_id="portfolio:summary:performance",
+            ),
+        ]
+        for symbol, status in sorted(performance_result.benchmark_status.items()):
+            provenance.append(
+                _portfolio_provenance(
+                    label=f"{symbol} benchmark",
+                    detail=f"Benchmark comparison status is {status}.",
+                    status=status,
+                    provider=get_asset(symbol).provider if get_asset(symbol) is not None else "portfolio",
+                    source_id=f"portfolio:benchmark:{symbol}",
+                )
+            )
 
         return PortfolioSummaryResponse(
             currency="USD",
@@ -812,4 +881,5 @@ class PortfolioService:
                 limitations=notes,
                 unavailable=bool(missing_symbols),
             ),
+            provenance=provenance,
         )

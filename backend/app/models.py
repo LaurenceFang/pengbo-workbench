@@ -711,6 +711,7 @@ class ResearchPortfolioContext(BaseModel):
     cost_basis: float | None = None
     transaction_count: int = 0
     notes: list[str] = Field(default_factory=list)
+    provenance: list["PortfolioProvenanceItem"] = Field(default_factory=list)
     handoff_draft: ResearchPortfolioHandoffDraft
 
 
@@ -956,6 +957,14 @@ class PortfolioTransaction(PortfolioTransactionBase):
     currency: str
 
 
+class PortfolioProvenanceItem(BaseModel):
+    label: str
+    detail: str
+    status: Literal["live", "cached", "unavailable", "audited"]
+    provider: str | None = None
+    source_id: str | None = None
+
+
 class PortfolioHolding(BaseModel):
     symbol: str
     name: str
@@ -975,6 +984,7 @@ class PortfolioHolding(BaseModel):
     stale: bool
     notes: list[str] = Field(default_factory=list)
     data_quality: DataQualityStatus | None = None
+    provenance: list[PortfolioProvenanceItem] = Field(default_factory=list)
 
 
 class PortfolioValuePoint(BaseModel):
@@ -1041,6 +1051,7 @@ class PortfolioSummaryResponse(BaseModel):
     benchmarks: dict[str, list[PortfolioValuePoint]]
     analytics: PortfolioAnalytics
     data_quality: DataQualityStatus | None = None
+    provenance: list[PortfolioProvenanceItem] = Field(default_factory=list)
 
 
 class ScreenerPreset(BaseModel):

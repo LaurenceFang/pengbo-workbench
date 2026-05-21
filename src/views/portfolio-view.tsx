@@ -8,6 +8,7 @@ import {
   type PortfolioAnalyticsWindow,
   type PortfolioDataStatus,
   type PortfolioHolding,
+  type PortfolioProvenanceItem,
   type PortfolioSummaryResponse,
   type PortfolioTransaction,
   type PortfolioTransactionInput,
@@ -24,11 +25,13 @@ import {
   MetricCard,
   PanelState,
   ProfessionalChartPanel,
+  DataStatusStrip,
   formatMoney,
   formatPercent,
   formatPrice,
   formatSignedMoney,
   type BackendStatus,
+  type DataStatusItem,
 } from "../components/shared";
 import { useI18n, type TranslationKey } from "../i18n";
 
@@ -91,6 +94,28 @@ function buildHoldingSummary(holding: PortfolioHolding, i18n: ReturnType<typeof 
     formatMaybePercent(holding.day_change_pct, i18n.t("portfolio.unavailable")),
     portfolioStatusLabel(holding.valuation_status, i18n),
   ].join(" | ");
+}
+
+function provenanceTone(status: PortfolioProvenanceItem["status"]): DataStatusItem["tone"] {
+  if (status === "cached") {
+    return "cached";
+  }
+  if (status === "unavailable") {
+    return "blocked";
+  }
+  if (status === "audited") {
+    return "audited";
+  }
+  return "observed";
+}
+
+function provenanceTile(item: PortfolioProvenanceItem): DataStatusItem {
+  return {
+    label: item.label,
+    value: item.status,
+    detail: [item.provider, item.source_id, item.detail].filter(Boolean).join(" / "),
+    tone: provenanceTone(item.status),
+  };
 }
 
 function getWindowTone(value: number | null): "up" | "down" | "neutral" {
@@ -362,6 +387,12 @@ export function PortfolioView({
               <MetricCard label={i18n.t("portfolio.positionCount")} value={String(summary.data.positions)} />
               <MetricCard label="Quality" value={summary.data.data_quality?.overall ?? "unknown"} />
             </div>
+            {summary.data.provenance.length ? (
+              <DataStatusStrip
+                ariaLabel={`portfolio-provenance-summary references=${summary.data.provenance.length}`}
+                items={summary.data.provenance.slice(0, 5).map(provenanceTile)}
+              />
+            ) : null}
             <div className="curve-panel">
               {summary.data.performance.length > 0 ? (
                 <ProfessionalChartPanel primary={summary.data.performance} comparisons={chartComparisons} />
@@ -648,6 +679,16 @@ export function PortfolioView({
                     <span key={note}>{note}</span>
                   ))}
                   {holding.data_quality ? <span>Quality: {holding.data_quality.overall}</span> : null}
+                  {holding.provenance.length ? (
+                    <div className="compact-provenance-list">
+                      {holding.provenance.map((item) => (
+                        <span key={`${holding.symbol}-${item.source_id ?? item.label}`}>
+                          {item.label}: {item.status}
+                          {item.source_id ? ` / ${item.source_id}` : ""}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="holding-bar">
                   <div style={{ width: `${holding.allocation ?? 0}%` }} />

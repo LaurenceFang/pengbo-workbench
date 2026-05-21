@@ -557,6 +557,14 @@ export type PortfolioTransactionInput = Omit<PortfolioTransaction, "id" | "name"
 
 export type PortfolioDataStatus = "live" | "cached" | "unavailable";
 
+export type PortfolioProvenanceItem = {
+  label: string;
+  detail: string;
+  status: PortfolioDataStatus | "audited";
+  provider: string | null;
+  source_id: string | null;
+};
+
 export type PortfolioHolding = {
   symbol: string;
   name: string;
@@ -576,6 +584,7 @@ export type PortfolioHolding = {
   stale: boolean;
   notes: string[];
   data_quality: DataQualityStatus | null;
+  provenance: PortfolioProvenanceItem[];
 };
 
 export type PortfolioValuePoint = {
@@ -640,6 +649,7 @@ export type PortfolioSummaryResponse = {
   benchmarks: Record<string, PortfolioValuePoint[]>;
   analytics: PortfolioAnalytics;
   data_quality: DataQualityStatus | null;
+  provenance: PortfolioProvenanceItem[];
 };
 
 export type ScreenerPreset = {
@@ -1245,6 +1255,7 @@ export type ResearchBrief = {
     cost_basis: number | null;
     transaction_count: number;
     notes: string[];
+    provenance: PortfolioProvenanceItem[];
     handoff_draft: {
       symbol: string;
       side: "buy" | "sell";

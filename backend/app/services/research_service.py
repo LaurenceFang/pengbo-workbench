@@ -215,9 +215,20 @@ class ResearchService:
         transaction_count = sum(1 for item in transactions if item.symbol == symbol)
         notes = list(holding.notes) if holding else []
         handoff_price = holding.current_price if holding and holding.current_price is not None else asset_snapshot.quote.price
+        provenance = list(getattr(holding, "provenance", [])) if holding else []
 
         if holding is None and transaction_count == 0:
             notes.append("This symbol is not currently held in the portfolio.")
+        if transaction_count:
+            provenance.append(
+                {
+                    "label": "Research portfolio handoff",
+                    "detail": f"{transaction_count} local transaction(s) are linked to this research symbol.",
+                    "status": "audited",
+                    "provider": "local_sqlite",
+                    "source_id": f"research:{symbol}:portfolio-transactions",
+                }
+            )
 
         return ResearchPortfolioContext(
             in_portfolio=holding is not None,
@@ -228,6 +239,7 @@ class ResearchService:
             cost_basis=holding.cost_basis if holding else None,
             transaction_count=transaction_count,
             notes=notes,
+            provenance=provenance,
             handoff_draft=ResearchPortfolioHandoffDraft(
                 symbol=symbol,
                 side="buy",
@@ -422,6 +434,22 @@ class ResearchService:
                 ResearchBriefProvenanceItem(
                     label="Evidence chain",
                     detail=f"{len(evidence_context.data_quality_notes)} data-quality note(s) attached.",
+                    status="audited",
+                )
+            )
+            if evidence_context.audit is not None and evidence_context.audit.event_ids:
+                provenance.append(
+                    ResearchBriefProvenanceItem(
+                        label="Audit IDs",
+                        detail=", ".join(evidence_context.audit.event_ids[:4]),
+                        status="audited",
+                    )
+                )
+        if portfolio_context.provenance:
+            provenance.append(
+                ResearchBriefProvenanceItem(
+                    label="Portfolio provenance",
+                    detail=f"{len(portfolio_context.provenance)} portfolio source reference(s) linked.",
                     status="audited",
                 )
             )
@@ -762,6 +790,28 @@ class ResearchService:
             lines.append(f"- `{item.status}` {item.label}: {item.detail}")
         lines.extend(["", "### Conclusion Boundary", "", review.conclusion, ""])
 
+        lines.extend(["## Portfolio Context", ""])
+        portfolio = brief.portfolio_context
+        lines.extend(
+            [
+                f"- In portfolio: `{'yes' if portfolio.in_portfolio else 'no'}`",
+                f"- Transaction count: `{portfolio.transaction_count}`",
+                f"- Valuation status: `{portfolio.valuation_status or 'not held'}`",
+                f"- Market value: `{portfolio.market_value if portfolio.market_value is not None else 'n/a'}`",
+                "",
+                "### Portfolio Provenance",
+                "",
+            ]
+        )
+        if portfolio.provenance:
+            for item in portfolio.provenance:
+                source_id = f" source `{item.source_id}`" if item.source_id else ""
+                provider = f" provider `{item.provider}`" if item.provider else ""
+                lines.append(f"- `{item.status}` {item.label}:{provider}{source_id}; {item.detail}")
+        else:
+            lines.append("- No portfolio provenance references are linked to this brief.")
+        lines.append("")
+
         lines.extend(["## Analysis Modules", ""])
         for module in brief.analysis_modules:
             lines.append(f"### {module.title}")
@@ -840,6 +890,8 @@ class ResearchService:
                 )
             if evidence.audit is not None:
                 lines.append(f"- Audit: `{evidence.audit.event_count}` event(s), latest `{evidence.audit.latest_event_at}`.")
+                if evidence.audit.event_ids:
+                    lines.append(f"- Audit IDs: `{', '.join(evidence.audit.event_ids)}`.")
             for note in evidence.data_quality_notes:
                 lines.append(f"- Data quality: {note}")
             lines.append("")

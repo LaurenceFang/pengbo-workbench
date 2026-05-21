@@ -67,11 +67,15 @@ release channel yet.
   timeliness, source confidence, and limitations across Data Sources,
   Research, Portfolio, Screeners, Factor Lab, provenance payloads, and local
   evidence-pack exports.
+- T75 aligns provenance UI and Research evidence-pack export language: Research
+  now exposes audit IDs and linked portfolio provenance, while Portfolio summary
+  and holding surfaces show additive valuation, transaction, benchmark, and
+  performance source references.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T75 will align provenance UI and exported report language on critical
-  research and portfolio views.
+- T76 will audit existing providers against capability, credential, freshness,
+  quality, and provenance contracts.

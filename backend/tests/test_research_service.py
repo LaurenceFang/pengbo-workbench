@@ -318,6 +318,8 @@ class ResearchServiceTests(unittest.TestCase):
         self.assertIn("## Evidence Pack Summary", contents)
         self.assertIn("Private-state boundary", contents)
         self.assertIn("### Counter-Evidence", contents)
+        self.assertIn("## Portfolio Context", contents)
+        self.assertIn("### Portfolio Provenance", contents)
         self.assertIn("## Analysis Modules", contents)
         self.assertIn("### Asset Quality Snapshot", contents)
 
@@ -475,6 +477,19 @@ class ResearchApiTests(unittest.TestCase):
                 )
                 self.assertEqual(submit_response.status_code, 200)
                 self.assertEqual(submit_response.json()["status"], "blocked")
+                portfolio_response = client.post(
+                    "/api/v1/portfolio/transactions",
+                    json={
+                        "symbol": "AAPL",
+                        "side": "buy",
+                        "quantity": 1,
+                        "price": 110,
+                        "fees": 0,
+                        "traded_at": "2026-04-22",
+                        "notes": "Evidence test position",
+                    },
+                )
+                self.assertEqual(portfolio_response.status_code, 200)
 
                 evidence_response = client.get(
                     f"/api/v1/research/evidence/AAPL?factorRunId={factor_run_id}&backtestRunId={backtest_run_id}&paperSessionId={paper_session_id}&intentId={intent_id}"
@@ -502,6 +517,7 @@ class ResearchApiTests(unittest.TestCase):
                 brief = brief_response.json()
                 self.assertEqual(brief["evidence_context"]["execution"]["intent_id"], intent_id)
                 self.assertIn("simulated", [item["status"] for item in brief["decision_review"]["supporting_evidence"]])
+                self.assertIn("Portfolio provenance", [item["label"] for item in brief["decision_review"]["provenance"]])
 
                 export_response = client.post(f"/api/v1/research/briefs/{brief['brief_id']}/export")
                 self.assertEqual(export_response.status_code, 200)
@@ -509,6 +525,9 @@ class ResearchApiTests(unittest.TestCase):
                 self.assertIn("## Decision Review", contents)
                 self.assertIn("## Evidence Pack Summary", contents)
                 self.assertIn("Audit references", contents)
+                self.assertIn("Audit IDs", contents)
+                self.assertIn("## Portfolio Context", contents)
+                self.assertIn("portfolio:holding:AAPL:valuation", contents)
                 self.assertIn("## Evidence Chain", contents)
                 self.assertIn("Binance intent", contents)
 
