@@ -74,8 +74,9 @@ The active product-trust sequence is:
 - T73: provider freshness and cache policy. Completed.
 - T74: data-quality status contract. Completed.
 - T75: provenance UI/export sync. Completed.
-- T76+: existing provider audit, local AI assistance, China-market connectors,
-  packaged signoff, and broader public-trust work.
+- T76: existing provider audit. Completed.
+- T77+: Data Sources packaged signoff, local AI assistance,
+  China-market connectors, and broader public-trust work.
 
 The current research-flow map is tracked in
 [docs/research-flow-definition.md](docs/research-flow-definition.md).

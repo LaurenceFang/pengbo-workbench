@@ -253,7 +253,7 @@ class DataSourceService:
         if normalized == "fred" and not configured:
             message = "Save a FRED API key in the desktop Data Sources panel or set PENGBO_FRED_API_KEY/FRED_API_KEY."
         if normalized == "coingecko" and not configured:
-            message = "Save a CoinGecko demo API key in the desktop Data Sources panel or set PENGBO_COINGECKO_DEMO_API_KEY."
+            message = "Save a CoinGecko demo or pro API key in the desktop Data Sources panel or set PENGBO_COINGECKO_DEMO_API_KEY/PENGBO_COINGECKO_PRO_API_KEY."
         freshness_state = self._freshness_state(
             normalized,
             configured=configured,
@@ -481,7 +481,7 @@ class DataSourceService:
         cache_key = self._cache_key({"kind": "crypto", "ids": ids, "limit": limit})
         try:
             if not self._configured(provider):
-                raise ValueError("CoinGecko demo API key is not configured.")
+                raise ValueError("CoinGecko demo or pro API key is not configured.")
             url = "https://api.coingecko.com/api/v3/coins/markets"
             headers: dict[str, str] = {}
             if self.settings.coingecko_demo_api_key:

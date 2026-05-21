@@ -71,11 +71,16 @@ release channel yet.
   now exposes audit IDs and linked portfolio provenance, while Portfolio summary
   and holding surfaces show additive valuation, transaction, benchmark, and
   performance source references.
+- T76 audits existing provider contracts and corrects visible provider
+  metadata: Public Market Data now names Yahoo/Binance-public coverage, RSS
+  Events points to Google News RSS, CoinGecko demo/pro credentials are
+  described consistently, and CoinGecko history is shown as unsupported until
+  implemented.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T76 will audit existing providers against capability, credential, freshness,
-  quality, and provenance contracts.
+- T77 will validate provider catalog, credential states, freshness/cache
+  behavior, provenance, and exports in the packaged EXE.

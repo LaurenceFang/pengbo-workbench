@@ -40,7 +40,13 @@ class QueueSession:
         return response
 
 
-def make_settings(runtime_root: Path, *, fred_api_key: str | None = None, coingecko_key: str | None = None) -> RuntimeSettings:
+def make_settings(
+    runtime_root: Path,
+    *,
+    fred_api_key: str | None = None,
+    coingecko_key: str | None = None,
+    coingecko_pro_key: str | None = None,
+) -> RuntimeSettings:
     return RuntimeSettings(
         host="127.0.0.1",
         port=8765,
@@ -54,7 +60,7 @@ def make_settings(runtime_root: Path, *, fred_api_key: str | None = None, coinge
         binance_password=None,
         fred_api_key=fred_api_key,
         coingecko_demo_api_key=coingecko_key,
-        coingecko_pro_api_key=None,
+        coingecko_pro_api_key=coingecko_pro_key,
     )
 
 
@@ -302,12 +308,43 @@ class DataSourceServiceTests(unittest.TestCase):
                 self.assertTrue(fred["requires_credentials"])
                 self.assertEqual(coingecko["health"], "missing_credentials")
                 self.assertTrue(coingecko["requires_credentials"])
+                self.assertIn("demo or pro", coingecko["message"])
 
                 unlock_response = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
                 self.assertEqual(unlock_response.status_code, 200)
                 probe = client.post("/api/v1/connections/test", json={"provider": "fred"}).json()
                 self.assertEqual(probe["status"], "missing_credentials")
                 self.assertTrue(probe["requires_credentials"])
+
+    def test_coingecko_market_fetch_uses_configured_pro_key(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            app = create_app(make_settings(Path(temp_dir), coingecko_pro_key="pro-key"))
+            with TestClient(app) as client:
+                service = app.state.container.data_source_service
+                service.session = QueueSession(
+                    [
+                        FakeResponse(
+                            [
+                                {
+                                    "id": "ethereum",
+                                    "symbol": "eth",
+                                    "name": "Ethereum",
+                                    "current_price": 3200.0,
+                                    "market_cap": 380_000_000_000,
+                                    "total_volume": 20_000_000_000,
+                                    "price_change_percentage_24h": -0.4,
+                                    "last_updated": "2026-05-13T00:00:00Z",
+                                }
+                            ],
+                            url="https://api.coingecko.com/api/v3/coins/markets",
+                        ),
+                    ]
+                )
+
+                response = client.get("/api/v1/data-sources/crypto/markets?ids=ethereum&limit=1")
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()["assets"][0]["symbol"], "ETH")
+                self.assertEqual(service.session.requests[0][1]["headers"]["x-cg-pro-api-key"], "pro-key")
 
     def test_coingecko_market_fetch_uses_configured_demo_key_and_cached_fallback(self) -> None:
         with TemporaryDirectory() as temp_dir:

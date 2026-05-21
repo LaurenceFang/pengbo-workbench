@@ -11,7 +11,8 @@ from backend.app.providers.catalog import get_asset
 from backend.app.providers.filings import FilingsProvider
 from backend.app.api.factory import create_app
 from backend.app.runtime import RuntimeSettings
-from backend.app.services.capability_service import CapabilityService
+from backend.app.services.capability_service import CAPABILITY_ORDER, CapabilityService
+from backend.app.services.data_source_service import DATA_SOURCE_PROVIDERS
 
 
 class CapabilityServiceTests(unittest.TestCase):
@@ -35,13 +36,15 @@ class CapabilityServiceTests(unittest.TestCase):
 
         catalog = service.get_connections_catalog()
         provider_keys = [item.provider for item in catalog.providers]
+        self.assertEqual(len(provider_keys), len(set(provider_keys)))
         self.assertEqual(provider_keys[:4], ["market", "fundamentals", "edgar", "binance"])
         self.assertIn("worldbank", provider_keys)
         self.assertIn("dbnomics", provider_keys)
         self.assertIn("rss_events", provider_keys)
         self.assertIn("fred", provider_keys)
         self.assertIn("coingecko", provider_keys)
-        self.assertTrue(all(len(item.capabilities) == 7 for item in catalog.providers))
+        self.assertTrue(set(DATA_SOURCE_PROVIDERS).issubset(set(provider_keys)))
+        self.assertTrue(all(len(item.capabilities) == len(CAPABILITY_ORDER) for item in catalog.providers))
         self.assertTrue(all(item.read_only for item in catalog.providers))
         self.assertTrue(all(not item.live_trading for item in catalog.providers))
         self.assertTrue(all(item.write_status == "read_only" for item in catalog.providers))
@@ -50,6 +53,7 @@ class CapabilityServiceTests(unittest.TestCase):
         self.assertTrue(all(item.freshness is not None and item.freshness.cache_ttl_seconds is not None for item in catalog.providers))
         self.assertTrue(all(item.freshness is not None and item.freshness.refresh_behavior for item in catalog.providers))
         self.assertTrue(all(item.freshness is not None and item.freshness.offline_behavior for item in catalog.providers))
+        self.assertTrue(all(item.provenance is not None and item.provenance.source_url for item in catalog.providers))
 
         edgar = next(item for item in catalog.providers if item.provider == "edgar")
         self.assertTrue(edgar.testable)
@@ -76,6 +80,8 @@ class CapabilityServiceTests(unittest.TestCase):
         self.assertIn("does not provide account", edgar_account.unsupported_reason or "")
 
         market = next(item for item in catalog.providers if item.provider == "market")
+        self.assertEqual(market.label, "Public Market Data")
+        self.assertIn("Binance public", market.provenance.upstream or "")
         quotes = next(item for item in market.capabilities if item.key == "quotes")
         self.assertTrue(quotes.supported)
         self.assertFalse(quotes.requires_credentials)
@@ -86,6 +92,25 @@ class CapabilityServiceTests(unittest.TestCase):
 
         binance = next(item for item in catalog.providers if item.provider == "binance")
         self.assertIn("confirmation-gated execution APIs", binance.execution_boundary or "")
+        self.assertFalse(binance.live_trading)
+        self.assertEqual(binance.write_status, "read_only")
+        account = next(item for item in binance.capabilities if item.key == "account")
+        self.assertTrue(account.supported)
+        self.assertTrue(account.requires_credentials)
+        self.assertEqual(account.status_hint, "credential_required")
+        self.assertTrue(account.read_only)
+
+        rss = next(item for item in catalog.providers if item.provider == "rss_events")
+        self.assertEqual(rss.label, "Google News RSS Events")
+        self.assertEqual(rss.provenance.source_url, "https://news.google.com/rss/search")
+
+        coingecko = next(item for item in catalog.providers if item.provider == "coingecko")
+        history = next(item for item in coingecko.capabilities if item.key == "history")
+        self.assertFalse(history.supported)
+        self.assertFalse(history.requires_credentials)
+        self.assertEqual(history.status_hint, "unsupported")
+        self.assertIn("does not provide history", history.unsupported_reason or "")
+        self.assertIn("demo or pro", coingecko.credential_note or "")
 
     def test_asset_applicability_distinguishes_unsupported_credentials_and_temporary_failures(self) -> None:
         settings = RuntimeSettings(

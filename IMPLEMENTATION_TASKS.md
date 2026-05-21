@@ -71,6 +71,7 @@ Updated: 2026-05-21
 - `T73 - Provider Freshness And Cache Policy` is now implemented. Provider catalog, Data Sources runtime status, provenance payloads, and evidence-pack exports expose additive TTL, stale-after, refresh behavior, offline fallback, cache-age, and freshness-state fields for fresh, cached, stale, refresh-failed, offline, credential-required, unavailable, unsupported, and unknown evidence.
 - `T74 - Data Quality Status Contract` is now implemented. Data Sources, Research, Portfolio, Screeners, Factor Lab, provenance payloads, and evidence-pack exports expose additive data-quality status for completeness, timeliness, source confidence, limitations, notes, and machine tags while preserving existing stale, missing, health, and evidence-note fields.
 - `T75 - Provenance UI And Export Sync` is now implemented. Research evidence and decision review surfaces expose audit IDs and portfolio provenance, Portfolio summary and holdings expose additive provenance tiles/references, and Research evidence-pack Markdown exports now carry the same portfolio provenance plus audit IDs.
+- `T76 - Existing Providers Audit` is now implemented. Provider catalog/runtime drift was corrected for Public Market Data, Google News RSS Events, and CoinGecko demo/pro credential support; CoinGecko history is now honestly unsupported until a dedicated endpoint exists; tests lock provider registry coverage, read-only/no-live-trading boundaries, freshness/provenance, and keyed credential behavior.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -937,33 +938,32 @@ Updated: 2026-05-21
 
 ## Recommended Next Task
 
-### T76 - Existing Providers Audit
+### T77 - Data Sources Packaged Signoff V2
 
 Priority: P1
 Status: Planned
 
 Why this is next:
 
-- `T75` now makes provenance and audit references visible in Research, Portfolio, and Research evidence-pack exports.
-- The next product gap is auditing existing provider implementations against the now-explicit capability, credential, freshness, quality, and provenance contracts.
+- `T76` now aligns provider registry/runtime contracts and keeps all catalog providers read-only with no live-trading capability.
+- The next product gap is proving those Data Sources provider contracts inside the packaged desktop EXE.
 
 Scope:
 
-- Audit every existing provider implementation against capability, credential, freshness, quality, and provenance contracts.
-- Fix drift or mark unsupported states honestly.
-- Confirm no new live-trading path is introduced.
+- Validate provider catalog, credential states, freshness labels, cache behavior, provenance, and exports in the packaged EXE.
+- Capture source-safe packaged evidence for reviewer/release signoff.
+- Add packaged smoke assertions where practical.
 
 Acceptance:
 
-- Existing providers match the product contract instead of relying on implied behavior.
+- Packaged Data Sources behavior matches source-level provider contract evidence.
 
 Implementation notes:
 
-- `T75` added additive `PortfolioProvenanceItem` references to Portfolio summary/holdings and Research portfolio context.
-- Research evidence-pack Markdown exports now include Portfolio Context, Portfolio Provenance, and audit IDs where available.
-- Validation passed on 2026-05-22: `py -m unittest backend.tests.test_research_service backend.tests.test_portfolio_service`, `npm run typecheck`, `npm run build`, and `npm run smoke:page-polish`.
+- `T76` corrected Public Market Data/Yahoo plus Binance public provenance, Google News RSS provenance, CoinGecko demo/pro credential copy, and unsupported CoinGecko history status.
+- Validation passed on 2026-05-22: `py -m unittest backend.tests.test_capability_service backend.tests.test_data_source_service`, `py -m unittest backend.tests.test_research_service backend.tests.test_portfolio_service`, `npm run typecheck`, `npm run build`, and `npm run smoke:page-polish`.
 
-- Stay additive to existing provider behavior. Do not introduce non-Binance trading paths.
+- Keep packaged evidence source-safe. Do not commit secrets, logs, runtime databases, or generated desktop artifacts.
 
 ## Priority Order
 
@@ -1622,7 +1622,7 @@ Completion notes:
 ### T76 - Existing Providers Audit
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-10-14 to 2026-10-18
 Depends on: T75
 
@@ -1635,6 +1635,15 @@ Task:
 Done when:
 
 - Existing providers match the product contract instead of relying on implied behavior.
+
+Completion notes:
+
+- Audited the provider catalog against runtime Data Sources status and provider fetch behavior.
+- Corrected market provider metadata to name Public Market Data and document Yahoo-style equity/ETF plus Binance public crypto provenance.
+- Corrected RSS Events metadata to name Google News RSS Events and point provenance to Google News RSS search.
+- Corrected CoinGecko demo/pro credential copy and removed the unsupported `history` capability from the credential-gated capability set.
+- Locked the provider registry contract with tests for provider coverage, read-only/no-live-trading boundaries, freshness/provenance fields, Binance account semantics, Google News RSS provenance, and CoinGecko unsupported history behavior.
+- Validation passed on 2026-05-22: `py -m unittest backend.tests.test_capability_service backend.tests.test_data_source_service`, `py -m unittest backend.tests.test_research_service backend.tests.test_portfolio_service`, `npm run typecheck`, `npm run build`, and `npm run smoke:page-polish`.
 
 ### T77 - Data Sources Packaged Signoff V2
 
