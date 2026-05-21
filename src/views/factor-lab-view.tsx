@@ -361,6 +361,10 @@ export function FactorLabView({
                         value={selectedResult.change_pct !== null ? formatPercent(selectedResult.change_pct) : "n/a"}
                         tone={(selectedResult.change_pct ?? 0) >= 0 ? "up" : "down"}
                       />
+                      <MetricCard
+                        label="Quality"
+                        value={selectedResult.data_quality?.overall ?? "unknown"}
+                      />
                     </div>
                     <div className="factor-chart-wrap">
                       <ProfessionalChartPanel
@@ -442,6 +446,9 @@ export function FactorLabView({
                     </div>
                     {selectedResult.notes.map((note) => (
                       <InlineState label={note} key={note} />
+                    ))}
+                    {selectedResult.data_quality?.limitations.map((note) => (
+                      <InlineState label={`Quality: ${note}`} key={`quality-${note}`} />
                     ))}
                   </>
                 ) : null}

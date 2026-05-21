@@ -803,5 +803,20 @@ function researchStatusItems(brief: ResearchBrief): DataStatusItem[] {
         : "Evidence chain appears after linked artifacts are available.",
       tone: brief.evidence_context ? "audited" : "blocked",
     },
+    {
+      label: "Quality",
+      value: brief.data_quality?.overall ?? "unknown",
+      detail: brief.data_quality
+        ? `${brief.data_quality.completeness.level} completeness; ${brief.data_quality.timeliness.level} timeliness.`
+        : "Structured quality contract is not attached to this brief yet.",
+      tone:
+        brief.data_quality?.overall === "complete"
+          ? "observed"
+          : brief.data_quality?.overall === "blocked"
+            ? "blocked"
+            : brief.data_quality?.overall === "unknown"
+              ? "audited"
+              : "degraded",
+    },
   ];
 }

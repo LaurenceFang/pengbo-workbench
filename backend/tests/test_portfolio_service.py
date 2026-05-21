@@ -128,6 +128,10 @@ class PortfolioServiceTests(unittest.TestCase):
         self.assertTrue(summary.degraded)
         self.assertIn("AAPL", summary.missing_symbols)
         self.assertEqual(summary.performance, [])
+        self.assertIsNotNone(holdings[0].data_quality)
+        self.assertEqual(holdings[0].data_quality.overall, "blocked")
+        self.assertIsNotNone(summary.data_quality)
+        self.assertEqual(summary.data_quality.overall, "blocked")
 
     def test_benchmark_failure_only_degrades_that_benchmark(self):
         service = self.make_service(

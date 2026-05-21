@@ -21,7 +21,7 @@ The active roadmap is tracked in [IMPLEMENTATION_TASKS.md](IMPLEMENTATION_TASKS.
 
 These tasks were intentionally prioritized before broader public, account, remote, team, AI, or China-market connector work. The next roadmap lane begins at `T57 - License And Open Source Boundary`, followed by open-source readiness, CI, releases, demo mode, contributor readiness, research-flow polish, data governance, local AI assistance, China-market connectors, and security packaged signoff.
 
-`T58 - Version Governance Cleanup`, `T59 - GitHub Actions CI Baseline`, `T60 - Demo Mode And No-Key Startup`, `T61 - First Release Packaging`, `T62 - README Product Proof Upgrade`, `T63 - Contributor Entry Kit`, `T64 - Research Flow Definition`, `T65 - Asset Page Research Entry Polish`, `T66 - Data Status Strip Everywhere`, `T67 - Research Brief Quality Upgrade`, `T68 - Report Export Evidence Pack`, `T69 - Command Center V1`, `T69# Temp - Packaged Desktop Video Walkthrough`, `T70 - First-Run Product Onboarding`, `T71 - Provider Capability Matrix`, `T72 - Provider Credential State Model`, and `T73 - Provider Freshness And Cache Policy` are implemented. The first GitHub Release is available at [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0). The next product-trust task is `T74 - Data Quality Status Contract`.
+`T58 - Version Governance Cleanup`, `T59 - GitHub Actions CI Baseline`, `T60 - Demo Mode And No-Key Startup`, `T61 - First Release Packaging`, `T62 - README Product Proof Upgrade`, `T63 - Contributor Entry Kit`, `T64 - Research Flow Definition`, `T65 - Asset Page Research Entry Polish`, `T66 - Data Status Strip Everywhere`, `T67 - Research Brief Quality Upgrade`, `T68 - Report Export Evidence Pack`, `T69 - Command Center V1`, `T69# Temp - Packaged Desktop Video Walkthrough`, `T70 - First-Run Product Onboarding`, `T71 - Provider Capability Matrix`, `T72 - Provider Credential State Model`, `T73 - Provider Freshness And Cache Policy`, and `T74 - Data Quality Status Contract` are implemented. The first GitHub Release is available at [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0). The next product-trust task is `T75 - Provenance UI And Export Sync`.
 
 For the product-team assessment behind this direction, see [docs/product-team-assessment-2026-05-17.md](docs/product-team-assessment-2026-05-17.md).
 
@@ -39,8 +39,8 @@ The core loop is designed around evidence and boundaries:
 - Start from the dashboard and choose an asset, data source, screener, or workflow.
 - Use the first-run checklist to understand demo mode, provider setup, local unlock, privacy boundaries, and live-execution gates before exploring sensitive areas.
 - Use Command Center to search a symbol, open or create its Research brief, refresh providers, export local reports, inspect audit context, and run no-secret readiness checks from one compact surface.
-- Use Research to create a durable local brief with notes, analysis modules, source context, and export handoffs.
-- Use Data Sources to inspect read-only provider coverage, cache state, TTL, refresh behavior, offline fallback, provenance, freshness, and credential requirements.
+- Use Research to create a durable local brief with notes, analysis modules, source context, structured data-quality status, and export handoffs.
+- Use Data Sources to inspect read-only provider coverage, cache state, TTL, refresh behavior, offline fallback, provenance, freshness, data quality, and credential requirements.
 - Use Workflow Studio to run bounded templates that connect screeners, data sources, research, factors, backtests, paper trading, Binance intents, and reports.
 - Use Manual and Settings to understand local unlock, reset behavior, data boundaries, and live-trading confirmation rules.
 
@@ -74,11 +74,11 @@ The license does not change the product safety boundary: Pengbo is currently a l
 - Asset: quote/history views, provider capability state, filings/fundamentals context, and multi-period charts.
 - Research: durable local briefs, structured analysis modules, notes, exports, and handoffs from screeners and data sources.
 - Screeners: preset-driven and variant-tuned screening with bounded user controls.
-- Portfolio: offline-first holdings, transactions, valuation states, analytics, and allocation views.
+- Portfolio: offline-first holdings, transactions, valuation states, analytics, allocation views, and data-quality limitations.
 - Factor Lab: research-only factor runs across equities, ETFs/index proxies, indexes, and crypto.
 - Strategy Lab: local backtests, paper trading ledgers, Binance execution intents, risk evidence, and audit context.
 - Workflow Studio: template-driven local workflows with explicit manual boundaries.
-- Data Sources: read-only source catalog, provenance, credential status, freshness TTL/cache policy, offline fallback, and report export.
+- Data Sources: read-only source catalog, provenance, credential status, freshness TTL/cache policy, data-quality status, offline fallback, and report export.
 - Manual: product guidance, safety boundaries, workflow explanations, and translation status.
 
 ## Safety Boundaries

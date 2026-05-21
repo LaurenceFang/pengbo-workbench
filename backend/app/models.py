@@ -42,6 +42,8 @@ FreshnessState = Literal[
     "unsupported",
     "unknown",
 ]
+DataQualityLevel = Literal["complete", "partial", "limited", "blocked", "unknown"]
+DataQualityConfidence = Literal["official", "public", "provider", "local_cache", "simulated", "unsupported", "unknown"]
 CredentialState = Literal[
     "missing",
     "configured",
@@ -305,6 +307,23 @@ class SourceProvenanceMetadata(BaseModel):
     source_url: str | None = None
 
 
+class DataQualityDimension(BaseModel):
+    level: DataQualityLevel = "unknown"
+    label: str
+    detail: str
+    signals: list[str] = Field(default_factory=list)
+
+
+class DataQualityStatus(BaseModel):
+    overall: DataQualityLevel = "unknown"
+    completeness: DataQualityDimension
+    timeliness: DataQualityDimension
+    source_confidence: DataQualityDimension
+    limitations: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    machine_tags: list[str] = Field(default_factory=list)
+
+
 class ConnectionStatusItem(BaseModel):
     provider: str
     label: str
@@ -414,6 +433,7 @@ class DataSourceRuntimeStatus(BaseModel):
     freshness_state: FreshnessState = "unknown"
     freshness: SourceFreshnessMetadata | None = None
     last_success_at: str | None = None
+    data_quality: DataQualityStatus | None = None
     registration_url: str | None = None
     paid_setup_url: str | None = None
 
@@ -432,6 +452,7 @@ class DataSourceProvenance(BaseModel):
     cache_age_seconds: int | None = None
     stale: bool = False
     unavailable_reason: str | None = None
+    data_quality: DataQualityStatus | None = None
 
 
 class MacroSeriesPoint(BaseModel):
@@ -505,6 +526,7 @@ class DataSourceReportSourceSummary(BaseModel):
     cache_ttl_seconds: int | None = None
     refresh_behavior: str | None = None
     offline_behavior: str | None = None
+    data_quality: DataQualityStatus | None = None
     source_url: str | None = None
     unavailable_reason: str | None = None
     read_only: bool = True
@@ -757,6 +779,7 @@ class ResearchEvidenceContext(BaseModel):
     execution: ResearchEvidenceExecutionSummary | None = None
     audit: ResearchEvidenceAuditSummary | None = None
     data_quality_notes: list[str] = Field(default_factory=list)
+    data_quality: DataQualityStatus | None = None
 
 
 class ResearchBriefEvidenceItem(BaseModel):
@@ -797,6 +820,7 @@ class ResearchBrief(BaseModel):
     portfolio_context: ResearchPortfolioContext
     analysis_modules: list[AnalysisModuleResult] = Field(default_factory=list)
     decision_review: ResearchBriefDecisionReview
+    data_quality: DataQualityStatus | None = None
     notes: ResearchNoteState
     export_info: ResearchExportInfo
 
@@ -950,6 +974,7 @@ class PortfolioHolding(BaseModel):
     day_change_pct: float | None
     stale: bool
     notes: list[str] = Field(default_factory=list)
+    data_quality: DataQualityStatus | None = None
 
 
 class PortfolioValuePoint(BaseModel):
@@ -1015,6 +1040,7 @@ class PortfolioSummaryResponse(BaseModel):
     performance: list[PortfolioValuePoint]
     benchmarks: dict[str, list[PortfolioValuePoint]]
     analytics: PortfolioAnalytics
+    data_quality: DataQualityStatus | None = None
 
 
 class ScreenerPreset(BaseModel):
@@ -1088,6 +1114,7 @@ class ScreenerResult(BaseModel):
     notes: list[str] = Field(default_factory=list)
     metrics: dict[str, Any] = Field(default_factory=dict)
     factor_context: ResearchFactorContext | None = None
+    data_quality: DataQualityStatus | None = None
 
 
 class ScreenerRunResponse(BaseModel):
@@ -1147,6 +1174,7 @@ class FactorResult(BaseModel):
     missing_data: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
     score_history: list[PortfolioValuePoint] = Field(default_factory=list)
+    data_quality: DataQualityStatus | None = None
 
 
 class FactorRunResponse(BaseModel):

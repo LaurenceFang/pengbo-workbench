@@ -28,6 +28,7 @@ from ..models import (
 from ..runtime import RuntimeSettings
 from ..storage.duckdb_store import DuckDbStore
 from .capability_service import CapabilityService
+from .data_quality_service import quality_from_provider_state
 
 
 PUBLIC_DATA_SOURCE_PROVIDERS = {"worldbank", "dbnomics", "rss_events"}
@@ -142,6 +143,15 @@ class DataSourceService:
             cache_age_seconds=self._age_seconds(fetched_at),
             stale=stale,
             unavailable_reason=unavailable_reason,
+            data_quality=quality_from_provider_state(
+                provider=provider,
+                health="cached" if stale else "ok",
+                freshness_state=state,
+                configured=self._configured(provider),
+                stale=stale,
+                limitations=[unavailable_reason] if unavailable_reason else [],
+                source_confidence="official" if provider in {"worldbank", "fred"} else "public",
+            ),
         )
 
     def _cached_payload_after_refresh_failure(
@@ -170,6 +180,15 @@ class DataSourceService:
                 "cache_age_seconds": cache_age_seconds,
                 "stale": state in {"cached", "stale", "refresh_failed"},
                 "unavailable_reason": unavailable_reason,
+                "data_quality": quality_from_provider_state(
+                    provider=provider,
+                    health="cached",
+                    freshness_state=state,
+                    configured=self._configured(provider),
+                    stale=True,
+                    limitations=[unavailable_reason],
+                    source_confidence="official" if provider in {"worldbank", "fred"} else "public",
+                ).model_dump(mode="json"),
             },
         }
 
@@ -254,6 +273,16 @@ class DataSourceService:
             freshness_state=freshness_state,
             freshness=self._freshness(normalized),
             last_success_at=cache_updated_at,
+            data_quality=quality_from_provider_state(
+                provider=normalized,
+                health=health,
+                freshness_state=freshness_state,
+                configured=configured,
+                requires_credentials=normalized in KEYED_DATA_SOURCE_PROVIDERS,
+                stale=freshness_state in {"cached", "stale", "refresh_failed"},
+                limitations=[message] if health in {"missing_credentials", "unavailable"} else [],
+                source_confidence="official" if normalized in {"worldbank", "fred"} else "public",
+            ),
             registration_url=self.registration_url(normalized),
             paid_setup_url="https://www.coingecko.com/en/api/pricing" if normalized == "coingecko" else None,
         )
@@ -572,6 +601,7 @@ class DataSourceService:
             "",
             "- Evidence pack: `data_sources`",
             "- Provider status: `catalog health, credential readiness, cache state, and read-only boundary`",
+            "- Data quality: `completeness, timeliness, source confidence, and limitation notes are included where available`",
             "- Private-state boundary: `no API keys, Stronghold vaults, unlock secrets, session tokens, runtime databases, or diagnostics bundles are included`",
             "- Audit references: `provider health and provenance only; security audit records are not exported from this report`",
             "",
@@ -594,6 +624,7 @@ class DataSourceService:
                 cache_ttl_seconds=status.freshness.cache_ttl_seconds if status.freshness else None,
                 refresh_behavior=status.freshness.refresh_behavior if status.freshness else None,
                 offline_behavior=status.freshness.offline_behavior if status.freshness else None,
+                data_quality=status.data_quality,
                 unavailable_reason=status.message if status.health in {"missing_credentials", "unavailable"} else None,
                 read_only=True if catalog_item is None else catalog_item.read_only,
                 live_trading=False if catalog_item is None else catalog_item.live_trading,
@@ -602,7 +633,7 @@ class DataSourceService:
             summaries.append(summary)
             sections.extend(
                 [
-                    f"- {summary.label} (`{summary.provider}`): health={summary.health}, freshness={summary.freshness_state}, configured={summary.configured}, cache_age_seconds={summary.cache_age_seconds if summary.cache_age_seconds is not None else 'not cached'}, read_only={summary.read_only}, live_trading={summary.live_trading}",
+                    f"- {summary.label} (`{summary.provider}`): health={summary.health}, freshness={summary.freshness_state}, quality={summary.data_quality.overall if summary.data_quality else 'unknown'}, configured={summary.configured}, cache_age_seconds={summary.cache_age_seconds if summary.cache_age_seconds is not None else 'not cached'}, read_only={summary.read_only}, live_trading={summary.live_trading}",
                 ]
             )
 
@@ -617,6 +648,7 @@ class DataSourceService:
         sections.extend(["", "## Provenance Summary", ""])
         provenance_summary = [
             f"{item.label}: health={item.health}, freshness={item.freshness_state}, stale={item.stale}, fetched_at={item.fetched_at or 'not fetched'}, cache_age_seconds={item.cache_age_seconds if item.cache_age_seconds is not None else 'not cached'}, source={item.source_url or 'catalog'}"
+            + (f", quality={item.data_quality.overall}" if item.data_quality else "")
             + (f", unavailable={item.unavailable_reason}" if item.unavailable_reason else "")
             for item in summaries
         ]
@@ -633,6 +665,21 @@ class DataSourceService:
         for item in summaries:
             sections.append(
                 f"| {item.provider} | {item.health} | {item.freshness_state} | {item.cache_age_seconds if item.cache_age_seconds is not None else 'not cached'} | {item.cache_ttl_seconds if item.cache_ttl_seconds is not None else 'not specified'} | {item.read_only} | {item.live_trading} | {item.source_url or 'catalog'} |"
+            )
+        sections.extend(
+            [
+                "",
+                "## Data Quality Table",
+                "",
+                "| Provider | Overall | Completeness | Timeliness | Source confidence | Limitations |",
+                "| --- | --- | --- | --- | --- | --- |",
+            ]
+        )
+        for item in summaries:
+            quality = item.data_quality
+            limitations = "; ".join(quality.limitations) if quality and quality.limitations else "none"
+            sections.append(
+                f"| {item.provider} | {quality.overall if quality else 'unknown'} | {quality.completeness.level if quality else 'unknown'} | {quality.timeliness.level if quality else 'unknown'} | {quality.source_confidence.level if quality else 'unknown'} | {limitations} |"
             )
         sections.extend(
             [
@@ -698,6 +745,7 @@ class DataSourceService:
             cache_ttl_seconds=provenance.freshness.cache_ttl_seconds if provenance.freshness else None,
             refresh_behavior=provenance.freshness.refresh_behavior if provenance.freshness else None,
             offline_behavior=provenance.freshness.offline_behavior if provenance.freshness else None,
+            data_quality=provenance.data_quality,
             source_url=provenance.source_url,
             unavailable_reason=provenance.unavailable_reason,
             read_only=True if definition is None else definition.read_only,
@@ -725,6 +773,16 @@ class DataSourceService:
             cache_ttl_seconds=status.freshness.cache_ttl_seconds if status.freshness else None,
             refresh_behavior=status.freshness.refresh_behavior if status.freshness else None,
             offline_behavior=status.freshness.offline_behavior if status.freshness else None,
+            data_quality=quality_from_provider_state(
+                provider=status.provider,
+                health=health,
+                freshness_state=freshness_state,
+                configured=status.configured,
+                requires_credentials=status.requires_credentials,
+                stale=freshness_state in {"cached", "stale", "refresh_failed"},
+                limitations=[reason],
+                source_confidence="official" if status.provider in {"worldbank", "fred"} else "public",
+            ),
             source_url=None if definition is None else definition.provenance_source_url,
             unavailable_reason=reason,
             read_only=True if definition is None else definition.read_only,
@@ -735,7 +793,7 @@ class DataSourceService:
         if not samples:
             return ["- No sample source queries were included."]
         return [
-            f"- {item.label}: health={item.health}, freshness={item.freshness_state}, stale={item.stale}, fetched_at={item.fetched_at or 'not fetched'}, cache_age_seconds={item.cache_age_seconds if item.cache_age_seconds is not None else 'not cached'}"
+            f"- {item.label}: health={item.health}, freshness={item.freshness_state}, quality={item.data_quality.overall if item.data_quality else 'unknown'}, stale={item.stale}, fetched_at={item.fetched_at or 'not fetched'}, cache_age_seconds={item.cache_age_seconds if item.cache_age_seconds is not None else 'not cached'}"
             + (f", unavailable={item.unavailable_reason}" if item.unavailable_reason else "")
             for item in samples
         ]

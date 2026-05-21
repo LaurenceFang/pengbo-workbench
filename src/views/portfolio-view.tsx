@@ -360,6 +360,7 @@ export function PortfolioView({
                 tone={summary.data.daily_pnl >= 0 ? "up" : "down"}
               />
               <MetricCard label={i18n.t("portfolio.positionCount")} value={String(summary.data.positions)} />
+              <MetricCard label="Quality" value={summary.data.data_quality?.overall ?? "unknown"} />
             </div>
             <div className="curve-panel">
               {summary.data.performance.length > 0 ? (
@@ -646,6 +647,7 @@ export function PortfolioView({
                   {holding.notes.map((note) => (
                     <span key={note}>{note}</span>
                   ))}
+                  {holding.data_quality ? <span>Quality: {holding.data_quality.overall}</span> : null}
                 </div>
                 <div className="holding-bar">
                   <div style={{ width: `${holding.allocation ?? 0}%` }} />

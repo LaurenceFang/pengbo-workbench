@@ -140,6 +140,8 @@ export type FreshnessState =
   | "unavailable"
   | "unsupported"
   | "unknown";
+export type DataQualityLevel = "complete" | "partial" | "limited" | "blocked" | "unknown";
+export type DataQualityConfidence = "official" | "public" | "provider" | "local_cache" | "simulated" | "unsupported" | "unknown";
 export type CredentialState =
   | "missing"
   | "configured"
@@ -256,6 +258,23 @@ export type ProviderCapability = {
   decision_note: string | null;
 };
 
+export type DataQualityDimension = {
+  level: DataQualityLevel;
+  label: string;
+  detail: string;
+  signals: string[];
+};
+
+export type DataQualityStatus = {
+  overall: DataQualityLevel;
+  completeness: DataQualityDimension;
+  timeliness: DataQualityDimension;
+  source_confidence: DataQualityDimension;
+  limitations: string[];
+  notes: string[];
+  machine_tags: string[];
+};
+
 export type ProviderCapabilityProviderItem = {
   provider: string;
   label: string;
@@ -297,6 +316,7 @@ export type DataSourceRuntimeStatus = {
   freshness_state: FreshnessState;
   freshness: SourceFreshnessMetadata | null;
   last_success_at: string | null;
+  data_quality: DataQualityStatus | null;
   registration_url: string | null;
   paid_setup_url: string | null;
 };
@@ -315,6 +335,7 @@ export type DataSourceProvenance = {
   cache_age_seconds: number | null;
   stale: boolean;
   unavailable_reason: string | null;
+  data_quality: DataQualityStatus | null;
 };
 
 export type MacroSeriesResponse = {
@@ -369,6 +390,7 @@ export type DataSourceReportSourceSummary = {
   cache_ttl_seconds: number | null;
   refresh_behavior: string | null;
   offline_behavior: string | null;
+  data_quality: DataQualityStatus | null;
   source_url: string | null;
   unavailable_reason: string | null;
   read_only: boolean;
@@ -553,6 +575,7 @@ export type PortfolioHolding = {
   day_change_pct: number | null;
   stale: boolean;
   notes: string[];
+  data_quality: DataQualityStatus | null;
 };
 
 export type PortfolioValuePoint = {
@@ -616,6 +639,7 @@ export type PortfolioSummaryResponse = {
   performance: PortfolioValuePoint[];
   benchmarks: Record<string, PortfolioValuePoint[]>;
   analytics: PortfolioAnalytics;
+  data_quality: DataQualityStatus | null;
 };
 
 export type ScreenerPreset = {
@@ -667,6 +691,7 @@ export type ScreenerRunResult = {
   notes: string[];
   metrics: Record<string, string | number>;
   factor_context: ResearchBrief["factor_context"] | null;
+  data_quality: DataQualityStatus | null;
 };
 
 export type ScreenerRunResponse = {
@@ -734,6 +759,7 @@ export type FactorResult = {
   missing_data: string[];
   notes: string[];
   score_history: PortfolioValuePoint[];
+  data_quality: DataQualityStatus | null;
 };
 
 export type FactorRunResponse = {
@@ -1231,6 +1257,7 @@ export type ResearchBrief = {
   };
   analysis_modules: AnalysisModuleResult[];
   decision_review: ResearchBriefDecisionReview;
+  data_quality: DataQualityStatus | null;
   notes: {
     markdown: string;
     updated_at: string;
@@ -1291,6 +1318,7 @@ export type ResearchEvidenceContext = {
     event_types: string[];
   } | null;
   data_quality_notes: string[];
+  data_quality: DataQualityStatus | null;
 };
 
 export type ResearchBriefListItem = {

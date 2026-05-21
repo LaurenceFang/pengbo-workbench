@@ -262,6 +262,8 @@ class ScreenerServiceTests(unittest.TestCase):
         self.assertEqual(response.results[0].score, 0.0)
         self.assertEqual(response.results[0].score_label, "watch")
         self.assertEqual(response.results[0].missing_metrics, ["provider_data"])
+        self.assertIsNotNone(response.results[0].data_quality)
+        self.assertEqual(response.results[0].data_quality.overall, "blocked")
 
     def test_expanded_universe_includes_repo_managed_symbols(self):
         expanded_equities = [entry.symbol for entry in ExpandedUniverseSource().assets_for("equity")]

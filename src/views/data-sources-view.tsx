@@ -7,6 +7,7 @@ import {
   api,
   type ConnectionsCatalogResponse,
   type CryptoMarketsResponse,
+  type DataQualityLevel,
   type DataSourceRuntimeStatus,
   type DataSourceStatusResponse,
   type FreshnessState,
@@ -466,6 +467,14 @@ function ProviderStatusPanel({
           tone: freshnessTone(status.freshness_state),
         },
         {
+          label: "Quality",
+          value: status.data_quality?.overall ?? "unknown",
+          detail: status.data_quality
+            ? `${status.data_quality.completeness.level} completeness; ${status.data_quality.source_confidence.level} source confidence.`
+            : "No structured quality contract attached.",
+          tone: qualityTone(status.data_quality?.overall),
+        },
+        {
           label: "Boundary",
           value: catalog?.read_only === false ? "mutation capable" : "read-only",
           detail: catalog?.live_trading ? "live trading path; protected by execution gates" : "no live trading path",
@@ -494,6 +503,14 @@ function freshnessTone(state: FreshnessState) {
   if (state === "credential_required") return "credential_required";
   if (state === "offline" || state === "unavailable") return "degraded";
   if (state === "unsupported") return "blocked";
+  return "audited";
+}
+
+function qualityTone(level: DataQualityLevel | undefined) {
+  if (level === "complete") return "observed";
+  if (level === "partial") return "cached";
+  if (level === "limited") return "degraded";
+  if (level === "blocked") return "blocked";
   return "audited";
 }
 

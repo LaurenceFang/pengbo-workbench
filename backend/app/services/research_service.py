@@ -29,6 +29,7 @@ from ..providers.catalog import get_asset
 from ..runtime import RuntimeSettings
 from ..storage.sqlite_store import SqliteStore
 from .asset_service import AssetService
+from .data_quality_service import quality_from_missing_and_stale
 from .portfolio_service import PortfolioService
 from .screener_service import ScreenerService
 from .watchlist_service import WatchlistService
@@ -484,6 +485,21 @@ class ResearchService:
             evidence_context=evidence_context,
             portfolio_context=portfolio_context,
         )
+        missing_items: list[str] = []
+        if factor_context and factor_context.missing_data:
+            missing_items.extend(factor_context.missing_data)
+        if not screener_context.summaries:
+            missing_items.append("screener_context")
+        if evidence_context and evidence_context.data_quality:
+            missing_items.extend(evidence_context.data_quality.completeness.signals)
+        data_quality = quality_from_missing_and_stale(
+            provider=asset_snapshot.asset.provider,
+            stale=analysis_context.stale,
+            missing_items=missing_items,
+            limitations=(evidence_context.data_quality_notes if evidence_context else []) + asset_snapshot.capabilities.notes,
+            simulated=evidence_context is not None
+            and (evidence_context.backtest is not None or evidence_context.paper_session is not None),
+        )
         return {
             "brief_id": brief_id,
             "symbol": symbol,
@@ -497,6 +513,7 @@ class ResearchService:
             "portfolio_context": portfolio_context.model_dump(mode="json"),
             "analysis_modules": [item.model_dump(mode="json") for item in analysis_modules],
             "decision_review": decision_review.model_dump(mode="json"),
+            "data_quality": data_quality.model_dump(mode="json"),
         }
 
     def _to_brief(self, row: dict) -> ResearchBrief:
@@ -544,6 +561,7 @@ class ResearchService:
                 "portfolio_context": snapshot["portfolio_context"],
                 "analysis_modules": snapshot.get("analysis_modules", []),
                 "decision_review": snapshot["decision_review"],
+                "data_quality": snapshot.get("data_quality"),
                 "notes": {
                     "markdown": row["notes_markdown"],
                     "updated_at": row["updated_at"],
@@ -680,6 +698,7 @@ class ResearchService:
             f"- Updated: `{brief.updated_at}`",
             f"- Stale: `{'yes' if brief.stale else 'no'}`",
             "- Evidence pack: `research_brief`",
+            f"- Data quality: `{brief.data_quality.overall if brief.data_quality else 'unknown'}`",
             "- Private-state boundary: `no credentials, Stronghold vaults, unlock secrets, session tokens, or runtime databases are included`",
             "",
             "## Evidence Pack Summary",
@@ -690,6 +709,14 @@ class ResearchService:
             f"- Filings status: `{brief.asset_snapshot.capabilities.filings_status}`",
             f"- Evidence status: `{'audited' if brief.evidence_context else 'blocked'}`",
             f"- Audit references: `{brief.evidence_context.audit.event_count if brief.evidence_context and brief.evidence_context.audit else 0}` event(s)",
+            "",
+            "## Data Quality",
+            "",
+            "| Dimension | Level | Detail |",
+            "| --- | --- | --- |",
+            f"| Completeness | {brief.data_quality.completeness.level if brief.data_quality else 'unknown'} | {brief.data_quality.completeness.detail if brief.data_quality else 'No structured quality contract attached.'} |",
+            f"| Timeliness | {brief.data_quality.timeliness.level if brief.data_quality else 'unknown'} | {brief.data_quality.timeliness.detail if brief.data_quality else 'No structured quality contract attached.'} |",
+            f"| Source confidence | {brief.data_quality.source_confidence.level if brief.data_quality else 'unknown'} | {brief.data_quality.source_confidence.detail if brief.data_quality else 'No structured quality contract attached.'} |",
             "",
             "## Asset Snapshot",
             "",

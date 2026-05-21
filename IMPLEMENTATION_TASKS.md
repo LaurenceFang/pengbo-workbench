@@ -69,6 +69,7 @@ Updated: 2026-05-21
 - `T71 - Provider Capability Matrix` is now implemented. `/api/v1/connections/catalog` remains compatible while exposing endpoint coverage, asset coverage, regions, credential needs, freshness, read/write status, execution boundaries, decision notes, and explicit unsupported reasons from the shared provider registry.
 - `T72 - Provider Credential State Model` is now implemented. Connections and provider tests expose normalized credential states, labels, redacted reasons, and next actions for missing, configured, invalid, disabled, read-only, trading-gated, and blocked provider paths while keeping existing health fields compatible.
 - `T73 - Provider Freshness And Cache Policy` is now implemented. Provider catalog, Data Sources runtime status, provenance payloads, and evidence-pack exports expose additive TTL, stale-after, refresh behavior, offline fallback, cache-age, and freshness-state fields for fresh, cached, stale, refresh-failed, offline, credential-required, unavailable, unsupported, and unknown evidence.
+- `T74 - Data Quality Status Contract` is now implemented. Data Sources, Research, Portfolio, Screeners, Factor Lab, provenance payloads, and evidence-pack exports expose additive data-quality status for completeness, timeliness, source confidence, limitations, notes, and machine tags while preserving existing stale, missing, health, and evidence-note fields.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -935,34 +936,33 @@ Updated: 2026-05-21
 
 ## Recommended Next Task
 
-### T74 - Data Quality Status Contract
+### T75 - Provenance UI And Export Sync
 
 Priority: P1
 Status: Planned
 
 Why this is next:
 
-- `T73` now defines provider freshness, cache TTL, refresh behavior, and offline fallback without breaking existing Data Sources or Connections contracts.
-- The next product gap is a broader machine-readable data-quality contract for completeness, timeliness, source confidence, and limitation notes across research, portfolio, screener, reports, and diagnostics.
+- `T74` now gives provider, research, portfolio, screener, factor, and export paths a shared data-quality contract.
+- The next product gap is making provenance equally visible and consistent in critical UI surfaces and exported reports.
 
 Scope:
 
-- Add structured data-quality fields for completeness, timeliness, source confidence, and limitation notes.
-- Use the contract across research, portfolio, screener, reports, and provider diagnostics.
-- Avoid performance claims where evidence is simulated or blocked.
+- Show source provenance inline on critical research and portfolio views.
+- Carry the same provenance into exports.
+- Add audit links or IDs where available.
 
 Acceptance:
 
-- Data quality is machine-readable and user-visible across the product.
+- The UI and exported report tell the same evidence story.
 
 Implementation notes:
 
-- `T73` added additive freshness policy fields to `SourceFreshnessMetadata`, `DataSourceRuntimeStatus`, `DataSourceProvenance`, and report source summaries.
-- Data Sources now distinguishes `fresh`, `cached`, `stale`, `refresh_failed`, `offline`, `credential_required`, `unavailable`, `unsupported`, and `unknown` states while preserving existing `health`, `stale`, and cache timestamp fields.
-- Evidence-pack exports now include freshness state, cache age, TTL, refresh behavior, and offline fallback alongside provider health and read-only boundaries.
-- Validation passed on 2026-05-21: `py -m unittest backend.tests.test_capability_service backend.tests.test_data_source_service` and `npm run typecheck`.
+- `T74` added additive `DataQualityStatus` fields for completeness, timeliness, source confidence, limitations, notes, and machine tags.
+- Data Sources, Research, Portfolio, Screeners, Factor Lab, provenance payloads, and evidence-pack exports now expose structured data quality while preserving existing stale, health, missing, and notes fields.
+- Validation passed on 2026-05-21: `py -m unittest backend.tests.test_data_source_service backend.tests.test_research_service backend.tests.test_screener_service backend.tests.test_portfolio_service` and `npm run typecheck`.
 
-- Stay additive to existing research, portfolio, screener, report, and provider diagnostics contracts.
+- Stay additive to existing provenance, audit, research, portfolio, screener, report, and provider diagnostics contracts.
 
 ## Priority Order
 
@@ -1569,7 +1569,7 @@ Completion:
 ### T74 - Data Quality Status Contract
 
 Priority: P1
-Status: Planned
+Status: Completed (2026-05-21)
 Target Window: 2026-10-04 to 2026-10-08
 Depends on: T73
 
@@ -1582,6 +1582,16 @@ Task:
 Done when:
 
 - Data quality is machine-readable and user-visible across the product.
+
+Completion:
+
+- Added additive `DataQualityStatus` and `DataQualityDimension` models for completeness, timeliness, source confidence, limitations, notes, and machine tags.
+- Added a shared data-quality derivation helper so provider freshness, stale/cache state, missing metrics, unavailable provider data, and simulated evidence map into one contract.
+- Extended Data Sources status, provenance, report summaries, and report Markdown with structured data quality and a dedicated Data Quality table.
+- Extended Research briefs and evidence snapshots with structured data quality, including exported Markdown quality tables.
+- Extended Screener results, Factor Lab results, Portfolio holdings, and Portfolio summary responses with structured data-quality status while preserving existing `missing_metrics`, `missing_data`, `valuation_status`, `stale`, `notes`, and `data_quality_notes` compatibility fields.
+- Updated Data Sources, Research, Screeners, Factor Lab, and Portfolio UI surfaces to show the new quality level alongside existing freshness, missing-data, and valuation states.
+- Validation passed on 2026-05-21: `py -m unittest backend.tests.test_data_source_service backend.tests.test_research_service backend.tests.test_screener_service backend.tests.test_portfolio_service` and `npm run typecheck`.
 
 ### T75 - Provenance UI And Export Sync
 

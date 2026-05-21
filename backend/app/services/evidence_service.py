@@ -18,6 +18,7 @@ from .execution_service import ExecutionService
 from .factor_service import FactorService
 from .screener_service import ScreenerService
 from .strategy_service import StrategyService
+from .data_quality_service import quality_from_missing_and_stale
 
 
 def _metric_lookup(metrics: list[Any], label: str) -> float | None:
@@ -67,6 +68,20 @@ class EvidenceService:
             screener_context = self._screener_context(normalized, source_context, notes)
         if not screener_context.summaries:
             notes.append("No screener evidence is currently available for this symbol.")
+        missing_items: list[str] = []
+        stale = False
+        if factor is None:
+            missing_items.append("factor_context")
+        else:
+            missing_items.extend(factor.missing_data)
+        if screener_context is None or not screener_context.summaries:
+            missing_items.append("screener_context")
+        else:
+            stale = any(item.stale for item in screener_context.summaries)
+        if backtest is None:
+            missing_items.append("backtest_context")
+        if paper_session is None:
+            missing_items.append("paper_session_context")
 
         return ResearchEvidenceContext(
             factor=factor,
@@ -76,6 +91,13 @@ class EvidenceService:
             execution=execution,
             audit=audit,
             data_quality_notes=notes,
+            data_quality=quality_from_missing_and_stale(
+                provider="research_evidence",
+                stale=stale,
+                missing_items=missing_items,
+                limitations=notes,
+                simulated=backtest is not None or paper_session is not None,
+            ),
         )
 
     def _factor_context(

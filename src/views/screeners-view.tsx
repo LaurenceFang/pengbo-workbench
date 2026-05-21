@@ -689,6 +689,10 @@ export function ScreenersView({ onGlobalRefresh }: { onGlobalRefresh: () => Prom
                       </span>
                     ) : null}
                     <span>
+                      Quality: {item.data_quality?.overall ?? "unknown"} / completeness{" "}
+                      {item.data_quality?.completeness.level ?? "unknown"}
+                    </span>
+                    <span>
                       来源：{item.data_source} / {item.stale ? "缓存数据" : "实时数据"}
                     </span>
                     {item.notes.length > 0 ? <span>备注：{item.notes.join("；")}</span> : null}

@@ -21,6 +21,7 @@ from ..providers.catalog import get_asset, get_searchable_assets
 from ..screener_profiles import build_variant_filters, normalize_tuning
 from ..storage.sqlite_store import SqliteStore
 from .asset_service import AssetService
+from .data_quality_service import quality_from_missing_and_stale
 
 SCORE_HIGH_THRESHOLD = 72.0
 SCORE_MEDIUM_THRESHOLD = 50.0
@@ -874,6 +875,12 @@ class ScreenerService:
                         notes=notes,
                         metrics=metrics,
                         factor_context=self._factor_context_for_symbol(entry.symbol),
+                        data_quality=quality_from_missing_and_stale(
+                            provider=str(_coerce_attr(_coerce_attr(workspace, "asset"), "provider", entry.provider)),
+                            stale=bool(_coerce_attr(workspace, "stale", False)),
+                            missing_items=missing,
+                            limitations=notes,
+                        ),
                     )
                 )
             except Exception as error:
@@ -895,6 +902,13 @@ class ScreenerService:
                         notes=[f"Provider data unavailable: {error}"],
                         metrics={},
                         factor_context=self._factor_context_for_symbol(entry.symbol),
+                        data_quality=quality_from_missing_and_stale(
+                            provider=entry.provider,
+                            stale=True,
+                            missing_items=["provider_data"],
+                            limitations=[f"Provider data unavailable: {error}"],
+                            unavailable=True,
+                        ),
                     )
                 )
 

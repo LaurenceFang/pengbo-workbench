@@ -25,6 +25,7 @@ from ..models import (
 from ..providers.catalog import get_asset
 from ..storage.sqlite_store import SqliteStore
 from .asset_service import AssetService
+from .data_quality_service import quality_from_missing_and_stale
 
 
 @dataclass
@@ -301,6 +302,13 @@ class PortfolioService:
                     "day_change_pct": day_change_pct,
                     "stale": quote_snapshot.status == "cached",
                     "notes": notes,
+                    "data_quality": quality_from_missing_and_stale(
+                        provider=quote_snapshot.entry.provider,
+                        stale=quote_snapshot.status == "cached",
+                        missing_items=["valuation_quote"] if quote_snapshot.status == "unavailable" else [],
+                        limitations=notes,
+                        unavailable=quote_snapshot.status == "unavailable",
+                    ),
                 }
             )
 
@@ -797,4 +805,11 @@ class PortfolioService:
             performance=performance_result.performance,
             benchmarks=performance_result.benchmarks,
             analytics=analytics,
+            data_quality=quality_from_missing_and_stale(
+                provider="portfolio",
+                stale=any(holding.stale for holding in holdings) or performance_result.stale,
+                missing_items=sorted(missing_symbols),
+                limitations=notes,
+                unavailable=bool(missing_symbols),
+            ),
         )

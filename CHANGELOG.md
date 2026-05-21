@@ -63,11 +63,15 @@ release channel yet.
   provider freshness/cache policy metadata so Connections, Data Sources,
   provenance, and evidence-pack exports can distinguish fresh, cached, stale,
   refresh-failed, offline, credential-required, and unsupported evidence.
+- T74 adds a structured data-quality status contract for completeness,
+  timeliness, source confidence, and limitations across Data Sources,
+  Research, Portfolio, Screeners, Factor Lab, provenance payloads, and local
+  evidence-pack exports.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T74 will add a structured data-quality status contract across research,
-  portfolio, screener, reports, and provider diagnostics.
+- T75 will align provenance UI and exported report language on critical
+  research and portfolio views.

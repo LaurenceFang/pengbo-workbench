@@ -21,6 +21,7 @@ from ..models import (
 )
 from ..storage.duckdb_store import DuckDbStore
 from .asset_service import AssetService
+from .data_quality_service import quality_from_missing_and_stale
 from .screener_service import ScreenerService
 
 
@@ -402,6 +403,12 @@ class FactorService:
                 missing_data=missing_data,
                 notes=self._notes(workspace, missing_data),
                 score_history=self._score_history(workspace),
+                data_quality=quality_from_missing_and_stale(
+                    provider=str(_coerce_attr(_coerce_attr(workspace, "asset"), "provider", entry.provider)),
+                    stale=bool(_coerce_attr(workspace, "stale", False)),
+                    missing_items=missing_data,
+                    limitations=self._notes(workspace, missing_data),
+                ),
             )
         except Exception as error:
             return FactorResult(
@@ -415,6 +422,13 @@ class FactorService:
                 data_source=entry.provider,
                 missing_data=["provider_data"],
                 notes=[f"Provider data unavailable: {error}"],
+                data_quality=quality_from_missing_and_stale(
+                    provider=entry.provider,
+                    stale=True,
+                    missing_items=["provider_data"],
+                    limitations=[f"Provider data unavailable: {error}"],
+                    unavailable=True,
+                ),
             )
 
     def _build_metrics(self, workspace: Any) -> dict[str, Any]:

@@ -292,6 +292,8 @@ class ResearchServiceTests(unittest.TestCase):
         self.assertEqual(brief.portfolio_context.handoff_draft.symbol, "AAPL")
         self.assertEqual(len(brief.analysis_modules), 4)
         self.assertEqual(brief.analysis_modules[0].key, "asset_quality_snapshot")
+        self.assertIsNotNone(brief.data_quality)
+        self.assertIn(brief.data_quality.overall, {"complete", "partial", "limited"})
         self.assertEqual(brief.decision_review.template_key, "portfolio")
         self.assertIn("observed", [item.status for item in brief.decision_review.supporting_evidence])
         self.assertGreaterEqual(len(brief.decision_review.counter_evidence), 2)
