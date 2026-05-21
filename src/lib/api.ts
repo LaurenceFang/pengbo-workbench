@@ -130,6 +130,24 @@ export type RuntimeCommandResponse = {
 };
 
 export type ConnectionHealth = "ok" | "error" | "missing_credentials" | "cached" | "planned" | "unsupported" | "unavailable";
+export type CredentialState =
+  | "missing"
+  | "configured"
+  | "invalid"
+  | "expired"
+  | "disabled"
+  | "read_only"
+  | "trading_gated"
+  | "blocked";
+export type CredentialActionKind =
+  | "none"
+  | "save_credentials"
+  | "test_connection"
+  | "check_permissions"
+  | "refresh_credentials"
+  | "enable_provider"
+  | "unlock_local"
+  | "confirm_trading_gate";
 
 export type ConnectionTestResponse = {
   provider: string;
@@ -137,6 +155,11 @@ export type ConnectionTestResponse = {
   message: string;
   stale: boolean;
   requires_credentials: boolean;
+  credential_state: CredentialState;
+  credential_state_label: string;
+  credential_next_action: string;
+  credential_action_kind: CredentialActionKind;
+  credential_state_reason: string | null;
   credential_summary: string | null;
   last_tested_at: string | null;
   last_success_at: string | null;
@@ -154,6 +177,11 @@ export type ConnectionStatusItem = {
   last_message: string | null;
   stale: boolean;
   requires_credentials: boolean;
+  credential_state: CredentialState;
+  credential_state_label: string;
+  credential_next_action: string;
+  credential_action_kind: CredentialActionKind;
+  credential_state_reason: string | null;
   credential_summary: string | null;
   last_tested_at: string | null;
   last_success_at: string | null;

@@ -4,6 +4,8 @@ import { useAsyncResource } from "../hooks/use-async-resource";
 import {
   api,
   type BinanceAccountSnapshot,
+  type CredentialActionKind,
+  type CredentialState,
   type ConnectionStatusItem,
   type ConnectionTestResponse,
   type ProviderCapability,
@@ -477,6 +479,7 @@ function ProviderCard({
         <span className={`mini-pill status-${effective.health}`}>{translateHealth(effective.health)}</span>
       </div>
       <p>{effective.last_message ?? "No provider message yet."}</p>
+      <CredentialStatePanel item={effective} />
       <div className="connection-metrics">
         <StatusMetric label="Configured" value={effective.configured ? "Loaded into sidecar" : "Not loaded"} />
         <StatusMetric label="Owner" value={effective.profile_label} />
@@ -586,6 +589,27 @@ function CredentialSummaryBanner({
   );
 }
 
+function CredentialStatePanel({ item }: { item: ConnectionStatusItem }) {
+  return (
+    <div
+      aria-label={`credential-state provider=${item.provider} state=${item.credential_state} action=${item.credential_action_kind}`}
+      className={`credential-state-panel credential-state-${item.credential_state}`}
+    >
+      <div className="credential-state-head">
+        <div>
+          <span>Credential state</span>
+          <strong>{item.credential_state_label}</strong>
+        </div>
+        <span className={`mini-pill ${credentialStateTone(item.credential_state)}`}>
+          {formatCredentialAction(item.credential_action_kind)}
+        </span>
+      </div>
+      <p>{item.credential_next_action}</p>
+      {item.credential_state_reason ? <small>{item.credential_state_reason}</small> : null}
+    </div>
+  );
+}
+
 function StatusMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="status-metric">
@@ -602,6 +626,11 @@ function buildErrorTest(provider: string, error: unknown, fallbackMessage: strin
     message: error instanceof Error ? error.message : fallbackMessage,
     stale: false,
     requires_credentials: false,
+    credential_state: "invalid",
+    credential_state_label: "Needs attention",
+    credential_next_action: "Check the local error and retry the provider action.",
+    credential_action_kind: "check_permissions",
+    credential_state_reason: error instanceof Error ? error.message : fallbackMessage,
     credential_summary: null,
     last_tested_at: null,
     last_success_at: null,
@@ -623,6 +652,11 @@ function mergeProviderState(item: ConnectionStatusItem, testResult?: ConnectionT
     last_message: testResult.message,
     stale: testResult.stale,
     requires_credentials: testResult.requires_credentials,
+    credential_state: testResult.credential_state,
+    credential_state_label: testResult.credential_state_label,
+    credential_next_action: testResult.credential_next_action,
+    credential_action_kind: testResult.credential_action_kind,
+    credential_state_reason: testResult.credential_state_reason,
     credential_summary: testResult.credential_summary ?? item.credential_summary,
     last_tested_at: testResult.last_tested_at ?? item.last_tested_at,
     last_success_at: testResult.last_success_at ?? item.last_success_at,
@@ -685,6 +719,45 @@ function formatRelativeDuration(totalSeconds: number): string {
 
 function formatMetadataList(values: string[]): string {
   return values.length > 0 ? values.join(", ") : "Not specified";
+}
+
+function credentialStateTone(state: CredentialState): string {
+  switch (state) {
+    case "configured":
+    case "read_only":
+      return "status-available";
+    case "trading_gated":
+    case "missing":
+    case "expired":
+      return "status-credential_required";
+    case "invalid":
+    case "disabled":
+    case "blocked":
+      return "status-error";
+    default:
+      return "status-planned";
+  }
+}
+
+function formatCredentialAction(action: CredentialActionKind): string {
+  switch (action) {
+    case "save_credentials":
+      return "Save";
+    case "test_connection":
+      return "Test";
+    case "check_permissions":
+      return "Check";
+    case "refresh_credentials":
+      return "Refresh";
+    case "enable_provider":
+      return "Enable";
+    case "unlock_local":
+      return "Unlock";
+    case "confirm_trading_gate":
+      return "Gated";
+    default:
+      return "No action";
+  }
 }
 
 function formatWriteStatus(item: ProviderCapabilityProviderItem): string {

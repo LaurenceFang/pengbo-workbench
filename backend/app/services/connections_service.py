@@ -90,6 +90,97 @@ class ConnectionsService:
             return self.data_source_service.credential_summary(provider)
         return None
 
+    def _credential_contract(
+        self,
+        provider: str,
+        *,
+        configured: bool,
+        health: str,
+        requires_credentials: bool,
+        message: str | None,
+    ) -> dict[str, str | None]:
+        if not requires_credentials and provider != "binance":
+            return {
+                "credential_state": "read_only",
+                "credential_state_label": "Read-only",
+                "credential_next_action": "No credential action is required for this read-only provider.",
+                "credential_action_kind": "none",
+                "credential_state_reason": "Provider is available through the public read-only catalog.",
+            }
+
+        if provider == "binance" and configured and health in {"ok", "cached", "planned"}:
+            return {
+                "credential_state": "trading_gated",
+                "credential_state_label": "Trading gated",
+                "credential_next_action": "Account credentials are loaded; live order submission still requires explicit risk gates and user confirmation.",
+                "credential_action_kind": "confirm_trading_gate",
+                "credential_state_reason": "Binance account readiness is separate from live execution permission.",
+            }
+
+        if not configured or health == "missing_credentials":
+            return {
+                "credential_state": "missing",
+                "credential_state_label": "Missing credentials",
+                "credential_next_action": self._missing_credential_action(provider),
+                "credential_action_kind": "save_credentials",
+                "credential_state_reason": message or "Provider credentials are not configured for the active local profile.",
+            }
+
+        if health == "error":
+            return {
+                "credential_state": "invalid",
+                "credential_state_label": "Needs attention",
+                "credential_next_action": self._invalid_credential_action(provider),
+                "credential_action_kind": "check_permissions",
+                "credential_state_reason": message or "The latest provider check failed with stored credentials.",
+            }
+
+        if health == "unavailable":
+            return {
+                "credential_state": "blocked",
+                "credential_state_label": "Blocked",
+                "credential_next_action": "Retry after provider availability recovers or inspect the cached state before relying on fresh data.",
+                "credential_action_kind": "test_connection",
+                "credential_state_reason": message or "Provider is temporarily unavailable.",
+            }
+
+        if health == "unsupported":
+            return {
+                "credential_state": "disabled",
+                "credential_state_label": "Disabled",
+                "credential_next_action": "No credential can enable this unsupported provider in the current desktop contract.",
+                "credential_action_kind": "none",
+                "credential_state_reason": message or "Provider is unsupported.",
+            }
+
+        return {
+            "credential_state": "configured",
+            "credential_state_label": "Configured",
+            "credential_next_action": "Run Test connection to refresh readiness for the active local profile.",
+            "credential_action_kind": "test_connection",
+            "credential_state_reason": message or "Credentials are loaded for the active local profile.",
+        }
+
+    def _missing_credential_action(self, provider: str) -> str:
+        if provider == "edgar":
+            return "Save an EDGAR identity, restart the sidecar, and test filings access."
+        if provider == "binance":
+            return "Save Binance API credentials, then test the private-account readiness path."
+        if provider == "fred":
+            return "Add a FRED API key before testing this macro data source."
+        if provider == "coingecko":
+            return "Add a CoinGecko demo or pro key before testing crypto market context."
+        return "Save the required provider credential before testing readiness."
+
+    def _invalid_credential_action(self, provider: str) -> str:
+        if provider == "edgar":
+            return "Check the EDGAR identity format and retry the filings probe."
+        if provider == "binance":
+            return "Check Binance key permissions, IP restrictions, and secret value, then retry."
+        if provider in {"fred", "coingecko"}:
+            return "Check the API key, plan permissions, and provider availability, then retry."
+        return "Check provider credentials and retry the readiness test."
+
     def _provider_cache_state(self, provider: str) -> tuple[str | None, int | None]:
         if provider == "binance":
             updated_at = self.duck_store.get_latest_binance_account_snapshot_fetched_at()
@@ -157,6 +248,13 @@ class ConnectionsService:
             message = metadata.get("last_message") if health != "planned" else default_ready_message
 
         stale = bool(metadata.get("stale", False) or health == "cached")
+        credential_contract = self._credential_contract(
+            provider,
+            configured=configured,
+            health=health,
+            requires_credentials=not configured,
+            message=message,
+        )
         return ConnectionStatusItem(
             provider=provider,
             label=label,
@@ -165,6 +263,7 @@ class ConnectionsService:
             last_message=message,
             stale=stale,
             requires_credentials=not configured,
+            **credential_contract,
             credential_summary=metadata.get("credential_summary"),
             last_tested_at=metadata.get("last_tested_at"),
             last_success_at=metadata.get("last_success_at"),
@@ -198,14 +297,25 @@ class ConnectionsService:
         if runtime_status is not None and runtime_status.requires_credentials:
             status = "missing_credentials"
         credential_summary = self._provider_summary(provider)
+        configured = runtime_status.configured if runtime_status is not None else True
+        requires_credentials = runtime_status.requires_credentials if runtime_status is not None else False
+        message = metadata.get("last_message") or (runtime_status.message if runtime_status is not None else definition.description)
+        credential_contract = self._credential_contract(
+            definition.provider,
+            configured=configured,
+            health=status,
+            requires_credentials=requires_credentials,
+            message=message,
+        )
         return ConnectionStatusItem(
             provider=definition.provider,
             label=definition.label,
-            configured=runtime_status.configured if runtime_status is not None else True,
+            configured=configured,
             health=status,
-            last_message=metadata.get("last_message") or (runtime_status.message if runtime_status is not None else definition.description),
+            last_message=message,
             stale=bool(metadata.get("stale", False) or status == "cached"),
-            requires_credentials=runtime_status.requires_credentials if runtime_status is not None else False,
+            requires_credentials=requires_credentials,
+            **credential_contract,
             credential_summary=credential_summary or metadata.get("credential_summary"),
             last_tested_at=metadata.get("last_tested_at"),
             last_success_at=metadata.get("last_success_at"),
@@ -253,6 +363,18 @@ class ConnectionsService:
         response.cache_age_seconds = profile["metadata"].get("cache_age_seconds")
         response.profile_id = profile["profile_id"]
         response.profile_label = profile["profile_label"]
+        credential_contract = self._credential_contract(
+            provider,
+            configured=configured,
+            health=response.status,
+            requires_credentials=response.requires_credentials,
+            message=response.message,
+        )
+        response.credential_state = str(credential_contract["credential_state"])
+        response.credential_state_label = str(credential_contract["credential_state_label"])
+        response.credential_next_action = str(credential_contract["credential_next_action"])
+        response.credential_action_kind = str(credential_contract["credential_action_kind"])
+        response.credential_state_reason = credential_contract["credential_state_reason"]
         return response
 
     def _persist_provider_state(
@@ -418,6 +540,8 @@ class ConnectionsService:
                 "profile_id": response.profile_id,
                 "profile_label": response.profile_label,
                 "status": response.status,
+                "credential_state": response.credential_state,
+                "credential_action_kind": response.credential_action_kind,
                 "stale": response.stale,
                 "requires_credentials": response.requires_credentials,
                 "credential_summary": response.credential_summary,

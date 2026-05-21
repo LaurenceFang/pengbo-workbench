@@ -31,6 +31,26 @@ OnboardingStepKey = Literal[
     "execution_boundary",
 ]
 ConnectionHealth = Literal["ok", "error", "missing_credentials", "cached", "planned", "unsupported", "unavailable"]
+CredentialState = Literal[
+    "missing",
+    "configured",
+    "invalid",
+    "expired",
+    "disabled",
+    "read_only",
+    "trading_gated",
+    "blocked",
+]
+CredentialActionKind = Literal[
+    "none",
+    "save_credentials",
+    "test_connection",
+    "check_permissions",
+    "refresh_credentials",
+    "enable_provider",
+    "unlock_local",
+    "confirm_trading_gate",
+]
 ProviderCapabilityStatusHint = Literal["available", "credential_required", "unsupported"]
 AssetCapabilityStatus = Literal["available", "credential_required", "unsupported", "temporarily_unavailable"]
 ScreenerUniverseSource = Literal["catalog", "expanded"]
@@ -243,6 +263,11 @@ class ConnectionCheckResponse(BaseModel):
     message: str
     stale: bool = False
     requires_credentials: bool = False
+    credential_state: CredentialState = "read_only"
+    credential_state_label: str = "Read-only"
+    credential_next_action: str = "No credential action is required."
+    credential_action_kind: CredentialActionKind = "none"
+    credential_state_reason: str | None = None
     credential_summary: str | None = None
     last_tested_at: str | None = None
     last_success_at: str | None = None
@@ -273,6 +298,11 @@ class ConnectionStatusItem(BaseModel):
     last_message: str | None = None
     stale: bool = False
     requires_credentials: bool = False
+    credential_state: CredentialState = "read_only"
+    credential_state_label: str = "Read-only"
+    credential_next_action: str = "No credential action is required."
+    credential_action_kind: CredentialActionKind = "none"
+    credential_state_reason: str | None = None
     credential_summary: str | None = None
     last_tested_at: str | None = None
     last_success_at: str | None = None

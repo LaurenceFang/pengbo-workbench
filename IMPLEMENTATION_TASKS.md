@@ -67,6 +67,7 @@ Updated: 2026-05-21
 - `T69# Temp - Packaged Desktop Video Walkthrough` is now completed. A Hyperframes MP4 was generated from real `pengbo-workbench.exe` walkthrough frames covering local unlock with `000000`, AAPL asset selection, 12-1 Momentum factor selection, Top-N Factor Rotation strategy selection, and a simulated backtest result.
 - `T70 - First-Run Product Onboarding` is now implemented. First-time reviewers get a local-only, skippable checklist for demo mode, provider setup, local unlock, privacy/diagnostics boundaries, and confirmation-gated execution, with a Settings reset action for repeated walkthroughs.
 - `T71 - Provider Capability Matrix` is now implemented. `/api/v1/connections/catalog` remains compatible while exposing endpoint coverage, asset coverage, regions, credential needs, freshness, read/write status, execution boundaries, decision notes, and explicit unsupported reasons from the shared provider registry.
+- `T72 - Provider Credential State Model` is now implemented. Connections and provider tests expose normalized credential states, labels, redacted reasons, and next actions for missing, configured, invalid, disabled, read-only, trading-gated, and blocked provider paths while keeping existing health fields compatible.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -933,31 +934,32 @@ Updated: 2026-05-21
 
 ## Recommended Next Task
 
-### T72 - Provider Credential State Model
+### T73 - Provider Freshness And Cache Policy
 
 Priority: P1
 Status: Planned
 
 Why this is next:
 
-- `T71` now gives product and engineering a shared provider capability matrix without breaking `/api/v1/connections/catalog`.
-- The next product gap is normalizing credential states so each capability can explain the exact next action for missing, configured, invalid, expired, disabled, read-only, trading-gated, and blocked providers.
+- `T72` now separates provider credential readiness from provider health and live-trading permission.
+- The next product gap is defining freshness, cache TTL, refresh behavior, and offline fallback per provider class.
 
 Scope:
 
-- Normalize provider credential states across Connections, provider tests, and capability surfaces.
-- Surface exact user next actions for missing, configured, invalid, expired, disabled, read-only, trading-gated, and blocked states.
-- Keep audit output redacted and preserve local-first credential boundaries.
+- Define cache TTL, stale data labeling, refresh behavior, and offline fallback per provider class.
+- Add visible freshness rules to research surfaces and exports.
+- Add tests for stale, cached, failed refresh, and offline states.
 
 Acceptance:
 
-- Users and reviewers can understand credential readiness and next actions without exposing secret material.
+- Users and reviewers can tell whether provider evidence is fresh, cached, stale, failed, or offline before relying on it.
 
 Implementation notes:
 
-- `T71` extended the shared provider registry with endpoint coverage, write status, execution boundary, matrix summary, per-capability endpoint coverage, decision notes, and explicit unsupported reasons.
-- Connections now renders a fuller provider capability matrix while preserving existing `provider-capability provider=... capability=... status=...` automation anchors.
-- Validation passed: `py -m unittest backend.tests.test_capability_service`, `npm run typecheck`, `py -m unittest discover -s backend/tests -p "test_*.py"`, and `npm run build`.
+- `T72` added additive credential state fields to connection status and test responses while preserving existing `health`, `requires_credentials`, and `credential_summary` compatibility.
+- Connections now shows a provider-level credential state panel with a redacted reason and next action before the source contract and capability matrix.
+- Binance account readiness now surfaces as `trading_gated` to keep credentials separate from live order permission.
+- Validation passed: `py -m unittest backend.tests.test_account_scoped_credentials`, `py -m unittest backend.tests.test_capability_service`, `npm run typecheck`, `py -m unittest discover -s backend/tests -p "test_*.py"`, and `npm run build`.
 
 - Stay additive to existing Data Sources and Connections contracts.
 
@@ -1514,7 +1516,7 @@ Implementation notes:
 ### T72 - Provider Credential State Model
 
 Priority: P1
-Status: Planned
+Status: Implemented
 Target Window: 2026-09-24 to 2026-09-28
 Depends on: T71, T54
 
@@ -1527,6 +1529,15 @@ Task:
 Done when:
 
 - Provider readiness is understandable without exposing secret values.
+
+Implementation notes:
+
+- Added normalized credential state fields to `ConnectionCheckResponse` and `ConnectionStatusItem`: state, label, next action, action kind, and reason.
+- Centralized credential state derivation in `ConnectionsService` so missing, configured, invalid, disabled, read-only, trading-gated, and blocked paths are described without changing existing health semantics.
+- Updated the Connections UI to render a provider-level credential state panel with redacted next-action guidance.
+- Updated the Tauri `ConnectionTestResponse` shape so desktop provider tests receive the same state contract.
+- Added account-scoped credential tests for missing, read-only, trading-gated, and redacted audit behavior.
+- Validation passed on 2026-05-21: `py -m unittest backend.tests.test_account_scoped_credentials`, `py -m unittest backend.tests.test_capability_service`, `npm run typecheck`, `py -m unittest discover -s backend/tests -p "test_*.py"`, and `npm run build`.
 
 ### T73 - Provider Freshness And Cache Policy
 
