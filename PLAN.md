@@ -77,7 +77,8 @@ The active product-trust sequence is:
 - T76: existing provider audit. Completed.
 - T77: Data Sources packaged signoff. Completed.
 - T78: local LLM runtime probe. Completed.
-- T79+: AI permission boundary, local research assistant, China-market connectors, and broader
+- T79: AI permission boundary. Completed.
+- T80+: local research assistant, China-market connectors, and broader
   public-trust work.
 
 The current research-flow map is tracked in

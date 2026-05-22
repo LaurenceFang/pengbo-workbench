@@ -81,6 +81,8 @@ from ..models import (
     UpdateScreenerPresetVariantRequest,
     WatchlistUpdateRequest,
     AppPreferences,
+    AIContextPreviewResponse,
+    AIPermissionBoundaryResponse,
     AIRuntimeStatusResponse,
     WorkflowRunRequest,
     WorkflowRunResponse,
@@ -228,6 +230,11 @@ def register_routes(app: FastAPI) -> None:
     def probe_ai_runtime(request: Request) -> AIRuntimeStatusResponse:
         return _container(request).ai_runtime_service.probe()
 
+    @app.get("/api/v1/ai/permissions", response_model=AIPermissionBoundaryResponse)
+    def get_ai_permission_boundary(request: Request) -> AIPermissionBoundaryResponse:
+        _require_permission(request, "ai:context", surface="ai_assistant")
+        return _container(request).research_assistant_service.permission_boundary()
+
     @app.post("/api/v1/translation/suggest", response_model=TranslationSuggestResponse)
     def suggest_translation(request: Request, payload: TranslationSuggestRequest) -> TranslationSuggestResponse:
         return _container(request).translation_service.suggest(payload)
@@ -315,6 +322,15 @@ def register_routes(app: FastAPI) -> None:
     def get_research_brief(request: Request, brief_id: str) -> ResearchBrief:
         try:
             return _container(request).research_service.get_brief(brief_id)
+        except ValueError as error:
+            raise _value_error_to_http(error) from error
+
+    @app.get("/api/v1/research/assistant/briefs/{brief_id}/context-preview", response_model=AIContextPreviewResponse)
+    def get_research_assistant_context_preview(request: Request, brief_id: str) -> AIContextPreviewResponse:
+        _require_unlocked(request, "ai_assistant")
+        _require_permission(request, "ai:context", surface="ai_assistant")
+        try:
+            return _container(request).research_assistant_service.context_preview(brief_id)
         except ValueError as error:
             raise _value_error_to_http(error) from error
 

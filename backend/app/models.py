@@ -119,6 +119,8 @@ SessionPermission = Literal[
     "execution:manage",
     "account:read",
     "reports:export",
+    "ai:context",
+    "ai:generate",
 ]
 
 
@@ -172,6 +174,39 @@ class AIRuntimeStatusResponse(BaseModel):
     checked_at: str
     message: str
     evidence_path: str | None = None
+
+
+class AIPermissionBoundaryResponse(BaseModel):
+    allowed_context: list[str]
+    forbidden_context: list[str]
+    requires_unlock_surfaces: list[str]
+    requires_confirmation: list[str]
+    audit_events: list[str]
+    default_mode: AIProviderMode = "disabled"
+
+
+class AIContextCitation(BaseModel):
+    source_type: str
+    source_id: str
+    label: str
+    status: str
+    summary: str
+
+
+class AIContextPreviewResponse(BaseModel):
+    brief_id: str
+    symbol: str
+    title: str
+    allowed_sections: list[str]
+    redacted_sections: list[str]
+    blocked_sections: list[str]
+    citations: list[AIContextCitation] = Field(default_factory=list)
+    data_quality: DataQualityLevel | None = None
+    stale: bool
+    prompt_context_preview: str
+    estimated_input_chars: int
+    cloud_transmission_allowed: bool = False
+    audited_event_id: str | None = None
 
 
 class WorkflowTemplateStepDefinition(BaseModel):

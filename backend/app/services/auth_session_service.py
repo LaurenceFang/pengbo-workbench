@@ -16,6 +16,8 @@ DEFAULT_PERMISSIONS: list[SessionPermission] = [
     "execution:manage",
     "account:read",
     "reports:export",
+    "ai:context",
+    "ai:generate",
 ]
 
 ROUTE_PERMISSION_MAP: list[RoutePermissionClassification] = [
@@ -90,6 +92,30 @@ ROUTE_PERMISSION_MAP: list[RoutePermissionClassification] = [
         exposure="desktop_local",
         permission="reports:export",
         notes="Data-source exports are local files but still need route classification before T56.",
+    ),
+    RoutePermissionClassification(
+        method="GET",
+        path="/api/v1/ai/permissions",
+        surface="ai_assistant",
+        exposure="desktop_local",
+        permission="ai:context",
+        notes="AI permission boundary is local metadata and records what context is allowed or blocked.",
+    ),
+    RoutePermissionClassification(
+        method="GET",
+        path="/api/v1/research/assistant/briefs/{brief_id}/context-preview",
+        surface="ai_assistant",
+        exposure="account_sensitive",
+        permission="ai:context",
+        notes="AI context preview can include selected research notes and evidence summaries, never raw secrets.",
+    ),
+    RoutePermissionClassification(
+        method="POST",
+        path="/api/v1/research/assistant/briefs/{brief_id}/generate",
+        surface="ai_assistant",
+        exposure="account_sensitive",
+        permission="ai:generate",
+        notes="AI generation must use the bounded context preview and audit the prompt/template path.",
     ),
 ]
 

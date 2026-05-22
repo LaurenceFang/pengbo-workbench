@@ -29,6 +29,7 @@ SENSITIVE_SURFACES = [
     "security_audit",
     "workflow_sensitive",
     "settings_runtime",
+    "ai_assistant",
 ]
 
 

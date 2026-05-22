@@ -23,6 +23,7 @@ from ..services.evidence_service import EvidenceService
 from ..services.factor_service import FactorService
 from ..services.portfolio_service import PortfolioService
 from ..services.research_service import ResearchService
+from ..services.research_assistant_service import ResearchAssistantService
 from ..services.screener_service import ScreenerService
 from ..services.settings_service import SettingsService
 from ..services.security_audit_service import SecurityAuditService
@@ -126,6 +127,10 @@ class AppContainer:
             self.watchlist_service,
             self.factor_service,
             self.evidence_service,
+        )
+        self.research_assistant_service = ResearchAssistantService(
+            self.research_service,
+            self.security_audit_service,
         )
         self.workflow_service = WorkflowService(
             self.sqlite_store,
