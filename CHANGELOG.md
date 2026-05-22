@@ -88,11 +88,15 @@ release channel yet.
 - T79 adds the AI permission boundary before generation or UI promotion:
   AI-specific session permissions, route classifications, local-unlock-gated
   Research context previews, redacted notes, and `ai_assistant` audit events.
+- T80 adds the local Research Assistant backend generation path: disabled AI
+  returns an audited blocked response, while enabled local mode produces
+  grounded summaries, questions, risks, limitations, citations, and Markdown
+  from existing Research evidence.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T80 will add the evidence-grounded Research Assistant backend generation
-  service.
+- T81 will expose the assistant inside the Research workflow without hiding
+  provenance.

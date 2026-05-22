@@ -129,6 +129,7 @@ class AppContainer:
             self.evidence_service,
         )
         self.research_assistant_service = ResearchAssistantService(
+            settings,
             self.research_service,
             self.security_audit_service,
         )

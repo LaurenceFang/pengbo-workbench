@@ -74,6 +74,7 @@ Updated: 2026-05-21
 - `T76 - Existing Providers Audit` is now implemented. Provider catalog/runtime drift was corrected for Public Market Data, Google News RSS Events, and CoinGecko demo/pro credential support; CoinGecko history is now honestly unsupported until a dedicated endpoint exists; tests lock provider registry coverage, read-only/no-live-trading boundaries, freshness/provenance, and keyed credential behavior.
 - `T78 - Local LLM Runtime Probe` is now implemented and validated, with default-off AI runtime settings, additive `/api/v1/ai/runtime/status` and `/api/v1/ai/runtime/probe` endpoints, short-timeout Ollama probing, and source-safe evidence recorded in `logs/ai-local-runtime-probe-latest.json`.
 - `T79 - AI Permission Boundary` is now implemented and validated, with an additive AI permission map, route classifications, local-unlock-gated Research context previews, redacted note handling, and `ai_assistant` audit events before any assistant UI ships.
+- `T80 - Research Assistant Backend` is now implemented and validated, with an additive local-only Research assistant generation endpoint that returns grounded summaries, questions, risks, limitations, citations, blocked states, and redacted audit evidence from structured Research evidence.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -1730,7 +1731,7 @@ Completion evidence:
 ### T80 - Research Assistant Backend
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-11-05 to 2026-11-12
 Depends on: T79
 
@@ -1743,6 +1744,13 @@ Task:
 Done when:
 
 - Assistant output is grounded in product evidence and can be audited.
+
+Completion evidence:
+
+- Added additive `/api/v1/research/assistant/briefs/{brief_id}/generate` with local-unlock and `ai:generate` session permission gates.
+- AI-disabled state now returns an audited `blocked` response instead of generating text.
+- AI-enabled local mode returns evidence-grounded summary, questions, risks, limitations, citations, and Markdown without adding uncited web claims or execution instructions.
+- Validation passed: `py -m unittest backend.tests.test_research_assistant_service` and `py -m compileall backend\app\services\research_assistant_service.py backend\app\models.py backend\app\api\routes.py backend\app\api\factory.py`.
 
 ### T81 - Research Assistant UI
 

@@ -10,7 +10,7 @@ from backend.app.api.factory import create_app
 from backend.app.runtime import RuntimeSettings
 
 
-def make_settings(runtime_root: Path) -> RuntimeSettings:
+def make_settings(runtime_root: Path, *, ai_enabled: bool = False) -> RuntimeSettings:
     return RuntimeSettings(
         host="127.0.0.1",
         port=8765,
@@ -22,6 +22,8 @@ def make_settings(runtime_root: Path) -> RuntimeSettings:
         binance_api_key=None,
         binance_secret=None,
         binance_password=None,
+        ai_assistant_enabled=ai_enabled,
+        ai_local_model="qwen3:8b",
     )
 
 
@@ -90,6 +92,56 @@ class ResearchAssistantBoundaryTests(unittest.TestCase):
                 event_types = {item["event_type"] for item in audit.json()}
                 self.assertIn("ai_context_preview_created", event_types)
                 self.assertNotIn("unit-secret", str(audit.json()))
+
+    def test_generate_blocks_when_ai_disabled_and_audits(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
+            app = create_app(make_settings(Path(temp_dir)))
+            with TestClient(app) as client:
+                session = client.post("/api/v1/security/session", json={}).json()
+                client.post("/api/v1/security/local/initialize", json={"unlock_secret": "1234"})
+                brief = client.post("/api/v1/research/briefs", json={"symbol": "AAPL"}).json()
+
+                response = client.post(
+                    f"/api/v1/research/assistant/briefs/{brief['brief_id']}/generate",
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                    json={"templateKey": "research_summary"},
+                )
+                self.assertEqual(response.status_code, 200)
+                payload = response.json()
+                self.assertEqual(payload["status"], "blocked")
+                self.assertIn("ai_disabled", payload["blocked_reasons"])
+                self.assertEqual(payload["provider"], "disabled")
+
+                audit = client.get(
+                    "/api/v1/security/audit?category=ai_assistant",
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                ).json()
+                event_types = {item["event_type"] for item in audit}
+                self.assertIn("ai_generation_requested", event_types)
+                self.assertIn("ai_generation_blocked", event_types)
+
+    def test_generate_returns_grounded_local_output_when_enabled(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
+            app = create_app(make_settings(Path(temp_dir), ai_enabled=True))
+            with TestClient(app) as client:
+                session = client.post("/api/v1/security/session", json={}).json()
+                client.post("/api/v1/security/local/initialize", json={"unlock_secret": "1234"})
+                brief = client.post("/api/v1/research/briefs", json={"symbol": "AAPL"}).json()
+
+                response = client.post(
+                    f"/api/v1/research/assistant/briefs/{brief['brief_id']}/generate",
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                    json={"templateKey": "research_summary"},
+                )
+                self.assertEqual(response.status_code, 200)
+                payload = response.json()
+                self.assertEqual(payload["status"], "completed")
+                self.assertEqual(payload["provider"], "local")
+                self.assertTrue(payload["grounded"])
+                self.assertGreaterEqual(len(payload["citations"]), 2)
+                self.assertTrue(any("No external web claim" in item for item in payload["limitations"]))
+                self.assertIn("Boundary:", payload["output_markdown"])
+                self.assertNotIn("submit", " ".join(payload["questions"]).lower())
 
 
 if __name__ == "__main__":

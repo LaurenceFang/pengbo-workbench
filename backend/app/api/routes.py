@@ -82,6 +82,8 @@ from ..models import (
     WatchlistUpdateRequest,
     AppPreferences,
     AIContextPreviewResponse,
+    AIAssistantGenerateRequest,
+    AIAssistantGenerateResponse,
     AIPermissionBoundaryResponse,
     AIRuntimeStatusResponse,
     WorkflowRunRequest,
@@ -331,6 +333,22 @@ def register_routes(app: FastAPI) -> None:
         _require_permission(request, "ai:context", surface="ai_assistant")
         try:
             return _container(request).research_assistant_service.context_preview(brief_id)
+        except ValueError as error:
+            raise _value_error_to_http(error) from error
+
+    @app.post("/api/v1/research/assistant/briefs/{brief_id}/generate", response_model=AIAssistantGenerateResponse)
+    def generate_research_assistant_response(
+        request: Request,
+        brief_id: str,
+        payload: AIAssistantGenerateRequest | None = None,
+    ) -> AIAssistantGenerateResponse:
+        _require_unlocked(request, "ai_assistant")
+        _require_permission(request, "ai:generate", surface="ai_assistant")
+        try:
+            return _container(request).research_assistant_service.generate(
+                brief_id,
+                payload or AIAssistantGenerateRequest(),
+            )
         except ValueError as error:
             raise _value_error_to_http(error) from error
 

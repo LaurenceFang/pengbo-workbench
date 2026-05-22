@@ -153,6 +153,8 @@ class TranslationSuggestResponse(BaseModel):
 
 AIProviderMode = Literal["disabled", "local", "cloud"]
 AIRuntimeHealth = Literal["disabled", "available", "unavailable", "timeout", "error"]
+AIAssistantStatus = Literal["completed", "blocked"]
+AIPromptTemplateKey = Literal["research_summary"]
 
 
 class AILocalModelInfo(BaseModel):
@@ -207,6 +209,30 @@ class AIContextPreviewResponse(BaseModel):
     estimated_input_chars: int
     cloud_transmission_allowed: bool = False
     audited_event_id: str | None = None
+
+
+class AIAssistantGenerateRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    template_key: AIPromptTemplateKey = Field(default="research_summary", alias="templateKey")
+    include_notes: bool = Field(default=True, alias="includeNotes")
+
+
+class AIAssistantGenerateResponse(BaseModel):
+    status: AIAssistantStatus
+    template_key: AIPromptTemplateKey
+    provider: AIProviderMode
+    model: str | None = None
+    generated_at: str
+    summary: str
+    questions: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    citations: list[AIContextCitation] = Field(default_factory=list)
+    grounded: bool = True
+    blocked_reasons: list[str] = Field(default_factory=list)
+    audit_event_ids: list[str] = Field(default_factory=list)
+    output_markdown: str
 
 
 class WorkflowTemplateStepDefinition(BaseModel):
