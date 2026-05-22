@@ -72,6 +72,7 @@ Updated: 2026-05-21
 - `T74 - Data Quality Status Contract` is now implemented. Data Sources, Research, Portfolio, Screeners, Factor Lab, provenance payloads, and evidence-pack exports expose additive data-quality status for completeness, timeliness, source confidence, limitations, notes, and machine tags while preserving existing stale, missing, health, and evidence-note fields.
 - `T75 - Provenance UI And Export Sync` is now implemented. Research evidence and decision review surfaces expose audit IDs and portfolio provenance, Portfolio summary and holdings expose additive provenance tiles/references, and Research evidence-pack Markdown exports now carry the same portfolio provenance plus audit IDs.
 - `T76 - Existing Providers Audit` is now implemented. Provider catalog/runtime drift was corrected for Public Market Data, Google News RSS Events, and CoinGecko demo/pro credential support; CoinGecko history is now honestly unsupported until a dedicated endpoint exists; tests lock provider registry coverage, read-only/no-live-trading boundaries, freshness/provenance, and keyed credential behavior.
+- `T78 - Local LLM Runtime Probe` is now implemented and validated, with default-off AI runtime settings, additive `/api/v1/ai/runtime/status` and `/api/v1/ai/runtime/probe` endpoints, short-timeout Ollama probing, and source-safe evidence recorded in `logs/ai-local-runtime-probe-latest.json`.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -1680,7 +1681,7 @@ Completed on 2026-05-22:
 ### T78 - Local LLM Runtime Probe
 
 Priority: P2
-Status: Planned
+Status: Completed
 Target Window: 2026-10-24 to 2026-10-30
 Depends on: T77
 
@@ -1693,6 +1694,13 @@ Task:
 Done when:
 
 - The team has evidence for whether local AI is practical on the target Windows machine.
+
+Completion evidence:
+
+- Added default-off AI runtime settings and additive `/api/v1/ai/runtime/status` plus `/api/v1/ai/runtime/probe` endpoints.
+- The local probe uses the Ollama localhost API with a short timeout and writes source-safe evidence without credentials or prompt text.
+- Latest local evidence: `logs/ai-local-runtime-probe-latest.json` with `health=available`, `model_count=2`, `selected_model=qwen3:8b`, and no model download required.
+- Validation passed: `py -m unittest backend.tests.test_ai_runtime_service` and `py -m compileall backend\app\services\ai_runtime_service.py backend\app\runtime.py backend\app\api\factory.py backend\app\api\routes.py`.
 
 ### T79 - AI Permission Boundary
 

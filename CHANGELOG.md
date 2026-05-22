@@ -82,11 +82,14 @@ release channel yet.
   `npm run smoke:data-sources:packaged` records source-safe evidence for
   catalog contracts, credential state, freshness/cache readiness, provenance,
   exports, configured-key state, and unsupported capability boundaries.
+- T78 adds a default-off local AI runtime probe. The backend can report AI
+  disabled state or perform a short-timeout Ollama localhost probe, with
+  source-safe evidence recorded without downloading models or exposing secrets.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T78 will probe local LLM runtime practicality while keeping AI features
-  disabled unless explicitly enabled.
+- T79 will define the AI permission boundary before assistant generation or UI
+  flows are promoted.

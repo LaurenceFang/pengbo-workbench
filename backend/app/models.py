@@ -149,6 +149,31 @@ class TranslationSuggestResponse(BaseModel):
     used_fallback: bool
 
 
+AIProviderMode = Literal["disabled", "local", "cloud"]
+AIRuntimeHealth = Literal["disabled", "available", "unavailable", "timeout", "error"]
+
+
+class AILocalModelInfo(BaseModel):
+    name: str
+    size_bytes: int | None = None
+    modified_at: str | None = None
+
+
+class AIRuntimeStatusResponse(BaseModel):
+    enabled: bool
+    mode: AIProviderMode = "disabled"
+    local_provider: str
+    local_base_url: str
+    selected_model: str | None = None
+    health: AIRuntimeHealth
+    model_count: int = 0
+    models: list[AILocalModelInfo] = Field(default_factory=list)
+    latency_ms: int | None = None
+    checked_at: str
+    message: str
+    evidence_path: str | None = None
+
+
 class WorkflowTemplateStepDefinition(BaseModel):
     step_key: str
     title: str

@@ -36,6 +36,11 @@ class RuntimeSettings:
     translation_provider: str | None = None
     translation_api_key: str | None = None
     translation_base_url: str | None = None
+    ai_assistant_enabled: bool = False
+    ai_local_provider: str = "ollama"
+    ai_local_base_url: str = "http://127.0.0.1:11434"
+    ai_local_model: str | None = None
+    ai_probe_timeout_seconds: float = 2.0
 
     @property
     def sqlite_path(self) -> Path:
@@ -109,4 +114,10 @@ class RuntimeSettings:
             translation_provider=os.getenv("PENGBO_TRANSLATION_PROVIDER"),
             translation_api_key=os.getenv("PENGBO_TRANSLATION_API_KEY"),
             translation_base_url=os.getenv("PENGBO_TRANSLATION_BASE_URL"),
+            ai_assistant_enabled=os.getenv("PENGBO_AI_ASSISTANT_ENABLED", "").strip().lower()
+            in {"1", "true", "yes", "on"},
+            ai_local_provider=os.getenv("PENGBO_AI_LOCAL_PROVIDER", "ollama"),
+            ai_local_base_url=os.getenv("PENGBO_AI_LOCAL_BASE_URL", "http://127.0.0.1:11434"),
+            ai_local_model=os.getenv("PENGBO_AI_LOCAL_MODEL"),
+            ai_probe_timeout_seconds=float(os.getenv("PENGBO_AI_PROBE_TIMEOUT_SECONDS", "2.0")),
         )

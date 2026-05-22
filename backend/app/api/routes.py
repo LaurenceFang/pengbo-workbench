@@ -81,6 +81,7 @@ from ..models import (
     UpdateScreenerPresetVariantRequest,
     WatchlistUpdateRequest,
     AppPreferences,
+    AIRuntimeStatusResponse,
     WorkflowRunRequest,
     WorkflowRunResponse,
     WorkflowTemplateDefinition,
@@ -218,6 +219,14 @@ def register_routes(app: FastAPI) -> None:
     @app.get("/api/v1/translation/status", response_model=TranslationStatusResponse)
     def get_translation_status(request: Request) -> TranslationStatusResponse:
         return _container(request).translation_service.get_status()
+
+    @app.get("/api/v1/ai/runtime/status", response_model=AIRuntimeStatusResponse)
+    def get_ai_runtime_status(request: Request) -> AIRuntimeStatusResponse:
+        return _container(request).ai_runtime_service.get_status()
+
+    @app.post("/api/v1/ai/runtime/probe", response_model=AIRuntimeStatusResponse)
+    def probe_ai_runtime(request: Request) -> AIRuntimeStatusResponse:
+        return _container(request).ai_runtime_service.probe()
 
     @app.post("/api/v1/translation/suggest", response_model=TranslationSuggestResponse)
     def suggest_translation(request: Request, payload: TranslationSuggestRequest) -> TranslationSuggestResponse:
