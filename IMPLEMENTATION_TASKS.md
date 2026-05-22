@@ -78,6 +78,7 @@ Updated: 2026-05-21
 - `T81 - Research Assistant UI` is now implemented and build-validated, with the assistant embedded inside the Research workflow, explicit context preview/generation actions, visible citations/limitations/blocked states, and save-to-notes handoff without adding a separate chatbot workspace.
 - `T82 - Evidence-Grounded Prompt Layer` is now implemented and validated, with selectable assistant prompt templates, shared strict language rules, hallucination-prone regression coverage, and offline Research fixtures that keep generation inside local evidence boundaries.
 - `T83 - Cloud LLM Explicit Opt-In` is now implemented and validated, with cloud mode default-off, local-env-only cloud configuration, explicit per-request confirmation, stale context-preview blocking, Settings/Manual visibility, and no cloud test calls or committed API keys.
+- `T84 - AI Research Packaged Signoff` is now implemented and validated, with `npm run smoke:ai-research:packaged` proving local-disabled, local-enabled, cloud-disabled, cloud-opt-in-without-key, stale evidence, blocked evidence, redaction, audit, and export flows in the release EXE.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -1831,7 +1832,7 @@ Implementation Log:
 ### T84 - AI Research Packaged Signoff
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-12-05 to 2026-12-11
 Depends on: T83
 
@@ -1844,6 +1845,13 @@ Task:
 Done when:
 
 - AI features are useful, permissioned, and auditable in the real desktop build.
+
+Implementation Log:
+
+- Added `scripts/packaged_ai_research_smoke.ps1` and `npm run smoke:ai-research:packaged` for serial release-EXE validation.
+- The smoke backs up/restores the packaged AppData runtime, starts the real release desktop with default, local-AI, and cloud-enabled/no-key environment modes, and never supplies or logs a cloud API key.
+- Packaged evidence in `logs/ai-research-packaged-smoke-latest.json` shows local disabled blocked with `ai_disabled`, local generation completed with five citations, cloud no-confirm blocked with `cloud_opt_in_required`, cloud disabled blocked with `cloud_disabled`, cloud opt-in without key blocked with `cloud_credentials_missing`, stale evidence preserved cached/stale language, and export created a report with no secret-like markers.
+- Validation: `npm run tauri:build`, `npm run smoke:ai-research:packaged`, PowerShell parser check for `scripts\packaged_ai_research_smoke.ps1`, `npm run check:public-boundary`, and `git diff --check`.
 
 ### T85 - China Market Data Source Study
 

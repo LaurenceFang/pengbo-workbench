@@ -104,11 +104,14 @@ release channel yet.
   default, status only exposes configured/not-configured flags, Research must
   select Cloud and acknowledge the current redacted context preview before any
   request can leave the machine, and Settings/Manual now surface the boundary.
+- T84 validates the AI Research assistant in the packaged release EXE with a
+  serial smoke covering local-disabled, local-enabled, cloud-disabled,
+  cloud-opt-in-without-key, stale evidence, blocked evidence, redaction,
+  audit, and export flows.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T84 will package-smoke the AI research disabled/local/cloud/stale/blocked and
-  export flows in the desktop EXE.
+- T85 will study cautious China-market data-source options.
