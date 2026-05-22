@@ -8,6 +8,12 @@ from fastapi.testclient import TestClient
 
 from backend.app.api.factory import create_app
 from backend.app.runtime import RuntimeSettings
+from backend.tests.test_research_service import (
+    FakePortfolioService,
+    FakeScreenerService,
+    make_asset_workspace,
+    FakeAssetService,
+)
 
 
 def make_settings(runtime_root: Path, *, ai_enabled: bool = False) -> RuntimeSettings:
@@ -27,11 +33,20 @@ def make_settings(runtime_root: Path, *, ai_enabled: bool = False) -> RuntimeSet
     )
 
 
+def install_offline_research_fixtures(app) -> None:
+    fake_asset_service = FakeAssetService({"AAPL": make_asset_workspace(symbol="AAPL")})
+    research_service = app.state.container.research_service
+    research_service.asset_service = fake_asset_service
+    research_service.screener_service = FakeScreenerService()
+    research_service.portfolio_service = FakePortfolioService()
+
+
 class ResearchAssistantBoundaryTests(unittest.TestCase):
     def test_permission_boundary_is_route_classified(self) -> None:
         with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
             app = create_app(make_settings(Path(temp_dir)))
             with TestClient(app) as client:
+                install_offline_research_fixtures(app)
                 session = client.post("/api/v1/security/session", json={}).json()
 
                 boundary = client.get(
@@ -44,6 +59,26 @@ class ResearchAssistantBoundaryTests(unittest.TestCase):
                 self.assertTrue(any("raw provider credentials" in item for item in payload["forbidden_context"]))
                 self.assertIn("ai_context_preview_created", payload["audit_events"])
 
+                templates = client.get(
+                    "/api/v1/research/assistant/templates",
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                )
+                self.assertEqual(templates.status_code, 200)
+                template_keys = {item["template_key"] for item in templates.json()}
+                self.assertEqual(
+                    template_keys,
+                    {
+                        "research_summary",
+                        "thesis",
+                        "counter_thesis",
+                        "earnings_review",
+                        "portfolio_risk",
+                        "provider_limitation",
+                        "report_rewrite",
+                    },
+                )
+                self.assertTrue(all(item["language_rules"] for item in templates.json()))
+
                 routes = client.get("/api/v1/security/route-classification").json()
                 ai_routes = [item for item in routes if item["surface"] == "ai_assistant"]
                 self.assertGreaterEqual(len(ai_routes), 3)
@@ -53,6 +88,7 @@ class ResearchAssistantBoundaryTests(unittest.TestCase):
         with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
             app = create_app(make_settings(Path(temp_dir)))
             with TestClient(app) as client:
+                install_offline_research_fixtures(app)
                 session = client.post("/api/v1/security/session", json={}).json()
                 brief = client.post("/api/v1/research/briefs", json={"symbol": "AAPL"}).json()
                 note = "User note with api_key=unit-secret and sk-testsecret123456789."
@@ -97,6 +133,7 @@ class ResearchAssistantBoundaryTests(unittest.TestCase):
         with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
             app = create_app(make_settings(Path(temp_dir)))
             with TestClient(app) as client:
+                install_offline_research_fixtures(app)
                 session = client.post("/api/v1/security/session", json={}).json()
                 client.post("/api/v1/security/local/initialize", json={"unlock_secret": "1234"})
                 brief = client.post("/api/v1/research/briefs", json={"symbol": "AAPL"}).json()
@@ -124,6 +161,7 @@ class ResearchAssistantBoundaryTests(unittest.TestCase):
         with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
             app = create_app(make_settings(Path(temp_dir), ai_enabled=True))
             with TestClient(app) as client:
+                install_offline_research_fixtures(app)
                 session = client.post("/api/v1/security/session", json={}).json()
                 client.post("/api/v1/security/local/initialize", json={"unlock_secret": "1234"})
                 brief = client.post("/api/v1/research/briefs", json={"symbol": "AAPL"}).json()
@@ -131,16 +169,20 @@ class ResearchAssistantBoundaryTests(unittest.TestCase):
                 response = client.post(
                     f"/api/v1/research/assistant/briefs/{brief['brief_id']}/generate",
                     headers={"X-Pengbo-Session": session["session_id"]},
-                    json={"templateKey": "research_summary"},
+                    json={"templateKey": "provider_limitation"},
                 )
                 self.assertEqual(response.status_code, 200)
                 payload = response.json()
                 self.assertEqual(payload["status"], "completed")
+                self.assertEqual(payload["template_key"], "provider_limitation")
                 self.assertEqual(payload["provider"], "local")
                 self.assertTrue(payload["grounded"])
                 self.assertGreaterEqual(len(payload["citations"]), 2)
                 self.assertTrue(any("No external web claim" in item for item in payload["limitations"]))
+                self.assertTrue(any("Provider limitation" in item for item in payload["risks"]))
                 self.assertIn("Boundary:", payload["output_markdown"])
+                self.assertNotIn("price target", payload["output_markdown"].lower())
+                self.assertNotIn("earnings date", payload["output_markdown"].lower())
                 self.assertNotIn("submit", " ".join(payload["questions"]).lower())
 
 

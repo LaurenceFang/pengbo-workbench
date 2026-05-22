@@ -21,7 +21,7 @@ The active roadmap is tracked in [IMPLEMENTATION_TASKS.md](IMPLEMENTATION_TASKS.
 
 These tasks were intentionally prioritized before broader public, account, remote, team, AI, or China-market connector work. The next roadmap lane begins at `T57 - License And Open Source Boundary`, followed by open-source readiness, CI, releases, demo mode, contributor readiness, research-flow polish, data governance, local AI assistance, China-market connectors, and security packaged signoff.
 
-`T58 - Version Governance Cleanup`, `T59 - GitHub Actions CI Baseline`, `T60 - Demo Mode And No-Key Startup`, `T61 - First Release Packaging`, `T62 - README Product Proof Upgrade`, `T63 - Contributor Entry Kit`, `T64 - Research Flow Definition`, `T65 - Asset Page Research Entry Polish`, `T66 - Data Status Strip Everywhere`, `T67 - Research Brief Quality Upgrade`, `T68 - Report Export Evidence Pack`, `T69 - Command Center V1`, `T69# Temp - Packaged Desktop Video Walkthrough`, `T70 - First-Run Product Onboarding`, `T71 - Provider Capability Matrix`, `T72 - Provider Credential State Model`, `T73 - Provider Freshness And Cache Policy`, `T74 - Data Quality Status Contract`, `T75 - Provenance UI And Export Sync`, `T76 - Existing Provider Audit`, `T77 - Data Sources Packaged Signoff V2`, `T78 - Local LLM Runtime Probe`, `T79 - AI Permission Boundary`, `T80 - Research Assistant Backend`, and `T81 - Research Assistant UI` are implemented. The first GitHub Release is available at [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0). The next product-trust task is `T82 - Evidence-Grounded Prompt Layer`.
+`T58 - Version Governance Cleanup`, `T59 - GitHub Actions CI Baseline`, `T60 - Demo Mode And No-Key Startup`, `T61 - First Release Packaging`, `T62 - README Product Proof Upgrade`, `T63 - Contributor Entry Kit`, `T64 - Research Flow Definition`, `T65 - Asset Page Research Entry Polish`, `T66 - Data Status Strip Everywhere`, `T67 - Research Brief Quality Upgrade`, `T68 - Report Export Evidence Pack`, `T69 - Command Center V1`, `T69# Temp - Packaged Desktop Video Walkthrough`, `T70 - First-Run Product Onboarding`, `T71 - Provider Capability Matrix`, `T72 - Provider Credential State Model`, `T73 - Provider Freshness And Cache Policy`, `T74 - Data Quality Status Contract`, `T75 - Provenance UI And Export Sync`, `T76 - Existing Provider Audit`, `T77 - Data Sources Packaged Signoff V2`, `T78 - Local LLM Runtime Probe`, `T79 - AI Permission Boundary`, `T80 - Research Assistant Backend`, `T81 - Research Assistant UI`, and `T82 - Evidence-Grounded Prompt Layer` are implemented. The first GitHub Release is available at [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0). The next product-trust task is `T83 - Cloud LLM Explicit Opt-In`.
 
 For the product-team assessment behind this direction, see [docs/product-team-assessment-2026-05-17.md](docs/product-team-assessment-2026-05-17.md).
 
@@ -72,7 +72,7 @@ The license does not change the product safety boundary: Pengbo is currently a l
 
 - Dashboard: runtime readiness, market pulse, watchlist, and handoffs into the main workflows.
 - Asset: quote/history views, provider capability state, filings/fundamentals context, and multi-period charts.
-- Research: durable local briefs, structured analysis modules, notes, exports, and handoffs from screeners and data sources.
+- Research: durable local briefs, structured analysis modules, notes, local AI assistant drafts with selectable evidence-grounded templates, exports, and handoffs from screeners and data sources.
 - Screeners: preset-driven and variant-tuned screening with bounded user controls.
 - Portfolio: offline-first holdings, transactions, valuation states, analytics, allocation views, and data-quality limitations.
 - Factor Lab: research-only factor runs across equities, ETFs/index proxies, indexes, and crypto.
@@ -87,6 +87,7 @@ The license does not change the product safety boundary: Pengbo is currently a l
 - Binance live execution remains default-off, risk-gated, kill-switch gated, and user-confirmed.
 - Workflow Studio may create a Binance intent artifact, but submit requires an explicit user-owned confirmation step.
 - Sensitive local sidecar routes now use a desktop auth session header and route-level permission checks; this is not OAuth, hosted identity, remote sync, or a public login system.
+- The Research AI assistant is default-off, locally scoped, audit-bound, and limited to structured evidence with explicit context preview and redaction rules.
 - Provider secrets, Stronghold data, local databases, smoke artifacts, and generated binaries should not be committed to a public repository.
 - API source code can be committed; API keys, tokens, secrets, local identities, and provider credentials must not be committed.
 - Current sensitive values include EDGAR identity, Binance API key/secret, FRED key, CoinGecko key, and `PENGBO_TRANSLATION_API_KEY`.

@@ -76,6 +76,7 @@ Updated: 2026-05-21
 - `T79 - AI Permission Boundary` is now implemented and validated, with an additive AI permission map, route classifications, local-unlock-gated Research context previews, redacted note handling, and `ai_assistant` audit events before any assistant UI ships.
 - `T80 - Research Assistant Backend` is now implemented and validated, with an additive local-only Research assistant generation endpoint that returns grounded summaries, questions, risks, limitations, citations, blocked states, and redacted audit evidence from structured Research evidence.
 - `T81 - Research Assistant UI` is now implemented and build-validated, with the assistant embedded inside the Research workflow, explicit context preview/generation actions, visible citations/limitations/blocked states, and save-to-notes handoff without adding a separate chatbot workspace.
+- `T82 - Evidence-Grounded Prompt Layer` is now implemented and validated, with selectable assistant prompt templates, shared strict language rules, hallucination-prone regression coverage, and offline Research fixtures that keep generation inside local evidence boundaries.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -1780,7 +1781,7 @@ Completion evidence:
 ### T82 - Evidence-Grounded Prompt Layer
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-11-21 to 2026-11-27
 Depends on: T81
 
@@ -1793,6 +1794,13 @@ Task:
 Done when:
 
 - Generated text consistently stays inside known evidence boundaries.
+
+Implementation Log:
+
+- Added the assistant prompt-template catalog for research summary, thesis, counter-thesis, earnings review, portfolio risk, provider limitation, and report rewrite.
+- Exposed `/api/v1/research/assistant/templates` behind the AI context permission boundary and wired the Research UI to choose templates before generation.
+- Extended regression coverage with an offline AAPL Research fixture and provider-limitation checks that reject uncited price targets, earnings-date claims, and execution verbs.
+- Validation: `py -m unittest backend.tests.test_research_assistant_service`, `npm run typecheck`, `py -m compileall backend\app\services\research_assistant_service.py backend\app\services\auth_session_service.py backend\app\models.py backend\app\api\routes.py backend\tests\test_research_assistant_service.py`, `npm run check:public-boundary`, and `git diff --check`.
 
 ### T83 - Cloud LLM Explicit Opt-In
 

@@ -18,6 +18,8 @@ import {
   type ResearchBrief,
   type AIAssistantGenerateResponse,
   type AIContextPreviewResponse,
+  type AIPromptTemplateDefinition,
+  type AIPromptTemplateKey,
   type ResearchBriefEvidenceItem,
   type ResearchBriefListItem,
   type ResearchEvidenceContext,
@@ -48,6 +50,11 @@ export function ResearchView({
   const recents = useAsyncResource<ResearchBriefListItem[]>(async () => api.getRecentResearchBriefs(30), [], {
     enabled: sidecarReady,
   });
+  const assistantTemplates = useAsyncResource<AIPromptTemplateDefinition[]>(
+    async () => api.getResearchAssistantTemplates(),
+    [],
+    { enabled: sidecarReady },
+  );
   const brief = useAsyncResource<ResearchBrief | null>(
     async () => (selectedResearchBriefId ? api.getResearchBrief(selectedResearchBriefId) : null),
     [selectedResearchBriefId],
@@ -66,6 +73,7 @@ export function ResearchView({
   const [actionError, setActionError] = useState<string | null>(null);
   const [assistantPreview, setAssistantPreview] = useState<AIContextPreviewResponse | null>(null);
   const [assistantOutput, setAssistantOutput] = useState<AIAssistantGenerateResponse | null>(null);
+  const [assistantTemplateKey, setAssistantTemplateKey] = useState<AIPromptTemplateKey>("research_summary");
   const [assistantBusy, setAssistantBusy] = useState<"preview" | "generate" | "notes" | null>(null);
   const [assistantError, setAssistantError] = useState<string | null>(null);
   const [briefPanel, setBriefPanel] = useState<BriefPanelKey>("summary");
@@ -277,7 +285,7 @@ export function ResearchView({
         const preview = await api.getResearchAssistantContextPreview(brief.data.brief_id);
         setAssistantPreview(preview);
       }
-      const result = await api.generateResearchAssistantResponse(brief.data.brief_id);
+      const result = await api.generateResearchAssistantResponse(brief.data.brief_id, assistantTemplateKey);
       setAssistantOutput(result);
     } catch (error) {
       setAssistantError(error instanceof Error ? error.message : "Failed to generate assistant draft");
@@ -568,9 +576,15 @@ export function ResearchView({
                   error={assistantError}
                   output={assistantOutput}
                   preview={assistantPreview}
+                  selectedTemplateKey={assistantTemplateKey}
+                  templates={assistantTemplates.data ?? []}
                   onGenerate={() => void handleAssistantGenerate()}
                   onPreview={() => void handleAssistantPreview()}
                   onSaveToNotes={() => void handleSaveAssistantToNotes()}
+                  onTemplateChange={(templateKey) => {
+                    setAssistantTemplateKey(templateKey);
+                    setAssistantOutput(null);
+                  }}
                 />
                 <section className="research-panel">
                   <div className="card-header">
@@ -652,23 +666,31 @@ function AssistantPanel({
   error,
   output,
   preview,
+  selectedTemplateKey,
+  templates,
   onGenerate,
   onPreview,
   onSaveToNotes,
+  onTemplateChange,
 }: {
   brief: ResearchBrief;
   busy: "preview" | "generate" | "notes" | null;
   error: string | null;
   output: AIAssistantGenerateResponse | null;
   preview: AIContextPreviewResponse | null;
+  selectedTemplateKey: AIPromptTemplateKey;
+  templates: AIPromptTemplateDefinition[];
   onGenerate: () => void;
   onPreview: () => void;
   onSaveToNotes: () => void;
+  onTemplateChange: (templateKey: AIPromptTemplateKey) => void;
 }) {
+  const selectedTemplate = templates.find((item) => item.template_key === selectedTemplateKey);
+
   return (
     <section
       className="research-panel"
-      aria-label={`research-assistant brief=${brief.brief_id} symbol=${brief.symbol} status=${output?.status ?? "idle"}`}
+      aria-label={`research-assistant brief=${brief.brief_id} symbol=${brief.symbol} template=${selectedTemplateKey} status=${output?.status ?? "idle"}`}
     >
       <div className="card-header">
         <div>
@@ -682,6 +704,31 @@ function AssistantPanel({
       <p className="panel-note">
         Uses the Research brief, data quality, provenance, and notes after redaction. Cloud transmission remains blocked here.
       </p>
+      {templates.length ? (
+        <div className="assistant-template-control">
+          <label className="field">
+            <span>Prompt template</span>
+            <select
+              aria-label={`research-assistant-template brief=${brief.brief_id}`}
+              disabled={busy !== null}
+              onChange={(event) => onTemplateChange(event.target.value as AIPromptTemplateKey)}
+              value={selectedTemplateKey}
+            >
+              {templates.map((template) => (
+                <option key={template.template_key} value={template.template_key}>
+                  {template.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          {selectedTemplate ? (
+            <div className="assistant-template-summary" aria-label={`research-assistant-template-summary brief=${brief.brief_id}`}>
+              <strong>{selectedTemplate.purpose}</strong>
+              <span>{selectedTemplate.required_evidence.join(" / ")}</span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       <div className="form-actions">
         <button
           aria-label={`research-assistant-preview brief=${brief.brief_id}`}
@@ -693,7 +740,7 @@ function AssistantPanel({
           {busy === "preview" ? "Previewing..." : "Preview context"}
         </button>
         <button
-          aria-label={`research-assistant-generate brief=${brief.brief_id}`}
+          aria-label={`research-assistant-generate brief=${brief.brief_id} template=${selectedTemplateKey}`}
           className="primary-button"
           disabled={busy !== null}
           onClick={onGenerate}
@@ -720,9 +767,13 @@ function AssistantPanel({
         </div>
       ) : null}
       {output ? (
-        <div className="assistant-output" aria-label={`research-assistant-output brief=${brief.brief_id} status=${output.status}`}>
+        <div
+          className="assistant-output"
+          aria-label={`research-assistant-output brief=${brief.brief_id} template=${output.template_key} status=${output.status}`}
+        >
           <div className="variant-card-head">
             <strong>{output.status === "completed" ? "Grounded draft" : "Generation blocked"}</strong>
+            <span className="mini-pill">{output.template_key}</span>
             <span className="mini-pill">{output.grounded ? "grounded" : "review"}</span>
           </div>
           <p>{output.summary}</p>

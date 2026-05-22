@@ -110,6 +110,14 @@ ROUTE_PERMISSION_MAP: list[RoutePermissionClassification] = [
         notes="AI context preview can include selected research notes and evidence summaries, never raw secrets.",
     ),
     RoutePermissionClassification(
+        method="GET",
+        path="/api/v1/research/assistant/templates",
+        surface="ai_assistant",
+        exposure="desktop_local",
+        permission="ai:context",
+        notes="Prompt templates describe local evidence rules and do not contain user research context.",
+    ),
+    RoutePermissionClassification(
         method="POST",
         path="/api/v1/research/assistant/briefs/{brief_id}/generate",
         surface="ai_assistant",

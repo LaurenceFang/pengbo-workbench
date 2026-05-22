@@ -85,6 +85,7 @@ from ..models import (
     AIAssistantGenerateRequest,
     AIAssistantGenerateResponse,
     AIPermissionBoundaryResponse,
+    AIPromptTemplateDefinition,
     AIRuntimeStatusResponse,
     WorkflowRunRequest,
     WorkflowRunResponse,
@@ -236,6 +237,11 @@ def register_routes(app: FastAPI) -> None:
     def get_ai_permission_boundary(request: Request) -> AIPermissionBoundaryResponse:
         _require_permission(request, "ai:context", surface="ai_assistant")
         return _container(request).research_assistant_service.permission_boundary()
+
+    @app.get("/api/v1/research/assistant/templates", response_model=list[AIPromptTemplateDefinition])
+    def get_research_assistant_templates(request: Request) -> list[AIPromptTemplateDefinition]:
+        _require_permission(request, "ai:context", surface="ai_assistant")
+        return _container(request).research_assistant_service.list_templates()
 
     @app.post("/api/v1/translation/suggest", response_model=TranslationSuggestResponse)
     def suggest_translation(request: Request, payload: TranslationSuggestRequest) -> TranslationSuggestResponse:

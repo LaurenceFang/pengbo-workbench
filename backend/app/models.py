@@ -154,7 +154,15 @@ class TranslationSuggestResponse(BaseModel):
 AIProviderMode = Literal["disabled", "local", "cloud"]
 AIRuntimeHealth = Literal["disabled", "available", "unavailable", "timeout", "error"]
 AIAssistantStatus = Literal["completed", "blocked"]
-AIPromptTemplateKey = Literal["research_summary"]
+AIPromptTemplateKey = Literal[
+    "research_summary",
+    "thesis",
+    "counter_thesis",
+    "earnings_review",
+    "portfolio_risk",
+    "provider_limitation",
+    "report_rewrite",
+]
 
 
 class AILocalModelInfo(BaseModel):
@@ -209,6 +217,14 @@ class AIContextPreviewResponse(BaseModel):
     estimated_input_chars: int
     cloud_transmission_allowed: bool = False
     audited_event_id: str | None = None
+
+
+class AIPromptTemplateDefinition(BaseModel):
+    template_key: AIPromptTemplateKey
+    title: str
+    purpose: str
+    required_evidence: list[str] = Field(default_factory=list)
+    language_rules: list[str] = Field(default_factory=list)
 
 
 class AIAssistantGenerateRequest(BaseModel):

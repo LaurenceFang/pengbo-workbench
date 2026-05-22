@@ -1690,6 +1690,36 @@ button {
   background: rgba(0, 0, 0, 0.16);
 }
 
+.assistant-template-control {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+.assistant-template-summary {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(110, 168, 254, 0.14);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.assistant-template-summary strong,
+.assistant-template-summary span {
+  overflow-wrap: anywhere;
+}
+
+.assistant-template-summary span {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
 .assistant-preview .research-copy {
   max-height: 220px;
   overflow: auto;
@@ -2636,6 +2666,10 @@ button {
   .toolbar,
   .hero-actions {
     flex-direction: column;
+  }
+
+  .assistant-template-control {
+    grid-template-columns: 1fr;
   }
 
   .command-feedback-pill,

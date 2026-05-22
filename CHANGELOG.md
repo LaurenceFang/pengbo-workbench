@@ -96,10 +96,15 @@ release channel yet.
   preview and generation controls, visible citations/limitations/blocked
   states, and a save-to-notes handoff without creating a separate chatbot
   workspace.
+- T82 adds evidence-grounded prompt templates for research summary, thesis,
+  counter-thesis, earnings review, portfolio risk, provider limitation, and
+  report rewrite. The Research assistant UI can select templates, and
+  regression coverage keeps output inside local evidence boundaries.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T82 will harden prompt templates and hallucination-prone regression fixtures.
+- T83 will keep cloud LLM usage explicitly opt-in while local mode remains the
+  default.

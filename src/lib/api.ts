@@ -1371,9 +1371,18 @@ export type AIContextPreviewResponse = {
   audited_event_id: string | null;
 };
 
+export type AIPromptTemplateKey =
+  | "research_summary"
+  | "thesis"
+  | "counter_thesis"
+  | "earnings_review"
+  | "portfolio_risk"
+  | "provider_limitation"
+  | "report_rewrite";
+
 export type AIAssistantGenerateResponse = {
   status: "completed" | "blocked";
-  template_key: "research_summary";
+  template_key: AIPromptTemplateKey;
   provider: "disabled" | "local" | "cloud";
   model: string | null;
   generated_at: string;
@@ -1386,6 +1395,14 @@ export type AIAssistantGenerateResponse = {
   blocked_reasons: string[];
   audit_event_ids: string[];
   output_markdown: string;
+};
+
+export type AIPromptTemplateDefinition = {
+  template_key: AIPromptTemplateKey;
+  title: string;
+  purpose: string;
+  required_evidence: string[];
+  language_rules: string[];
 };
 
 export type TranslationStatusResponse = {
@@ -1630,15 +1647,16 @@ export const api = {
     apiFetch<ResearchBrief>(`/research/briefs/${encodeURIComponent(briefId)}`),
   refreshResearchBrief: (briefId: string) =>
     jsonRequest<ResearchBrief>(`/research/briefs/${encodeURIComponent(briefId)}/refresh`, "POST"),
+  getResearchAssistantTemplates: () => apiFetch<AIPromptTemplateDefinition[]>("/research/assistant/templates"),
   getResearchAssistantContextPreview: (briefId: string) =>
     apiFetch<AIContextPreviewResponse>(
       `/research/assistant/briefs/${encodeURIComponent(briefId)}/context-preview`,
     ),
-  generateResearchAssistantResponse: (briefId: string) =>
+  generateResearchAssistantResponse: (briefId: string, templateKey: AIPromptTemplateKey = "research_summary") =>
     jsonRequest<AIAssistantGenerateResponse>(
       `/research/assistant/briefs/${encodeURIComponent(briefId)}/generate`,
       "POST",
-      { templateKey: "research_summary" },
+      { templateKey },
     ),
   getResearchEvidence: (
     symbol: string,
