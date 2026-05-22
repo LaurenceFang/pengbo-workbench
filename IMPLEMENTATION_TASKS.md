@@ -77,6 +77,7 @@ Updated: 2026-05-21
 - `T80 - Research Assistant Backend` is now implemented and validated, with an additive local-only Research assistant generation endpoint that returns grounded summaries, questions, risks, limitations, citations, blocked states, and redacted audit evidence from structured Research evidence.
 - `T81 - Research Assistant UI` is now implemented and build-validated, with the assistant embedded inside the Research workflow, explicit context preview/generation actions, visible citations/limitations/blocked states, and save-to-notes handoff without adding a separate chatbot workspace.
 - `T82 - Evidence-Grounded Prompt Layer` is now implemented and validated, with selectable assistant prompt templates, shared strict language rules, hallucination-prone regression coverage, and offline Research fixtures that keep generation inside local evidence boundaries.
+- `T83 - Cloud LLM Explicit Opt-In` is now implemented and validated, with cloud mode default-off, local-env-only cloud configuration, explicit per-request confirmation, stale context-preview blocking, Settings/Manual visibility, and no cloud test calls or committed API keys.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -1805,7 +1806,7 @@ Implementation Log:
 ### T83 - Cloud LLM Explicit Opt-In
 
 Priority: P2
-Status: Planned
+Status: Completed
 Target Window: 2026-11-28 to 2026-12-04
 Depends on: T82
 
@@ -1818,6 +1819,14 @@ Task:
 Done when:
 
 - A user cannot accidentally send private research context to a cloud model.
+
+Implementation Log:
+
+- Added local environment settings and `/api/v1/ai/cloud/status` for cloud AI status without returning API keys.
+- Extended Research assistant generation with `providerMode`, `cloudOptInConfirmed`, and `cloudContextAcknowledgedChars`; cloud requests are blocked unless the user selects Cloud, confirms the redacted preview, and acknowledges the current preview size.
+- Added UI controls in Research for Local/Cloud mode, cloud readiness metrics, and a per-request cloud confirmation checkbox; Settings and Manual now expose the AI boundary.
+- Regression coverage validates cloud-disabled/default status, missing opt-in, stale preview acknowledgement, missing credential blocking, and local generation still completing.
+- Validation: `py -m unittest backend.tests.test_research_assistant_service`, `npm run typecheck`, and `py -m compileall backend\app\services\research_assistant_service.py backend\app\services\auth_session_service.py backend\app\runtime.py backend\app\models.py backend\app\api\routes.py backend\tests\test_research_assistant_service.py`.
 
 ### T84 - AI Research Packaged Signoff
 

@@ -17,6 +17,7 @@ import {
   type AssetSearchResult,
   type ResearchBrief,
   type AIAssistantGenerateResponse,
+  type AICloudStatusResponse,
   type AIContextPreviewResponse,
   type AIPromptTemplateDefinition,
   type AIPromptTemplateKey,
@@ -55,6 +56,9 @@ export function ResearchView({
     [],
     { enabled: sidecarReady },
   );
+  const aiCloudStatus = useAsyncResource<AICloudStatusResponse>(async () => api.getAICloudStatus(), [], {
+    enabled: sidecarReady,
+  });
   const brief = useAsyncResource<ResearchBrief | null>(
     async () => (selectedResearchBriefId ? api.getResearchBrief(selectedResearchBriefId) : null),
     [selectedResearchBriefId],
@@ -74,6 +78,8 @@ export function ResearchView({
   const [assistantPreview, setAssistantPreview] = useState<AIContextPreviewResponse | null>(null);
   const [assistantOutput, setAssistantOutput] = useState<AIAssistantGenerateResponse | null>(null);
   const [assistantTemplateKey, setAssistantTemplateKey] = useState<AIPromptTemplateKey>("research_summary");
+  const [assistantProviderMode, setAssistantProviderMode] = useState<"local" | "cloud">("local");
+  const [cloudOptInConfirmed, setCloudOptInConfirmed] = useState(false);
   const [assistantBusy, setAssistantBusy] = useState<"preview" | "generate" | "notes" | null>(null);
   const [assistantError, setAssistantError] = useState<string | null>(null);
   const [briefPanel, setBriefPanel] = useState<BriefPanelKey>("summary");
@@ -85,6 +91,7 @@ export function ResearchView({
       setAssistantPreview(null);
       setAssistantOutput(null);
       setAssistantError(null);
+      setCloudOptInConfirmed(false);
     }
   }, [brief.data?.brief_id, brief.data?.notes.markdown]);
 
@@ -281,11 +288,19 @@ export function ResearchView({
     setAssistantBusy("generate");
     setAssistantError(null);
     try {
-      if (!assistantPreview) {
+      let activePreview = assistantPreview;
+      if (!activePreview) {
         const preview = await api.getResearchAssistantContextPreview(brief.data.brief_id);
         setAssistantPreview(preview);
+        activePreview = preview;
       }
-      const result = await api.generateResearchAssistantResponse(brief.data.brief_id, assistantTemplateKey);
+      const result = await api.generateResearchAssistantResponse(brief.data.brief_id, {
+        templateKey: assistantTemplateKey,
+        providerMode: assistantProviderMode,
+        cloudOptInConfirmed,
+        cloudContextAcknowledgedChars:
+          assistantProviderMode === "cloud" ? activePreview?.estimated_input_chars : undefined,
+      });
       setAssistantOutput(result);
     } catch (error) {
       setAssistantError(error instanceof Error ? error.message : "Failed to generate assistant draft");
@@ -576,11 +591,20 @@ export function ResearchView({
                   error={assistantError}
                   output={assistantOutput}
                   preview={assistantPreview}
+                  providerMode={assistantProviderMode}
                   selectedTemplateKey={assistantTemplateKey}
                   templates={assistantTemplates.data ?? []}
+                  cloudOptInConfirmed={cloudOptInConfirmed}
+                  cloudStatus={aiCloudStatus.data ?? null}
                   onGenerate={() => void handleAssistantGenerate()}
                   onPreview={() => void handleAssistantPreview()}
+                  onProviderModeChange={(mode) => {
+                    setAssistantProviderMode(mode);
+                    setCloudOptInConfirmed(false);
+                    setAssistantOutput(null);
+                  }}
                   onSaveToNotes={() => void handleSaveAssistantToNotes()}
+                  onCloudOptInChange={setCloudOptInConfirmed}
                   onTemplateChange={(templateKey) => {
                     setAssistantTemplateKey(templateKey);
                     setAssistantOutput(null);
@@ -666,11 +690,16 @@ function AssistantPanel({
   error,
   output,
   preview,
+  providerMode,
   selectedTemplateKey,
   templates,
+  cloudOptInConfirmed,
+  cloudStatus,
   onGenerate,
   onPreview,
+  onProviderModeChange,
   onSaveToNotes,
+  onCloudOptInChange,
   onTemplateChange,
 }: {
   brief: ResearchBrief;
@@ -678,11 +707,16 @@ function AssistantPanel({
   error: string | null;
   output: AIAssistantGenerateResponse | null;
   preview: AIContextPreviewResponse | null;
+  providerMode: "local" | "cloud";
   selectedTemplateKey: AIPromptTemplateKey;
   templates: AIPromptTemplateDefinition[];
+  cloudOptInConfirmed: boolean;
+  cloudStatus: AICloudStatusResponse | null;
   onGenerate: () => void;
   onPreview: () => void;
+  onProviderModeChange: (mode: "local" | "cloud") => void;
   onSaveToNotes: () => void;
+  onCloudOptInChange: (confirmed: boolean) => void;
   onTemplateChange: (templateKey: AIPromptTemplateKey) => void;
 }) {
   const selectedTemplate = templates.find((item) => item.template_key === selectedTemplateKey);
@@ -690,7 +724,7 @@ function AssistantPanel({
   return (
     <section
       className="research-panel"
-      aria-label={`research-assistant brief=${brief.brief_id} symbol=${brief.symbol} template=${selectedTemplateKey} status=${output?.status ?? "idle"}`}
+      aria-label={`research-assistant brief=${brief.brief_id} symbol=${brief.symbol} provider=${providerMode} template=${selectedTemplateKey} status=${output?.status ?? "idle"}`}
     >
       <div className="card-header">
         <div>
@@ -704,6 +738,45 @@ function AssistantPanel({
       <p className="panel-note">
         Uses the Research brief, data quality, provenance, and notes after redaction. Cloud transmission remains blocked here.
       </p>
+      <div className="assistant-provider-control">
+        <div className="segmented-control" aria-label={`research-assistant-provider brief=${brief.brief_id}`}>
+          {(["local", "cloud"] as const).map((mode) => (
+            <button
+              aria-label={`research-assistant-provider-mode brief=${brief.brief_id} mode=${mode} selected=${String(providerMode === mode)}`}
+              className={providerMode === mode ? "active" : ""}
+              disabled={busy !== null}
+              key={mode}
+              onClick={() => onProviderModeChange(mode)}
+              type="button"
+            >
+              {mode === "local" ? "Local" : "Cloud"}
+            </button>
+          ))}
+        </div>
+        <span className={`mini-pill ${providerMode === "cloud" && cloudStatus?.configured ? "accent" : ""}`}>
+          {providerMode === "cloud" ? cloudStatus?.provider ?? "cloud" : "default"}
+        </span>
+      </div>
+      {providerMode === "cloud" ? (
+        <div className="assistant-cloud-gate" aria-label={`research-assistant-cloud-gate brief=${brief.brief_id}`}>
+          <div className="metric-grid">
+            <MetricCard label="Cloud" value={cloudStatus?.enabled ? "enabled" : "disabled"} />
+            <MetricCard label="Config" value={cloudStatus?.configured ? "ready" : "missing"} />
+            <MetricCard label="Credential" value={cloudStatus?.credential_configured ? "configured" : "missing"} />
+            <MetricCard label="Preview" value={preview ? `${preview.estimated_input_chars} chars` : "required"} />
+          </div>
+          <label className="checkbox-row">
+            <input
+              checked={cloudOptInConfirmed}
+              disabled={busy !== null}
+              onChange={(event) => onCloudOptInChange(event.target.checked)}
+              type="checkbox"
+            />
+            <span>Send only the visible redacted preview to the configured cloud model for this request.</span>
+          </label>
+          {cloudStatus?.message ? <InlineState label={cloudStatus.message} /> : null}
+        </div>
+      ) : null}
       {templates.length ? (
         <div className="assistant-template-control">
           <label className="field">

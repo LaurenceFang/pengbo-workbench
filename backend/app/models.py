@@ -186,6 +186,19 @@ class AIRuntimeStatusResponse(BaseModel):
     evidence_path: str | None = None
 
 
+class AICloudStatusResponse(BaseModel):
+    enabled: bool
+    configured: bool
+    provider: str
+    model: str | None = None
+    base_url_configured: bool
+    credential_configured: bool
+    default_mode: AIProviderMode = "local"
+    requires_context_preview: bool = True
+    requires_explicit_confirmation: bool = True
+    message: str
+
+
 class AIPermissionBoundaryResponse(BaseModel):
     allowed_context: list[str]
     forbidden_context: list[str]
@@ -232,6 +245,9 @@ class AIAssistantGenerateRequest(BaseModel):
 
     template_key: AIPromptTemplateKey = Field(default="research_summary", alias="templateKey")
     include_notes: bool = Field(default=True, alias="includeNotes")
+    provider_mode: AIProviderMode = Field(default="local", alias="providerMode")
+    cloud_opt_in_confirmed: bool = Field(default=False, alias="cloudOptInConfirmed")
+    cloud_context_acknowledged_chars: int | None = Field(default=None, alias="cloudContextAcknowledgedChars")
 
 
 class AIAssistantGenerateResponse(BaseModel):

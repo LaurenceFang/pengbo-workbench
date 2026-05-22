@@ -1697,6 +1697,23 @@ button {
   align-items: stretch;
 }
 
+.assistant-provider-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.assistant-cloud-gate {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.8rem;
+  border: 1px solid rgba(242, 193, 102, 0.2);
+  border-radius: var(--radius-panel);
+  background: rgba(242, 193, 102, 0.055);
+}
+
 .assistant-template-summary {
   display: flex;
   flex-direction: column;
@@ -2670,6 +2687,11 @@ button {
 
   .assistant-template-control {
     grid-template-columns: 1fr;
+  }
+
+  .assistant-provider-control {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .command-feedback-pill,

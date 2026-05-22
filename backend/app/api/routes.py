@@ -81,6 +81,7 @@ from ..models import (
     UpdateScreenerPresetVariantRequest,
     WatchlistUpdateRequest,
     AppPreferences,
+    AICloudStatusResponse,
     AIContextPreviewResponse,
     AIAssistantGenerateRequest,
     AIAssistantGenerateResponse,
@@ -237,6 +238,11 @@ def register_routes(app: FastAPI) -> None:
     def get_ai_permission_boundary(request: Request) -> AIPermissionBoundaryResponse:
         _require_permission(request, "ai:context", surface="ai_assistant")
         return _container(request).research_assistant_service.permission_boundary()
+
+    @app.get("/api/v1/ai/cloud/status", response_model=AICloudStatusResponse)
+    def get_ai_cloud_status(request: Request) -> AICloudStatusResponse:
+        _require_permission(request, "ai:context", surface="ai_assistant")
+        return _container(request).research_assistant_service.cloud_status()
 
     @app.get("/api/v1/research/assistant/templates", response_model=list[AIPromptTemplateDefinition])
     def get_research_assistant_templates(request: Request) -> list[AIPromptTemplateDefinition]:

@@ -16,7 +16,12 @@ from backend.tests.test_research_service import (
 )
 
 
-def make_settings(runtime_root: Path, *, ai_enabled: bool = False) -> RuntimeSettings:
+def make_settings(
+    runtime_root: Path,
+    *,
+    ai_enabled: bool = False,
+    cloud_enabled: bool = False,
+) -> RuntimeSettings:
     return RuntimeSettings(
         host="127.0.0.1",
         port=8765,
@@ -30,6 +35,9 @@ def make_settings(runtime_root: Path, *, ai_enabled: bool = False) -> RuntimeSet
         binance_password=None,
         ai_assistant_enabled=ai_enabled,
         ai_local_model="qwen3:8b",
+        ai_cloud_enabled=cloud_enabled,
+        ai_cloud_provider="deepseek",
+        ai_cloud_model="deepseek-chat",
     )
 
 
@@ -79,9 +87,20 @@ class ResearchAssistantBoundaryTests(unittest.TestCase):
                 )
                 self.assertTrue(all(item["language_rules"] for item in templates.json()))
 
+                cloud = client.get(
+                    "/api/v1/ai/cloud/status",
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                )
+                self.assertEqual(cloud.status_code, 200)
+                cloud_payload = cloud.json()
+                self.assertFalse(cloud_payload["enabled"])
+                self.assertFalse(cloud_payload["configured"])
+                self.assertFalse(cloud_payload["credential_configured"])
+                self.assertTrue(cloud_payload["requires_explicit_confirmation"])
+
                 routes = client.get("/api/v1/security/route-classification").json()
                 ai_routes = [item for item in routes if item["surface"] == "ai_assistant"]
-                self.assertGreaterEqual(len(ai_routes), 3)
+                self.assertGreaterEqual(len(ai_routes), 4)
                 self.assertTrue(any(item["permission"] == "ai:generate" for item in ai_routes))
 
     def test_context_preview_requires_unlock_redacts_notes_and_audits(self) -> None:
@@ -156,6 +175,60 @@ class ResearchAssistantBoundaryTests(unittest.TestCase):
                 event_types = {item["event_type"] for item in audit}
                 self.assertIn("ai_generation_requested", event_types)
                 self.assertIn("ai_generation_blocked", event_types)
+
+    def test_cloud_generation_requires_opt_in_and_current_preview(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
+            app = create_app(make_settings(Path(temp_dir), ai_enabled=True, cloud_enabled=True))
+            with TestClient(app) as client:
+                install_offline_research_fixtures(app)
+                session = client.post("/api/v1/security/session", json={}).json()
+                client.post("/api/v1/security/local/initialize", json={"unlock_secret": "1234"})
+                brief = client.post("/api/v1/research/briefs", json={"symbol": "AAPL"}).json()
+
+                no_confirm = client.post(
+                    f"/api/v1/research/assistant/briefs/{brief['brief_id']}/generate",
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                    json={"providerMode": "cloud", "templateKey": "research_summary"},
+                )
+                self.assertEqual(no_confirm.status_code, 200)
+                no_confirm_payload = no_confirm.json()
+                self.assertEqual(no_confirm_payload["status"], "blocked")
+                self.assertEqual(no_confirm_payload["provider"], "cloud")
+                self.assertIn("cloud_opt_in_required", no_confirm_payload["blocked_reasons"])
+
+                stale_ack = client.post(
+                    f"/api/v1/research/assistant/briefs/{brief['brief_id']}/generate",
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                    json={
+                        "providerMode": "cloud",
+                        "templateKey": "research_summary",
+                        "cloudOptInConfirmed": True,
+                        "cloudContextAcknowledgedChars": 1,
+                    },
+                )
+                self.assertEqual(stale_ack.status_code, 200)
+                stale_payload = stale_ack.json()
+                self.assertEqual(stale_payload["status"], "blocked")
+                self.assertIn("cloud_context_preview_stale", stale_payload["blocked_reasons"])
+
+                preview = client.get(
+                    f"/api/v1/research/assistant/briefs/{brief['brief_id']}/context-preview",
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                ).json()
+                missing_key = client.post(
+                    f"/api/v1/research/assistant/briefs/{brief['brief_id']}/generate",
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                    json={
+                        "providerMode": "cloud",
+                        "templateKey": "research_summary",
+                        "cloudOptInConfirmed": True,
+                        "cloudContextAcknowledgedChars": preview["estimated_input_chars"],
+                    },
+                )
+                self.assertEqual(missing_key.status_code, 200)
+                missing_payload = missing_key.json()
+                self.assertEqual(missing_payload["status"], "blocked")
+                self.assertIn("cloud_credentials_missing", missing_payload["blocked_reasons"])
 
     def test_generate_returns_grounded_local_output_when_enabled(self) -> None:
         with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:

@@ -100,11 +100,15 @@ release channel yet.
   counter-thesis, earnings review, portfolio risk, provider limitation, and
   report rewrite. The Research assistant UI can select templates, and
   regression coverage keeps output inside local evidence boundaries.
+- T83 adds explicit cloud LLM opt-in controls. Cloud mode is disabled by
+  default, status only exposes configured/not-configured flags, Research must
+  select Cloud and acknowledge the current redacted context preview before any
+  request can leave the machine, and Settings/Manual now surface the boundary.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T83 will keep cloud LLM usage explicitly opt-in while local mode remains the
-  default.
+- T84 will package-smoke the AI research disabled/local/cloud/stale/blocked and
+  export flows in the desktop EXE.

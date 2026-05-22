@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import re
 from datetime import UTC, datetime
+from typing import Any
+
+import requests
 
 from ..models import (
+    AICloudStatusResponse,
     AIContextCitation,
     AIContextPreviewResponse,
     AIAssistantGenerateRequest,
@@ -128,6 +132,7 @@ class ResearchAssistantService:
         self.settings = settings
         self.research_service = research_service
         self.security_audit_service = security_audit_service
+        self.session = requests.Session()
 
     def permission_boundary(self) -> AIPermissionBoundaryResponse:
         return AIPermissionBoundaryResponse(
@@ -140,6 +145,27 @@ class ResearchAssistantService:
 
     def list_templates(self) -> list[AIPromptTemplateDefinition]:
         return list(PROMPT_TEMPLATES.values())
+
+    def cloud_status(self) -> AICloudStatusResponse:
+        base_url = self._cloud_base_url()
+        model = self._cloud_model()
+        credential_configured = bool(self.settings.ai_cloud_api_key)
+        configured = self.settings.ai_cloud_enabled and bool(base_url) and credential_configured
+        if not self.settings.ai_cloud_enabled:
+            message = "Cloud AI is disabled. Local mode remains the default."
+        elif configured:
+            message = "Cloud AI is configured, but each request still requires context preview and explicit confirmation."
+        else:
+            message = "Cloud AI is enabled but missing local environment configuration."
+        return AICloudStatusResponse(
+            enabled=self.settings.ai_cloud_enabled,
+            configured=configured,
+            provider=self.settings.ai_cloud_provider or "custom",
+            model=model,
+            base_url_configured=bool(base_url),
+            credential_configured=credential_configured,
+            message=message,
+        )
 
     def context_preview(self, brief_id: str) -> AIContextPreviewResponse:
         brief = self.research_service.get_brief(brief_id)
@@ -185,11 +211,26 @@ class ResearchAssistantService:
             payload={
                 "brief_id": brief_id,
                 "template_key": payload.template_key,
-                "provider": "local" if self.settings.ai_assistant_enabled else "disabled",
+                "provider": payload.provider_mode,
                 "include_notes": payload.include_notes,
+                "cloud_opt_in_confirmed": payload.cloud_opt_in_confirmed,
             },
             surface="ai_assistant",
         )
+        if payload.provider_mode == "cloud":
+            return self._generate_cloud(brief_id, payload, preview, requested.event_id)
+        if payload.provider_mode == "disabled":
+            return self._blocked_response(
+                brief_id=brief_id,
+                payload=payload,
+                preview=preview,
+                requested_event_id=requested.event_id,
+                provider="disabled",
+                model=None,
+                summary="AI assistant generation is disabled for this request.",
+                reasons=["provider_mode_disabled"],
+                limitations=["The request selected the disabled provider mode."],
+            )
         if not self.settings.ai_assistant_enabled:
             blocked = self.security_audit_service.record(
                 category="ai_assistant",
@@ -254,6 +295,174 @@ class ResearchAssistantService:
             citations=preview.citations,
             audit_event_ids=[preview.audited_event_id or "", requested.event_id, completed.event_id],
             output_markdown=markdown,
+        )
+
+    def _generate_cloud(
+        self,
+        brief_id: str,
+        payload: AIAssistantGenerateRequest,
+        preview: AIContextPreviewResponse,
+        requested_event_id: str,
+    ) -> AIAssistantGenerateResponse:
+        if not payload.cloud_opt_in_confirmed:
+            return self._blocked_response(
+                brief_id=brief_id,
+                payload=payload,
+                preview=preview,
+                requested_event_id=requested_event_id,
+                provider="cloud",
+                model=self._cloud_model(),
+                summary="Cloud AI requires an explicit opt-in confirmation for this request.",
+                reasons=["cloud_opt_in_required"],
+                limitations=["No cloud request was sent."],
+            )
+        if payload.cloud_context_acknowledged_chars != preview.estimated_input_chars:
+            return self._blocked_response(
+                brief_id=brief_id,
+                payload=payload,
+                preview=preview,
+                requested_event_id=requested_event_id,
+                provider="cloud",
+                model=self._cloud_model(),
+                summary="Cloud AI requires the current context preview to be acknowledged before submission.",
+                reasons=["cloud_context_preview_stale"],
+                limitations=["No cloud request was sent because the acknowledged context preview did not match."],
+            )
+        if not self.settings.ai_cloud_enabled:
+            return self._blocked_response(
+                brief_id=brief_id,
+                payload=payload,
+                preview=preview,
+                requested_event_id=requested_event_id,
+                provider="cloud",
+                model=self._cloud_model(),
+                summary="Cloud AI is disabled. Local mode remains the default.",
+                reasons=["cloud_disabled"],
+                limitations=["Set local cloud AI configuration before using this mode."],
+            )
+        if not self.settings.ai_assistant_enabled:
+            return self._blocked_response(
+                brief_id=brief_id,
+                payload=payload,
+                preview=preview,
+                requested_event_id=requested_event_id,
+                provider="cloud",
+                model=self._cloud_model(),
+                summary="AI assistant generation is disabled until the user explicitly enables AI.",
+                reasons=["ai_disabled"],
+                limitations=["No cloud request was sent."],
+            )
+        if not self.settings.ai_cloud_api_key:
+            return self._blocked_response(
+                brief_id=brief_id,
+                payload=payload,
+                preview=preview,
+                requested_event_id=requested_event_id,
+                provider="cloud",
+                model=self._cloud_model(),
+                summary="Cloud AI is enabled but missing a local API key.",
+                reasons=["cloud_credentials_missing"],
+                limitations=["No cloud request was sent because credential configuration is missing."],
+            )
+        if not self._cloud_base_url():
+            return self._blocked_response(
+                brief_id=brief_id,
+                payload=payload,
+                preview=preview,
+                requested_event_id=requested_event_id,
+                provider="cloud",
+                model=self._cloud_model(),
+                summary="Cloud AI is enabled but missing a base URL.",
+                reasons=["cloud_base_url_missing"],
+                limitations=["No cloud request was sent because endpoint configuration is missing."],
+            )
+
+        try:
+            markdown = self._call_cloud_model(payload, preview)
+        except (requests.RequestException, ValueError) as exc:
+            return self._blocked_response(
+                brief_id=brief_id,
+                payload=payload,
+                preview=preview,
+                requested_event_id=requested_event_id,
+                provider="cloud",
+                model=self._cloud_model(),
+                summary="Cloud AI request failed without saving or exporting generated text.",
+                reasons=["cloud_request_failed"],
+                limitations=[self._redact_text(str(exc))[:240]],
+            )
+
+        completed = self.security_audit_service.record(
+            category="ai_assistant",
+            event_type="ai_generation_completed",
+            subject=brief_id,
+            summary="AI research assistant generated a cloud draft after explicit opt-in.",
+            payload={
+                "brief_id": brief_id,
+                "template_key": payload.template_key,
+                "citation_count": len(preview.citations),
+                "output_chars": len(markdown),
+                "provider": "cloud",
+                "cloud_provider": self.settings.ai_cloud_provider,
+            },
+            surface="ai_assistant",
+        )
+        return AIAssistantGenerateResponse(
+            status="completed",
+            template_key=payload.template_key,
+            provider="cloud",
+            model=self._cloud_model(),
+            generated_at=_utc_now_iso(),
+            summary="Cloud draft generated after explicit local confirmation; review against cited evidence before saving.",
+            questions=["Which cited local evidence should be checked before this draft is reused?"],
+            risks=["Cloud text may rephrase context incorrectly; local evidence remains authoritative."],
+            limitations=[
+                "Only the redacted context preview was sent.",
+                "No credentials, sessions, execution payloads, or raw logs were included.",
+            ],
+            citations=preview.citations,
+            audit_event_ids=[preview.audited_event_id or "", requested_event_id, completed.event_id],
+            output_markdown=markdown,
+        )
+
+    def _blocked_response(
+        self,
+        *,
+        brief_id: str,
+        payload: AIAssistantGenerateRequest,
+        preview: AIContextPreviewResponse,
+        requested_event_id: str,
+        provider: str,
+        model: str | None,
+        summary: str,
+        reasons: list[str],
+        limitations: list[str],
+    ) -> AIAssistantGenerateResponse:
+        blocked = self.security_audit_service.record(
+            category="ai_assistant",
+            event_type="ai_generation_blocked",
+            subject=brief_id,
+            summary=summary,
+            payload={
+                "brief_id": brief_id,
+                "template_key": payload.template_key,
+                "provider": provider,
+                "reasons": reasons,
+            },
+            surface="ai_assistant",
+        )
+        return AIAssistantGenerateResponse(
+            status="blocked",
+            template_key=payload.template_key,
+            provider=provider,
+            model=model,
+            generated_at=_utc_now_iso(),
+            summary=summary,
+            limitations=limitations,
+            citations=preview.citations,
+            blocked_reasons=reasons,
+            audit_event_ids=[preview.audited_event_id or "", requested_event_id, blocked.event_id],
+            output_markdown=summary,
         )
 
     def _citations(self, brief: ResearchBrief) -> list[AIContextCitation]:
@@ -324,6 +533,68 @@ class ResearchAssistantService:
         for pattern in SECRET_PATTERNS:
             redacted = pattern.sub("[redacted]", redacted)
         return redacted
+
+    def _cloud_base_url(self) -> str | None:
+        configured = (self.settings.ai_cloud_base_url or "").strip().rstrip("/")
+        if configured:
+            return configured
+        if (self.settings.ai_cloud_provider or "").lower() == "deepseek":
+            return "https://api.deepseek.com/v1"
+        return None
+
+    def _cloud_model(self) -> str | None:
+        configured = (self.settings.ai_cloud_model or "").strip()
+        if configured:
+            return configured
+        if (self.settings.ai_cloud_provider or "").lower() == "deepseek":
+            return "deepseek-chat"
+        return None
+
+    def _call_cloud_model(self, payload: AIAssistantGenerateRequest, preview: AIContextPreviewResponse) -> str:
+        base_url = self._cloud_base_url()
+        model = self._cloud_model()
+        if not base_url or not model or not self.settings.ai_cloud_api_key:
+            raise ValueError("Cloud AI is missing endpoint, model, or API key configuration.")
+        template = PROMPT_TEMPLATES[payload.template_key]
+        response = self.session.post(
+            base_url + "/chat/completions",
+            headers={"Authorization": f"Bearer {self.settings.ai_cloud_api_key}"},
+            json={
+                "model": model,
+                "temperature": 0.1,
+                "max_tokens": 900,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are the Pengbo local research assistant. Use only the provided redacted context. "
+                            "Do not add price targets, earnings dates, recommendations, credential requests, or execution actions."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Template: {template.title}\n"
+                            f"Purpose: {template.purpose}\n"
+                            f"Language rules: {'; '.join(template.language_rules)}\n"
+                            "Redacted context explicitly approved to leave the machine:\n"
+                            f"{preview.prompt_context_preview}\n\n"
+                            "Return concise Markdown with Summary, Questions, Risks, Limitations, and Citations sections."
+                        ),
+                    },
+                ],
+            },
+            timeout=self.settings.ai_cloud_timeout_seconds,
+        )
+        response.raise_for_status()
+        data: Any = response.json()
+        try:
+            content = data["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise ValueError("Cloud AI response did not include a chat completion message.") from exc
+        if not isinstance(content, str) or not content.strip():
+            raise ValueError("Cloud AI response was empty.")
+        return content.strip()
 
     def _grounded_summary(self, brief: ResearchBrief, template_key: AIPromptTemplateKey) -> str:
         review = brief.decision_review

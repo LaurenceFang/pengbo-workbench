@@ -5,6 +5,7 @@ import { useAsyncResource } from "../hooks/use-async-resource";
 import { useI18n } from "../i18n";
 import {
   api,
+  type AICloudStatusResponse,
   type AppPreferences,
   type DiagnosticsExportResult,
   type LocalSecurityStatus,
@@ -54,6 +55,7 @@ export function SettingsView({
   const setLanguage = useAppStore((state) => state.setLanguage);
   const setDensity = useAppStore((state) => state.setDensity);
   const runtimeInfo = useAsyncResource<SettingsRuntimeResponse>(async () => api.getSettingsRuntime(), []);
+  const aiCloud = useAsyncResource<AICloudStatusResponse>(async () => api.getAICloudStatus(), []);
   const preferences = useAsyncResource<AppPreferences>(async () => api.getSettingsPreferences(), []);
   const onboarding = useAsyncResource(async () => api.getOnboardingState(), []);
   const localSecurity = useAsyncResource<LocalSecurityStatus>(async () => api.getLocalSecurityStatus(), []);
@@ -193,6 +195,29 @@ export function SettingsView({
           <SettingRow label={i18n.t("settings.bootstrapLog")} value={runtimeInfo.data?.sidecar_bootstrap_path ?? appRuntime?.bootstrapLogPath ?? "--"} helper={i18n.t("settings.bootstrapLogHelper")} />
           <SettingRow label={i18n.t("settings.buildSummary")} value={runtimeInfo.data?.build_summary_path ?? appRuntime?.buildSummaryPath ?? "--"} helper={i18n.t("settings.buildSummaryHelper")} />
         </div>
+      </section>
+
+      <section className="card" aria-label="settings-ai-cloud-boundary">
+        <div className="card-header">
+          <div>
+            <p className="eyebrow">AI assistant</p>
+            <h3>Local default and cloud opt-in</h3>
+          </div>
+          <button className="ghost-button" type="button" onClick={aiCloud.reload}>
+            <RefreshCcw size={16} />
+            Refresh
+          </button>
+        </div>
+        {aiCloud.loading && !aiCloud.data ? <InlineState label="Loading AI cloud boundary..." /> : null}
+        {aiCloud.error ? <InlineState label={aiCloud.error} actionLabel="Retry" onAction={aiCloud.reload} /> : null}
+        {aiCloud.data ? (
+          <div className="setting-list">
+            <SettingRow label="Cloud AI" value={aiCloud.data.enabled ? "enabled" : "disabled"} helper="Local mode remains the default unless a Research request selects Cloud." />
+            <SettingRow label="Provider" value={aiCloud.data.provider} helper={aiCloud.data.model ?? "No cloud model selected."} />
+            <SettingRow label="Credential" value={aiCloud.data.credential_configured ? "configured" : "missing"} helper="API keys are read from local environment configuration and are never returned by this status endpoint." />
+            <SettingRow label="Confirmation" value={aiCloud.data.requires_explicit_confirmation ? "required" : "not required"} helper={aiCloud.data.message} />
+          </div>
+        ) : null}
       </section>
 
       <section className="card">

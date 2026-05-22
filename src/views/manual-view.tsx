@@ -43,6 +43,18 @@ const SECTIONS = [
     ],
   },
   {
+    key: "ai",
+    label: "AI 助手",
+    title: "本地优先、证据约束和云端显式确认",
+    items: [
+      "研究页 AI 助手默认不生成；需要先预览将进入上下文的研究证据、数据质量、引用和已脱敏笔记。",
+      "本地模式是默认模式，生成内容只能引用当前 Research brief、结构化证据、provenance 和 data-quality 边界。",
+      "云端模式必须在单次请求中选择 Cloud，并勾选只发送可见脱敏预览；未确认、预览过期或缺少本机 API key 时会 blocked。",
+      "AI 不读取 Stronghold、API key、session token、原始日志、执行提交 payload 或 kill-switch 修改请求。",
+      "生成文本保存进 notes 或导出前仍是用户动作；审计只记录 provider、模板、引用数量和 blocked 原因，不记录密钥。",
+    ],
+  },
+  {
     key: "screeners",
     label: "筛选",
     title: "预设筛选器与变体调参",

@@ -118,6 +118,14 @@ ROUTE_PERMISSION_MAP: list[RoutePermissionClassification] = [
         notes="Prompt templates describe local evidence rules and do not contain user research context.",
     ),
     RoutePermissionClassification(
+        method="GET",
+        path="/api/v1/ai/cloud/status",
+        surface="ai_assistant",
+        exposure="desktop_local",
+        permission="ai:context",
+        notes="Cloud AI status exposes only configured/not-configured flags and never returns API keys.",
+    ),
+    RoutePermissionClassification(
         method="POST",
         path="/api/v1/research/assistant/briefs/{brief_id}/generate",
         surface="ai_assistant",

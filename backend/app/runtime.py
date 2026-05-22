@@ -41,6 +41,12 @@ class RuntimeSettings:
     ai_local_base_url: str = "http://127.0.0.1:11434"
     ai_local_model: str | None = None
     ai_probe_timeout_seconds: float = 2.0
+    ai_cloud_enabled: bool = False
+    ai_cloud_provider: str = "deepseek"
+    ai_cloud_base_url: str | None = None
+    ai_cloud_model: str | None = None
+    ai_cloud_api_key: str | None = None
+    ai_cloud_timeout_seconds: float = 20.0
 
     @property
     def sqlite_path(self) -> Path:
@@ -120,4 +126,10 @@ class RuntimeSettings:
             ai_local_base_url=os.getenv("PENGBO_AI_LOCAL_BASE_URL", "http://127.0.0.1:11434"),
             ai_local_model=os.getenv("PENGBO_AI_LOCAL_MODEL"),
             ai_probe_timeout_seconds=float(os.getenv("PENGBO_AI_PROBE_TIMEOUT_SECONDS", "2.0")),
+            ai_cloud_enabled=os.getenv("PENGBO_AI_CLOUD_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"},
+            ai_cloud_provider=os.getenv("PENGBO_AI_CLOUD_PROVIDER", "deepseek"),
+            ai_cloud_base_url=os.getenv("PENGBO_AI_CLOUD_BASE_URL"),
+            ai_cloud_model=os.getenv("PENGBO_AI_CLOUD_MODEL"),
+            ai_cloud_api_key=os.getenv("PENGBO_AI_CLOUD_API_KEY"),
+            ai_cloud_timeout_seconds=float(os.getenv("PENGBO_AI_CLOUD_TIMEOUT_SECONDS", "20.0")),
         )

@@ -1405,6 +1405,26 @@ export type AIPromptTemplateDefinition = {
   language_rules: string[];
 };
 
+export type AICloudStatusResponse = {
+  enabled: boolean;
+  configured: boolean;
+  provider: string;
+  model: string | null;
+  base_url_configured: boolean;
+  credential_configured: boolean;
+  default_mode: "disabled" | "local" | "cloud";
+  requires_context_preview: boolean;
+  requires_explicit_confirmation: boolean;
+  message: string;
+};
+
+export type AIAssistantGenerateOptions = {
+  templateKey?: AIPromptTemplateKey;
+  providerMode?: "local" | "cloud";
+  cloudOptInConfirmed?: boolean;
+  cloudContextAcknowledgedChars?: number;
+};
+
 export type TranslationStatusResponse = {
   enabled: boolean;
   provider: string;
@@ -1648,15 +1668,16 @@ export const api = {
   refreshResearchBrief: (briefId: string) =>
     jsonRequest<ResearchBrief>(`/research/briefs/${encodeURIComponent(briefId)}/refresh`, "POST"),
   getResearchAssistantTemplates: () => apiFetch<AIPromptTemplateDefinition[]>("/research/assistant/templates"),
+  getAICloudStatus: () => apiFetch<AICloudStatusResponse>("/ai/cloud/status"),
   getResearchAssistantContextPreview: (briefId: string) =>
     apiFetch<AIContextPreviewResponse>(
       `/research/assistant/briefs/${encodeURIComponent(briefId)}/context-preview`,
     ),
-  generateResearchAssistantResponse: (briefId: string, templateKey: AIPromptTemplateKey = "research_summary") =>
+  generateResearchAssistantResponse: (briefId: string, options: AIAssistantGenerateOptions = {}) =>
     jsonRequest<AIAssistantGenerateResponse>(
       `/research/assistant/briefs/${encodeURIComponent(briefId)}/generate`,
       "POST",
-      { templateKey },
+      { templateKey: options.templateKey ?? "research_summary", ...options },
     ),
   getResearchEvidence: (
     symbol: string,
