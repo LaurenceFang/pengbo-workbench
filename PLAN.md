@@ -79,7 +79,8 @@ The active product-trust sequence is:
 - T78: local LLM runtime probe. Completed.
 - T79: AI permission boundary. Completed.
 - T80: research assistant backend. Completed.
-- T81+: research assistant UI, China-market connectors, and broader
+- T81: research assistant UI. Completed.
+- T82+: evidence-grounded prompt layer, China-market connectors, and broader
   public-trust work.
 
 The current research-flow map is tracked in

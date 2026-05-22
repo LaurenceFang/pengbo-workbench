@@ -92,11 +92,14 @@ release channel yet.
   returns an audited blocked response, while enabled local mode produces
   grounded summaries, questions, risks, limitations, citations, and Markdown
   from existing Research evidence.
+- T81 embeds the assistant into the Research workflow with explicit context
+  preview and generation controls, visible citations/limitations/blocked
+  states, and a save-to-notes handoff without creating a separate chatbot
+  workspace.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T81 will expose the assistant inside the Research workflow without hiding
-  provenance.
+- T82 will harden prompt templates and hallucination-prone regression fixtures.

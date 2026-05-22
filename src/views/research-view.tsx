@@ -16,6 +16,8 @@ import {
   api,
   type AssetSearchResult,
   type ResearchBrief,
+  type AIAssistantGenerateResponse,
+  type AIContextPreviewResponse,
   type ResearchBriefEvidenceItem,
   type ResearchBriefListItem,
   type ResearchEvidenceContext,
@@ -62,12 +64,19 @@ export function ResearchView({
   const [exportBusy, setExportBusy] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [assistantPreview, setAssistantPreview] = useState<AIContextPreviewResponse | null>(null);
+  const [assistantOutput, setAssistantOutput] = useState<AIAssistantGenerateResponse | null>(null);
+  const [assistantBusy, setAssistantBusy] = useState<"preview" | "generate" | "notes" | null>(null);
+  const [assistantError, setAssistantError] = useState<string | null>(null);
   const [briefPanel, setBriefPanel] = useState<BriefPanelKey>("summary");
   const autoOpeningRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (brief.data) {
       setNotesDraft(brief.data.notes.markdown);
+      setAssistantPreview(null);
+      setAssistantOutput(null);
+      setAssistantError(null);
     }
   }, [brief.data?.brief_id, brief.data?.notes.markdown]);
 
@@ -238,6 +247,61 @@ export function ResearchView({
       setActionError(error instanceof Error ? error.message : "Failed to export research brief");
     } finally {
       setExportBusy(false);
+    }
+  }
+
+  async function handleAssistantPreview() {
+    if (!brief.data) {
+      return;
+    }
+    setAssistantBusy("preview");
+    setAssistantError(null);
+    try {
+      const preview = await api.getResearchAssistantContextPreview(brief.data.brief_id);
+      setAssistantPreview(preview);
+    } catch (error) {
+      setAssistantError(error instanceof Error ? error.message : "Failed to preview assistant context");
+    } finally {
+      setAssistantBusy(null);
+    }
+  }
+
+  async function handleAssistantGenerate() {
+    if (!brief.data) {
+      return;
+    }
+    setAssistantBusy("generate");
+    setAssistantError(null);
+    try {
+      if (!assistantPreview) {
+        const preview = await api.getResearchAssistantContextPreview(brief.data.brief_id);
+        setAssistantPreview(preview);
+      }
+      const result = await api.generateResearchAssistantResponse(brief.data.brief_id);
+      setAssistantOutput(result);
+    } catch (error) {
+      setAssistantError(error instanceof Error ? error.message : "Failed to generate assistant draft");
+    } finally {
+      setAssistantBusy(null);
+    }
+  }
+
+  async function handleSaveAssistantToNotes() {
+    if (!brief.data || !assistantOutput || assistantOutput.status !== "completed") {
+      return;
+    }
+    setAssistantBusy("notes");
+    setAssistantError(null);
+    try {
+      const nextNotes = [notesDraft.trim(), assistantOutput.output_markdown.trim()].filter(Boolean).join("\n\n");
+      await api.updateResearchBriefNotes(brief.data.brief_id, nextNotes);
+      setNotesDraft(nextNotes);
+      setActionMessage("Assistant draft saved to research notes.");
+      await reloadResearch();
+    } catch (error) {
+      setAssistantError(error instanceof Error ? error.message : "Failed to save assistant draft");
+    } finally {
+      setAssistantBusy(null);
     }
   }
 
@@ -497,76 +561,210 @@ export function ResearchView({
 
           <div className="research-column">
             {activeBrief ? (
-              <section className="research-panel">
-                <div className="card-header">
-                  <div>
-                    <p className="eyebrow">Actions</p>
-                    <h3>Notes, watchlist, portfolio handoff, export</h3>
+              <>
+                <AssistantPanel
+                  brief={activeBrief}
+                  busy={assistantBusy}
+                  error={assistantError}
+                  output={assistantOutput}
+                  preview={assistantPreview}
+                  onGenerate={() => void handleAssistantGenerate()}
+                  onPreview={() => void handleAssistantPreview()}
+                  onSaveToNotes={() => void handleSaveAssistantToNotes()}
+                />
+                <section className="research-panel">
+                  <div className="card-header">
+                    <div>
+                      <p className="eyebrow">Actions</p>
+                      <h3>Notes, watchlist, portfolio handoff, export</h3>
+                    </div>
                   </div>
-                </div>
-                <div className="form-grid">
-                  <label className="field">
-                    <span>Notes</span>
-                    <textarea
-                      aria-label={`research-notes brief=${activeBrief.brief_id}`}
-                      rows={12}
-                      value={notesDraft}
-                      onChange={(event) => setNotesDraft(event.target.value)}
-                    />
-                  </label>
-                </div>
-                <div className="form-actions">
-                  <button
-                    aria-label={`research-save-notes brief=${activeBrief.brief_id}`}
-                    className="primary-button"
-                    disabled={notesBusy}
-                    onClick={() => void handleSaveNotes()}
-                    type="button"
-                  >
-                    {notesBusy ? "Saving..." : "Save notes"}
-                  </button>
-                  <button
-                    aria-label={`research-watchlist symbol=${activeBrief.symbol}`}
-                    className="ghost-button"
-                    disabled={watchlistBusy}
-                    onClick={() => void handleAddToWatchlist()}
-                    type="button"
-                  >
-                    <FolderPlus size={16} />
-                    {watchlistBusy ? "Adding..." : "Add to watchlist"}
-                  </button>
-                  <button
-                    aria-label={`research-handoff symbol=${activeBrief.symbol}`}
-                    className="ghost-button"
-                    onClick={handlePortfolioHandoff}
-                    type="button"
-                  >
-                    Open portfolio handoff
-                  </button>
-                  <button
-                    aria-label={`research-export brief=${activeBrief.brief_id} symbol=${activeBrief.symbol} fundamentals=${activeBrief.asset_snapshot.capabilities.fundamentals_status} filings=${activeBrief.asset_snapshot.capabilities.filings_status}`}
-                    className="ghost-button"
-                    disabled={exportBusy}
-                    onClick={() => void handleExport()}
-                    type="button"
-                  >
-                    <Download size={16} />
-                    {exportBusy ? "Exporting..." : "Export Markdown"}
-                  </button>
-                </div>
-                {activeBrief.export_info.last_export_path ? (
-                  <p aria-label={`research-export-path brief=${activeBrief.brief_id}`} className="panel-note">
-                    Last export: {activeBrief.export_info.last_export_path}
-                  </p>
-                ) : null}
-                {actionMessage ? <InlineState label={actionMessage} /> : null}
-                {actionError ? <InlineState label={actionError} /> : null}
-              </section>
+                  <div className="form-grid">
+                    <label className="field">
+                      <span>Notes</span>
+                      <textarea
+                        aria-label={`research-notes brief=${activeBrief.brief_id}`}
+                        rows={12}
+                        value={notesDraft}
+                        onChange={(event) => setNotesDraft(event.target.value)}
+                      />
+                    </label>
+                  </div>
+                  <div className="form-actions">
+                    <button
+                      aria-label={`research-save-notes brief=${activeBrief.brief_id}`}
+                      className="primary-button"
+                      disabled={notesBusy}
+                      onClick={() => void handleSaveNotes()}
+                      type="button"
+                    >
+                      {notesBusy ? "Saving..." : "Save notes"}
+                    </button>
+                    <button
+                      aria-label={`research-watchlist symbol=${activeBrief.symbol}`}
+                      className="ghost-button"
+                      disabled={watchlistBusy}
+                      onClick={() => void handleAddToWatchlist()}
+                      type="button"
+                    >
+                      <FolderPlus size={16} />
+                      {watchlistBusy ? "Adding..." : "Add to watchlist"}
+                    </button>
+                    <button
+                      aria-label={`research-handoff symbol=${activeBrief.symbol}`}
+                      className="ghost-button"
+                      onClick={handlePortfolioHandoff}
+                      type="button"
+                    >
+                      Open portfolio handoff
+                    </button>
+                    <button
+                      aria-label={`research-export brief=${activeBrief.brief_id} symbol=${activeBrief.symbol} fundamentals=${activeBrief.asset_snapshot.capabilities.fundamentals_status} filings=${activeBrief.asset_snapshot.capabilities.filings_status}`}
+                      className="ghost-button"
+                      disabled={exportBusy}
+                      onClick={() => void handleExport()}
+                      type="button"
+                    >
+                      <Download size={16} />
+                      {exportBusy ? "Exporting..." : "Export Markdown"}
+                    </button>
+                  </div>
+                  {activeBrief.export_info.last_export_path ? (
+                    <p aria-label={`research-export-path brief=${activeBrief.brief_id}`} className="panel-note">
+                      Last export: {activeBrief.export_info.last_export_path}
+                    </p>
+                  ) : null}
+                  {actionMessage ? <InlineState label={actionMessage} /> : null}
+                  {actionError ? <InlineState label={actionError} /> : null}
+                </section>
+              </>
             ) : null}
           </div>
         </div>
       </section>
     </div>
+  );
+}
+
+function AssistantPanel({
+  brief,
+  busy,
+  error,
+  output,
+  preview,
+  onGenerate,
+  onPreview,
+  onSaveToNotes,
+}: {
+  brief: ResearchBrief;
+  busy: "preview" | "generate" | "notes" | null;
+  error: string | null;
+  output: AIAssistantGenerateResponse | null;
+  preview: AIContextPreviewResponse | null;
+  onGenerate: () => void;
+  onPreview: () => void;
+  onSaveToNotes: () => void;
+}) {
+  return (
+    <section
+      className="research-panel"
+      aria-label={`research-assistant brief=${brief.brief_id} symbol=${brief.symbol} status=${output?.status ?? "idle"}`}
+    >
+      <div className="card-header">
+        <div>
+          <p className="eyebrow">Assistant</p>
+          <h3>Evidence-grounded local research draft</h3>
+        </div>
+        <span className={`mini-pill ${output?.status === "completed" ? "accent" : ""}`}>
+          {output?.provider ?? "local"}
+        </span>
+      </div>
+      <p className="panel-note">
+        Uses the Research brief, data quality, provenance, and notes after redaction. Cloud transmission remains blocked here.
+      </p>
+      <div className="form-actions">
+        <button
+          aria-label={`research-assistant-preview brief=${brief.brief_id}`}
+          className="ghost-button"
+          disabled={busy !== null}
+          onClick={onPreview}
+          type="button"
+        >
+          {busy === "preview" ? "Previewing..." : "Preview context"}
+        </button>
+        <button
+          aria-label={`research-assistant-generate brief=${brief.brief_id}`}
+          className="primary-button"
+          disabled={busy !== null}
+          onClick={onGenerate}
+          type="button"
+        >
+          {busy === "generate" ? "Generating..." : "Generate draft"}
+        </button>
+      </div>
+      {error ? <InlineState label={error} /> : null}
+      {preview ? (
+        <div className="assistant-preview" aria-label={`research-assistant-context brief=${brief.brief_id}`}>
+          <div className="metric-grid">
+            <MetricCard label="Context chars" value={String(preview.estimated_input_chars)} />
+            <MetricCard label="Citations" value={String(preview.citations.length)} />
+            <MetricCard label="Quality" value={preview.data_quality ?? "unknown"} />
+            <MetricCard label="Cloud" value={preview.cloud_transmission_allowed ? "allowed" : "blocked"} />
+          </div>
+          <p className="research-copy">{preview.prompt_context_preview}</p>
+          <div className="task-list">
+            {preview.blocked_sections.map((item) => (
+              <InlineState label={`Blocked: ${item}`} key={item} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {output ? (
+        <div className="assistant-output" aria-label={`research-assistant-output brief=${brief.brief_id} status=${output.status}`}>
+          <div className="variant-card-head">
+            <strong>{output.status === "completed" ? "Grounded draft" : "Generation blocked"}</strong>
+            <span className="mini-pill">{output.grounded ? "grounded" : "review"}</span>
+          </div>
+          <p>{output.summary}</p>
+          {output.blocked_reasons.length ? (
+            <div className="task-list">
+              {output.blocked_reasons.map((item) => (
+                <InlineState label={`Blocked: ${item}`} key={item} />
+              ))}
+            </div>
+          ) : null}
+          {output.status === "completed" ? (
+            <>
+              <DecisionList title="Questions" items={output.questions} />
+              <DecisionList title="Risks" items={output.risks} />
+              <DecisionList title="Limitations" items={output.limitations} />
+              <div className="table-list">
+                {output.citations.slice(0, 5).map((item) => (
+                  <div className="table-row" key={`${item.source_type}-${item.source_id}-${item.label}`}>
+                    <div className="table-main">
+                      <strong>{item.label}</strong>
+                      <span>{item.summary}</span>
+                    </div>
+                    <div className="table-meta">
+                      <span>{item.status}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                aria-label={`research-assistant-save-notes brief=${brief.brief_id}`}
+                className="ghost-button"
+                disabled={busy !== null}
+                onClick={onSaveToNotes}
+                type="button"
+              >
+                {busy === "notes" ? "Saving..." : "Save draft to notes"}
+              </button>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
   );
 }
 

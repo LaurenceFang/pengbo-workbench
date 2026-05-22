@@ -1347,6 +1347,47 @@ export type ResearchBriefExportResponse = {
   export_path: string;
 };
 
+export type AIContextCitation = {
+  source_type: string;
+  source_id: string;
+  label: string;
+  status: string;
+  summary: string;
+};
+
+export type AIContextPreviewResponse = {
+  brief_id: string;
+  symbol: string;
+  title: string;
+  allowed_sections: string[];
+  redacted_sections: string[];
+  blocked_sections: string[];
+  citations: AIContextCitation[];
+  data_quality: DataQualityLevel | null;
+  stale: boolean;
+  prompt_context_preview: string;
+  estimated_input_chars: number;
+  cloud_transmission_allowed: boolean;
+  audited_event_id: string | null;
+};
+
+export type AIAssistantGenerateResponse = {
+  status: "completed" | "blocked";
+  template_key: "research_summary";
+  provider: "disabled" | "local" | "cloud";
+  model: string | null;
+  generated_at: string;
+  summary: string;
+  questions: string[];
+  risks: string[];
+  limitations: string[];
+  citations: AIContextCitation[];
+  grounded: boolean;
+  blocked_reasons: string[];
+  audit_event_ids: string[];
+  output_markdown: string;
+};
+
 export type TranslationStatusResponse = {
   enabled: boolean;
   provider: string;
@@ -1375,6 +1416,8 @@ export type LocalAuthSession = {
     | "execution:manage"
     | "account:read"
     | "reports:export"
+    | "ai:context"
+    | "ai:generate"
   >;
   status: "active" | "expired" | "revoked";
 };
@@ -1587,6 +1630,16 @@ export const api = {
     apiFetch<ResearchBrief>(`/research/briefs/${encodeURIComponent(briefId)}`),
   refreshResearchBrief: (briefId: string) =>
     jsonRequest<ResearchBrief>(`/research/briefs/${encodeURIComponent(briefId)}/refresh`, "POST"),
+  getResearchAssistantContextPreview: (briefId: string) =>
+    apiFetch<AIContextPreviewResponse>(
+      `/research/assistant/briefs/${encodeURIComponent(briefId)}/context-preview`,
+    ),
+  generateResearchAssistantResponse: (briefId: string) =>
+    jsonRequest<AIAssistantGenerateResponse>(
+      `/research/assistant/briefs/${encodeURIComponent(briefId)}/generate`,
+      "POST",
+      { templateKey: "research_summary" },
+    ),
   getResearchEvidence: (
     symbol: string,
     params?: {

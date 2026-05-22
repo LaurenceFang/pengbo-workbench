@@ -75,6 +75,7 @@ Updated: 2026-05-21
 - `T78 - Local LLM Runtime Probe` is now implemented and validated, with default-off AI runtime settings, additive `/api/v1/ai/runtime/status` and `/api/v1/ai/runtime/probe` endpoints, short-timeout Ollama probing, and source-safe evidence recorded in `logs/ai-local-runtime-probe-latest.json`.
 - `T79 - AI Permission Boundary` is now implemented and validated, with an additive AI permission map, route classifications, local-unlock-gated Research context previews, redacted note handling, and `ai_assistant` audit events before any assistant UI ships.
 - `T80 - Research Assistant Backend` is now implemented and validated, with an additive local-only Research assistant generation endpoint that returns grounded summaries, questions, risks, limitations, citations, blocked states, and redacted audit evidence from structured Research evidence.
+- `T81 - Research Assistant UI` is now implemented and build-validated, with the assistant embedded inside the Research workflow, explicit context preview/generation actions, visible citations/limitations/blocked states, and save-to-notes handoff without adding a separate chatbot workspace.
 - `T57` through `T94` are added as the post-security product-trust roadmap and must not supersede the `T53 -> T54 -> T55 -> T56` security sequence.
 - Refined the post-T37 roadmap around the user's actual priorities: desktop UI redesign first, Chinese/English language switching, automated workflow execution, and broader data-source coverage.
 - Re-reviewed the locally downloaded `E:\Fincept Terminal` repo on 2026-05-11 as a direct product benchmark. After excluding bundled runtimes, Qt libraries, installer payloads, and downloaded artifacts, Fincept still has roughly `4,584` effective project files and about `4,456` source/documentation files; Pengbo currently has roughly `161` project files and about `94` source/script/documentation files after excluding generated/runtime folders. The key gap is not build size, but visible terminal product breadth: more first-class workspaces, workflow/node automation, data-source center, and screen-level product depth.
@@ -1755,7 +1756,7 @@ Completion evidence:
 ### T81 - Research Assistant UI
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-11-13 to 2026-11-20
 Depends on: T80
 
@@ -1768,6 +1769,13 @@ Task:
 Done when:
 
 - The assistant improves research workflow without hiding provenance.
+
+Completion evidence:
+
+- Added Research-page assistant controls for redacted context preview, grounded draft generation, citations, limitations, blocked states, and save-to-notes.
+- The assistant stays inside the existing Research workflow and uses stable ASCII automation anchors such as `research-assistant-preview`, `research-assistant-generate`, and `research-assistant-output`.
+- Existing notes, watchlist, portfolio handoff, and Markdown export actions remain available beside the assistant.
+- Validation passed: `npm run typecheck` and `npm run build`.
 
 ### T82 - Evidence-Grounded Prompt Layer
 
