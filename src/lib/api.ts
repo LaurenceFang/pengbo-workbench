@@ -1418,6 +1418,41 @@ export type AICloudStatusResponse = {
   message: string;
 };
 
+export type AICloudProviderKey = "chatgpt" | "gemini" | "grok" | "claude" | "deepseek" | "qwen" | "custom";
+
+export type AICloudProviderDefinition = {
+  provider: AICloudProviderKey;
+  label: string;
+  base_url: string;
+  default_model: string;
+  api_key_env: string;
+  documentation_url: string | null;
+  notes: string[];
+};
+
+export type AIControlPreferences = {
+  enabled: boolean;
+  provider_mode: "local" | "cloud";
+  local_provider: string;
+  local_base_url: string;
+  local_model: string | null;
+  cloud_provider: AICloudProviderKey;
+  cloud_base_url: string | null;
+  cloud_model: string | null;
+  cloud_api_key_env: string;
+  cloud_key_configured: boolean;
+  available_cloud_providers: AICloudProviderDefinition[];
+};
+
+export type UpdateAIControlPreferencesRequest = {
+  enabled: boolean;
+  provider_mode: "local" | "cloud";
+  local_model?: string | null;
+  cloud_provider: AICloudProviderKey;
+  cloud_base_url?: string | null;
+  cloud_model?: string | null;
+};
+
 export type AIAssistantGenerateOptions = {
   templateKey?: AIPromptTemplateKey;
   providerMode?: "local" | "cloud";
@@ -1645,6 +1680,9 @@ export const api = {
   getTranslationStatus: () => apiFetch<TranslationStatusResponse>("/translation/status"),
   suggestTranslation: (payload: { text: string; sourceLanguage?: "zh-CN" | "en-US"; targetLanguage?: "zh-CN" | "en-US" }) =>
     jsonRequest<TranslationSuggestResponse>("/translation/suggest", "POST", payload),
+  getAIControlPreferences: () => apiFetch<AIControlPreferences>("/settings/ai-control"),
+  updateAIControlPreferences: (payload: UpdateAIControlPreferencesRequest) =>
+    jsonRequest<AIControlPreferences>("/settings/ai-control", "PUT", payload),
   getDefaultWatchlist: () => apiFetch<{ symbols: string[] }>("/watchlist/default"),
   updateDefaultWatchlist: (symbols: string[]) =>
     jsonRequest<{ symbols: string[] }>("/watchlist/default", "PUT", { symbols }),

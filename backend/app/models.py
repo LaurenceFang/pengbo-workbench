@@ -154,6 +154,7 @@ class TranslationSuggestResponse(BaseModel):
 AIProviderMode = Literal["disabled", "local", "cloud"]
 AIRuntimeHealth = Literal["disabled", "available", "unavailable", "timeout", "error"]
 AIAssistantStatus = Literal["completed", "blocked"]
+AICloudProviderKey = Literal["chatgpt", "gemini", "grok", "claude", "deepseek", "qwen", "custom"]
 AIPromptTemplateKey = Literal[
     "research_summary",
     "thesis",
@@ -197,6 +198,39 @@ class AICloudStatusResponse(BaseModel):
     requires_context_preview: bool = True
     requires_explicit_confirmation: bool = True
     message: str
+
+
+class AICloudProviderDefinition(BaseModel):
+    provider: AICloudProviderKey
+    label: str
+    base_url: str
+    default_model: str
+    api_key_env: str
+    documentation_url: str | None = None
+    notes: list[str] = Field(default_factory=list)
+
+
+class AIControlPreferences(BaseModel):
+    enabled: bool = False
+    provider_mode: AIProviderMode = "local"
+    local_provider: str = "ollama"
+    local_base_url: str = "http://127.0.0.1:11434"
+    local_model: str | None = None
+    cloud_provider: AICloudProviderKey = "deepseek"
+    cloud_base_url: str | None = None
+    cloud_model: str | None = None
+    cloud_api_key_env: str = "PENGBO_AI_CLOUD_API_KEY"
+    cloud_key_configured: bool = False
+    available_cloud_providers: list[AICloudProviderDefinition] = Field(default_factory=list)
+
+
+class UpdateAIControlPreferencesRequest(BaseModel):
+    enabled: bool = False
+    provider_mode: AIProviderMode = "local"
+    local_model: str | None = None
+    cloud_provider: AICloudProviderKey = "deepseek"
+    cloud_base_url: str | None = None
+    cloud_model: str | None = None
 
 
 class AIPermissionBoundaryResponse(BaseModel):

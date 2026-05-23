@@ -28,6 +28,7 @@ import { useI18n } from "./i18n";
 import {
   api,
   type AppPreferences,
+  type AIControlPreferences,
   type AssetSearchResult,
   type AssetWorkspaceResponse,
   type DashboardOverviewResponse,
@@ -37,6 +38,7 @@ import {
   type OnboardingState,
   type OnboardingStepKey,
   type SetupStatus,
+  type UpdateAIControlPreferencesRequest,
 } from "./lib/api";
 import { FirstRunOnboarding } from "./components/first-run-onboarding";
 import { deriveDesktopConnectionStatus, getRuntimeConfig, type RuntimeConfig } from "./lib/runtime";
@@ -114,6 +116,8 @@ function App() {
   const [localSecurityBusy, setLocalSecurityBusy] = useState(false);
   const [onboardingSeenOverride, setOnboardingSeenOverride] = useState<string | null | undefined>(undefined);
   const [shellActionError, setShellActionError] = useState<string | null>(null);
+  const [aiControlSaving, setAIControlSaving] = useState(false);
+  const [aiControlError, setAIControlError] = useState<string | null>(null);
   const [preferencesHydrated, setPreferencesHydrated] = useState(false);
   const previousBackendStatus = useRef<BackendStatus | null>(null);
 
@@ -140,6 +144,9 @@ function App() {
     enabled: sidecarReady,
   });
   const preferences = useAsyncResource<AppPreferences>(async () => api.getSettingsPreferences(), [], {
+    enabled: sidecarReady,
+  });
+  const aiControl = useAsyncResource<AIControlPreferences>(async () => api.getAIControlPreferences(), [], {
     enabled: sidecarReady,
   });
   const onboarding = useAsyncResource<OnboardingState>(async () => api.getOnboardingState(), [], {
@@ -214,11 +221,23 @@ function App() {
     assetUniverse.reload();
     asset.reload();
     preferences.reload();
+    aiControl.reload();
     onboarding.reload();
     demoMode.reload();
     localSecurity.reload();
     connectionsStatus.reload();
-  }, [asset, assetUniverse, backendStatus, connectionsStatus, dashboard, demoMode, localSecurity, onboarding, preferences]);
+  }, [
+    aiControl,
+    asset,
+    assetUniverse,
+    backendStatus,
+    connectionsStatus,
+    dashboard,
+    demoMode,
+    localSecurity,
+    onboarding,
+    preferences,
+  ]);
 
   const selectedAsset =
     dashboard.data?.watchlist.find((item) => item.symbol === selectedAssetId) ??
@@ -293,9 +312,24 @@ function App() {
     assetUniverse.reload();
     asset.reload();
     preferences.reload();
+    aiControl.reload();
     onboarding.reload();
     demoMode.reload();
     connectionsStatus.reload();
+  }
+
+  async function handleSaveAIControl(payload: UpdateAIControlPreferencesRequest) {
+    setAIControlSaving(true);
+    setAIControlError(null);
+    try {
+      await api.updateAIControlPreferences(payload);
+      aiControl.reload();
+    } catch (error) {
+      setAIControlError(error instanceof Error ? error.message : "Failed to save AI settings.");
+      throw error;
+    } finally {
+      setAIControlSaving(false);
+    }
   }
 
   async function handleInitializeLocalSecurity(unlockSecret: string) {
@@ -745,6 +779,11 @@ function App() {
               loading={dashboard.loading}
               error={dashboard.error}
               onRetry={dashboard.reload}
+              aiControl={aiControl.data}
+              aiSaving={aiControlSaving}
+              aiError={aiControl.error ?? aiControlError}
+              onSaveAIControl={handleSaveAIControl}
+              onOpenResearch={() => setActiveView("research")}
             />
           ) : null}
           {!activeViewLocked && activeView === "commandCenter" ? (

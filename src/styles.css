@@ -1081,6 +1081,76 @@ button {
   color: #70f3c1;
 }
 
+.ai-control-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.ai-mode-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ai-mode-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.ai-control-fields {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.ai-control-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.ai-control-fields label span {
+  color: rgba(212, 224, 241, 0.68);
+  font-size: 0.82rem;
+}
+
+.ai-control-fields input,
+.ai-control-fields select {
+  width: 100%;
+  min-width: 0;
+  padding: 0.72rem 0.8rem;
+  color: var(--text);
+  border: 1px solid rgba(174, 203, 250, 0.16);
+  border-radius: var(--radius-control);
+  background: rgba(5, 13, 24, 0.68);
+}
+
+.ai-control-fields input:disabled {
+  color: rgba(212, 224, 241, 0.68);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.ai-key-status,
+.ai-control-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.ai-key-status {
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-panel);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ai-key-status code {
+  color: #70f3c1;
+  overflow-wrap: anywhere;
+}
+
 .asset-layout {
   grid-template-columns: 1.6fr 1fr;
 }

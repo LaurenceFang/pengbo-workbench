@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
 
@@ -20,6 +20,10 @@ from ..models import (
 from ..runtime import RuntimeSettings
 from .research_service import ResearchService
 from .security_audit_service import SecurityAuditService
+
+if TYPE_CHECKING:
+    from ..models import AIControlPreferences
+    from .settings_service import SettingsService
 
 
 ALLOWED_CONTEXT = [
@@ -128,10 +132,12 @@ class ResearchAssistantService:
         settings: RuntimeSettings,
         research_service: ResearchService,
         security_audit_service: SecurityAuditService,
+        settings_service: SettingsService | None = None,
     ) -> None:
         self.settings = settings
         self.research_service = research_service
         self.security_audit_service = security_audit_service
+        self.settings_service = settings_service
         self.session = requests.Session()
 
     def permission_boundary(self) -> AIPermissionBoundaryResponse:
@@ -149,18 +155,19 @@ class ResearchAssistantService:
     def cloud_status(self) -> AICloudStatusResponse:
         base_url = self._cloud_base_url()
         model = self._cloud_model()
+        cloud_enabled = self._cloud_enabled()
         credential_configured = bool(self.settings.ai_cloud_api_key)
-        configured = self.settings.ai_cloud_enabled and bool(base_url) and credential_configured
-        if not self.settings.ai_cloud_enabled:
+        configured = cloud_enabled and bool(base_url) and credential_configured
+        if not cloud_enabled:
             message = "Cloud AI is disabled. Local mode remains the default."
         elif configured:
             message = "Cloud AI is configured, but each request still requires context preview and explicit confirmation."
         else:
             message = "Cloud AI is enabled but missing local environment configuration."
         return AICloudStatusResponse(
-            enabled=self.settings.ai_cloud_enabled,
+            enabled=cloud_enabled,
             configured=configured,
-            provider=self.settings.ai_cloud_provider or "custom",
+            provider=self._cloud_provider(),
             model=model,
             base_url_configured=bool(base_url),
             credential_configured=credential_configured,
@@ -231,7 +238,7 @@ class ResearchAssistantService:
                 reasons=["provider_mode_disabled"],
                 limitations=["The request selected the disabled provider mode."],
             )
-        if not self.settings.ai_assistant_enabled:
+        if not self._assistant_enabled():
             blocked = self.security_audit_service.record(
                 category="ai_assistant",
                 event_type="ai_generation_blocked",
@@ -244,7 +251,7 @@ class ResearchAssistantService:
                 status="blocked",
                 template_key=payload.template_key,
                 provider="disabled",
-                model=self.settings.ai_local_model,
+                model=self._local_model(),
                 generated_at=_utc_now_iso(),
                 summary="AI assistant generation is disabled until the user explicitly enables local AI.",
                 limitations=["AI assistant features are default-off."],
@@ -286,7 +293,7 @@ class ResearchAssistantService:
             status="completed",
             template_key=payload.template_key,
             provider="local",
-            model=self.settings.ai_local_model,
+            model=self._local_model(),
             generated_at=_utc_now_iso(),
             summary=summary,
             questions=questions,
@@ -328,7 +335,7 @@ class ResearchAssistantService:
                 reasons=["cloud_context_preview_stale"],
                 limitations=["No cloud request was sent because the acknowledged context preview did not match."],
             )
-        if not self.settings.ai_cloud_enabled:
+        if not self._cloud_enabled():
             return self._blocked_response(
                 brief_id=brief_id,
                 payload=payload,
@@ -340,7 +347,7 @@ class ResearchAssistantService:
                 reasons=["cloud_disabled"],
                 limitations=["Set local cloud AI configuration before using this mode."],
             )
-        if not self.settings.ai_assistant_enabled:
+        if not self._assistant_enabled():
             return self._blocked_response(
                 brief_id=brief_id,
                 payload=payload,
@@ -403,7 +410,7 @@ class ResearchAssistantService:
                 "citation_count": len(preview.citations),
                 "output_chars": len(markdown),
                 "provider": "cloud",
-                "cloud_provider": self.settings.ai_cloud_provider,
+                "cloud_provider": self._cloud_provider(),
             },
             surface="ai_assistant",
         )
@@ -534,19 +541,50 @@ class ResearchAssistantService:
             redacted = pattern.sub("[redacted]", redacted)
         return redacted
 
+    def _ai_control(self) -> AIControlPreferences | None:
+        if self.settings_service is None:
+            return None
+        return self.settings_service.get_ai_control()
+
+    def _assistant_enabled(self) -> bool:
+        control = self._ai_control()
+        return self.settings.ai_assistant_enabled or bool(control and control.enabled)
+
+    def _cloud_enabled(self) -> bool:
+        control = self._ai_control()
+        return self.settings.ai_cloud_enabled or bool(control and control.enabled and control.provider_mode == "cloud")
+
+    def _local_model(self) -> str | None:
+        control = self._ai_control()
+        if control and control.local_model:
+            return control.local_model
+        return self.settings.ai_local_model
+
+    def _cloud_provider(self) -> str:
+        control = self._ai_control()
+        if control and control.cloud_provider:
+            return control.cloud_provider
+        return self.settings.ai_cloud_provider or "custom"
+
     def _cloud_base_url(self) -> str | None:
+        control = self._ai_control()
+        if control and control.cloud_base_url:
+            return control.cloud_base_url.strip().rstrip("/")
         configured = (self.settings.ai_cloud_base_url or "").strip().rstrip("/")
         if configured:
             return configured
-        if (self.settings.ai_cloud_provider or "").lower() == "deepseek":
+        if self._cloud_provider().lower() == "deepseek":
             return "https://api.deepseek.com/v1"
         return None
 
     def _cloud_model(self) -> str | None:
+        control = self._ai_control()
+        if control and control.cloud_model:
+            return control.cloud_model.strip()
         configured = (self.settings.ai_cloud_model or "").strip()
         if configured:
             return configured
-        if (self.settings.ai_cloud_provider or "").lower() == "deepseek":
+        if self._cloud_provider().lower() == "deepseek":
             return "deepseek-chat"
         return None
 

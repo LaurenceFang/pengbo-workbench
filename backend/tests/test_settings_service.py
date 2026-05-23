@@ -67,6 +67,47 @@ class SettingsPreferencesTests(unittest.TestCase):
                 self.assertEqual(restored.json()["language"], "en-US")
                 self.assertEqual(restored.json()["density"], "compact")
 
+    def test_ai_control_defaults_and_provider_catalog_are_secret_safe(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
+            app = create_app(make_settings(Path(temp_dir)))
+            with TestClient(app) as client:
+                session = client.post("/api/v1/security/session", json={}).json()
+                headers = {"X-Pengbo-Session": session["session_id"]}
+                defaults = client.get("/api/v1/settings/ai-control", headers=headers)
+                self.assertEqual(defaults.status_code, 200)
+                payload = defaults.json()
+                self.assertFalse(payload["enabled"])
+                self.assertEqual(payload["provider_mode"], "local")
+                self.assertEqual(payload["cloud_api_key_env"], "PENGBO_AI_CLOUD_API_KEY")
+                self.assertFalse(payload["cloud_key_configured"])
+                providers = {item["provider"]: item for item in payload["available_cloud_providers"]}
+                self.assertEqual(
+                    set(providers),
+                    {"chatgpt", "gemini", "grok", "claude", "deepseek", "qwen", "custom"},
+                )
+                self.assertEqual(providers["chatgpt"]["base_url"], "https://api.openai.com/v1")
+                self.assertEqual(providers["deepseek"]["default_model"], "deepseek-chat")
+                self.assertNotIn("sk-", str(providers).lower())
+
+                updated = client.put(
+                    "/api/v1/settings/ai-control",
+                    headers=headers,
+                    json={
+                        "enabled": True,
+                        "provider_mode": "cloud",
+                        "local_model": "qwen3:8b",
+                        "cloud_provider": "qwen",
+                        "cloud_base_url": None,
+                        "cloud_model": None,
+                    },
+                )
+                self.assertEqual(updated.status_code, 200)
+                self.assertTrue(updated.json()["enabled"])
+                self.assertEqual(updated.json()["provider_mode"], "cloud")
+                self.assertEqual(updated.json()["cloud_provider"], "qwen")
+                self.assertEqual(updated.json()["cloud_base_url"], "https://dashscope.aliyuncs.com/compatible-mode/v1")
+                self.assertEqual(updated.json()["cloud_model"], "qwen-plus")
+
     def test_demo_mode_status_is_no_key_safe_and_keeps_boundaries_visible(self) -> None:
         with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
             app = create_app(make_settings(Path(temp_dir)))

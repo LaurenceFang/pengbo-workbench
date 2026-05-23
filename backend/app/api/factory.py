@@ -132,6 +132,7 @@ class AppContainer:
             settings,
             self.research_service,
             self.security_audit_service,
+            self.settings_service,
         )
         self.workflow_service = WorkflowService(
             self.sqlite_store,

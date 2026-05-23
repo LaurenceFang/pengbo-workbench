@@ -108,6 +108,11 @@ release channel yet.
   serial smoke covering local-disabled, local-enabled, cloud-disabled,
   cloud-opt-in-without-key, stale evidence, blocked evidence, redaction,
   audit, and export flows.
+- Post-T84 UX correction moves AI enablement into Dashboard AI Control, with
+  explicit local/cloud modes, provider interface presets for ChatGPT/OpenAI,
+  Gemini, Grok, Claude, DeepSeek, Qwen/DashScope, and custom endpoints, plus
+  Research generation still gated by context preview and local session
+  permissions.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.

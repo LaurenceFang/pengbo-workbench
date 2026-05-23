@@ -176,6 +176,41 @@ class ResearchAssistantBoundaryTests(unittest.TestCase):
                 self.assertIn("ai_generation_requested", event_types)
                 self.assertIn("ai_generation_blocked", event_types)
 
+    def test_dashboard_ai_control_enables_local_generation(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
+            app = create_app(make_settings(Path(temp_dir)))
+            with TestClient(app) as client:
+                install_offline_research_fixtures(app)
+                session = client.post("/api/v1/security/session", json={}).json()
+                client.post("/api/v1/security/local/initialize", json={"unlock_secret": "1234"})
+                brief = client.post("/api/v1/research/briefs", json={"symbol": "AAPL"}).json()
+
+                updated = client.put(
+                    "/api/v1/settings/ai-control",
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                    json={
+                        "enabled": True,
+                        "provider_mode": "local",
+                        "local_model": "qwen3:8b",
+                        "cloud_provider": "deepseek",
+                        "cloud_base_url": None,
+                        "cloud_model": None,
+                    },
+                )
+                self.assertEqual(updated.status_code, 200)
+                self.assertTrue(updated.json()["enabled"])
+
+                response = client.post(
+                    f"/api/v1/research/assistant/briefs/{brief['brief_id']}/generate",
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                    json={"templateKey": "research_summary"},
+                )
+                self.assertEqual(response.status_code, 200)
+                payload = response.json()
+                self.assertEqual(payload["status"], "completed")
+                self.assertEqual(payload["provider"], "local")
+                self.assertEqual(payload["model"], "qwen3:8b")
+
     def test_cloud_generation_requires_opt_in_and_current_preview(self) -> None:
         with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
             app = create_app(make_settings(Path(temp_dir), ai_enabled=True, cloud_enabled=True))

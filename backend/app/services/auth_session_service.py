@@ -126,6 +126,22 @@ ROUTE_PERMISSION_MAP: list[RoutePermissionClassification] = [
         notes="Cloud AI status exposes only configured/not-configured flags and never returns API keys.",
     ),
     RoutePermissionClassification(
+        method="GET",
+        path="/api/v1/settings/ai-control",
+        surface="ai_assistant",
+        exposure="desktop_local",
+        permission="ai:context",
+        notes="Dashboard AI control exposes local mode, cloud provider metadata, and key-present flags only.",
+    ),
+    RoutePermissionClassification(
+        method="PUT",
+        path="/api/v1/settings/ai-control",
+        surface="ai_assistant",
+        exposure="desktop_local",
+        permission="ai:generate",
+        notes="Changing AI generation mode is explicit local user intent and never stores API keys.",
+    ),
+    RoutePermissionClassification(
         method="POST",
         path="/api/v1/research/assistant/briefs/{brief_id}/generate",
         surface="ai_assistant",

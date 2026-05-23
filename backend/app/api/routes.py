@@ -74,6 +74,7 @@ from ..models import (
     TranslationSuggestRequest,
     TranslationSuggestResponse,
     UpdateBinanceExecutionConfigRequest,
+    UpdateAIControlPreferencesRequest,
     UpdateAppPreferencesRequest,
     UpdateOnboardingStateRequest,
     UpdateResearchBriefNotesRequest,
@@ -82,6 +83,7 @@ from ..models import (
     WatchlistUpdateRequest,
     AppPreferences,
     AICloudStatusResponse,
+    AIControlPreferences,
     AIContextPreviewResponse,
     AIAssistantGenerateRequest,
     AIAssistantGenerateResponse,
@@ -645,6 +647,19 @@ def register_routes(app: FastAPI) -> None:
     @app.put("/api/v1/settings/preferences", response_model=AppPreferences)
     def put_settings_preferences(request: Request, payload: UpdateAppPreferencesRequest) -> AppPreferences:
         return _container(request).settings_service.update_preferences(payload)
+
+    @app.get("/api/v1/settings/ai-control", response_model=AIControlPreferences)
+    def get_ai_control_preferences(request: Request) -> AIControlPreferences:
+        _require_permission(request, "ai:context", surface="ai_assistant")
+        return _container(request).settings_service.get_ai_control()
+
+    @app.put("/api/v1/settings/ai-control", response_model=AIControlPreferences)
+    def put_ai_control_preferences(
+        request: Request,
+        payload: UpdateAIControlPreferencesRequest,
+    ) -> AIControlPreferences:
+        _require_permission(request, "ai:generate", surface="ai_assistant")
+        return _container(request).settings_service.update_ai_control(payload)
 
     @app.get("/api/v1/settings/onboarding", response_model=OnboardingState)
     def get_settings_onboarding(request: Request) -> OnboardingState:

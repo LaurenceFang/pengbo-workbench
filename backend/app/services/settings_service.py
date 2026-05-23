@@ -4,12 +4,16 @@ import json
 from datetime import UTC, datetime
 
 from ..models import (
+    AICloudProviderDefinition,
+    AIControlPreferences,
+    AIProviderMode,
     AppPreferences,
     DemoModeStatus,
     OnboardingChecklistItem,
     OnboardingState,
     OnboardingStepKey,
     SettingsRuntimeResponse,
+    UpdateAIControlPreferencesRequest,
     UpdateAppPreferencesRequest,
     UpdateOnboardingStateRequest,
 )
@@ -25,6 +29,65 @@ DEFAULT_PREFERENCES = AppPreferences(
     diagnostics_export_enabled=True,
     language="zh-CN",
     density="standard",
+)
+
+AI_CLOUD_PROVIDERS: tuple[AICloudProviderDefinition, ...] = (
+    AICloudProviderDefinition(
+        provider="chatgpt",
+        label="ChatGPT / OpenAI",
+        base_url="https://api.openai.com/v1",
+        default_model="gpt-4.1-mini",
+        api_key_env="PENGBO_AI_CLOUD_API_KEY",
+        documentation_url="https://platform.openai.com/docs",
+    ),
+    AICloudProviderDefinition(
+        provider="gemini",
+        label="Google Gemini",
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai",
+        default_model="gemini-1.5-pro",
+        api_key_env="PENGBO_AI_CLOUD_API_KEY",
+        documentation_url="https://ai.google.dev/gemini-api/docs/openai",
+    ),
+    AICloudProviderDefinition(
+        provider="grok",
+        label="xAI Grok",
+        base_url="https://api.x.ai/v1",
+        default_model="grok-3-mini",
+        api_key_env="PENGBO_AI_CLOUD_API_KEY",
+        documentation_url="https://docs.x.ai",
+    ),
+    AICloudProviderDefinition(
+        provider="claude",
+        label="Anthropic Claude",
+        base_url="https://api.anthropic.com/v1",
+        default_model="claude-3-5-sonnet-latest",
+        api_key_env="PENGBO_AI_CLOUD_API_KEY",
+        documentation_url="https://docs.anthropic.com",
+        notes=["Native Claude messages are not OpenAI-compatible; this slot is reserved for the adapter boundary."],
+    ),
+    AICloudProviderDefinition(
+        provider="deepseek",
+        label="DeepSeek",
+        base_url="https://api.deepseek.com/v1",
+        default_model="deepseek-chat",
+        api_key_env="PENGBO_AI_CLOUD_API_KEY",
+        documentation_url="https://api-docs.deepseek.com",
+    ),
+    AICloudProviderDefinition(
+        provider="qwen",
+        label="Qwen / DashScope",
+        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        default_model="qwen-plus",
+        api_key_env="PENGBO_AI_CLOUD_API_KEY",
+        documentation_url="https://help.aliyun.com/zh/model-studio",
+    ),
+    AICloudProviderDefinition(
+        provider="custom",
+        label="Custom OpenAI-compatible",
+        base_url="",
+        default_model="",
+        api_key_env="PENGBO_AI_CLOUD_API_KEY",
+    ),
 )
 
 ONBOARDING_STEPS: tuple[OnboardingStepKey, ...] = (
@@ -83,6 +146,71 @@ class SettingsService:
     def update_preferences(self, payload: UpdateAppPreferencesRequest) -> AppPreferences:
         self.sqlite_store.upsert_app_settings(payload.model_dump())
         return self.get_preferences()
+
+    def get_ai_control(self) -> AIControlPreferences:
+        raw_values = self.sqlite_store.get_app_settings(
+            [
+                "ai_control_enabled",
+                "ai_control_provider_mode",
+                "ai_control_local_model",
+                "ai_control_cloud_provider",
+                "ai_control_cloud_base_url",
+                "ai_control_cloud_model",
+            ]
+        )
+        values = {
+            "enabled": self.settings.ai_assistant_enabled,
+            "provider_mode": "local",
+            "local_provider": self.settings.ai_local_provider,
+            "local_base_url": self.settings.ai_local_base_url,
+            "local_model": self.settings.ai_local_model,
+            "cloud_provider": self.settings.ai_cloud_provider,
+            "cloud_base_url": self.settings.ai_cloud_base_url,
+            "cloud_model": self.settings.ai_cloud_model,
+            "cloud_api_key_env": "PENGBO_AI_CLOUD_API_KEY",
+            "cloud_key_configured": bool(self.settings.ai_cloud_api_key),
+            "available_cloud_providers": list(AI_CLOUD_PROVIDERS),
+        }
+        key_map = {
+            "ai_control_enabled": "enabled",
+            "ai_control_provider_mode": "provider_mode",
+            "ai_control_local_model": "local_model",
+            "ai_control_cloud_provider": "cloud_provider",
+            "ai_control_cloud_base_url": "cloud_base_url",
+            "ai_control_cloud_model": "cloud_model",
+        }
+        for raw_key, value_key in key_map.items():
+            if raw_key in raw_values:
+                values[value_key] = json.loads(raw_values[raw_key])
+        provider = next((item for item in AI_CLOUD_PROVIDERS if item.provider == values["cloud_provider"]), None)
+        if provider is None:
+            values["cloud_provider"] = "deepseek"
+            provider = next((item for item in AI_CLOUD_PROVIDERS if item.provider == "deepseek"), None)
+        if provider is not None:
+            if not values["cloud_base_url"]:
+                values["cloud_base_url"] = provider.base_url or None
+            if not values["cloud_model"]:
+                values["cloud_model"] = provider.default_model or None
+        if values["provider_mode"] == "disabled":
+            values["provider_mode"] = "local"
+        return AIControlPreferences.model_validate(values)
+
+    def update_ai_control(self, payload: UpdateAIControlPreferencesRequest) -> AIControlPreferences:
+        provider = next((item for item in AI_CLOUD_PROVIDERS if item.provider == payload.cloud_provider), None)
+        cloud_base_url = payload.cloud_base_url or (provider.base_url if provider and provider.base_url else None)
+        cloud_model = payload.cloud_model or (provider.default_model if provider and provider.default_model else None)
+        provider_mode: AIProviderMode = payload.provider_mode if payload.provider_mode != "disabled" else "local"
+        self.sqlite_store.upsert_app_settings(
+            {
+                "ai_control_enabled": payload.enabled,
+                "ai_control_provider_mode": provider_mode,
+                "ai_control_local_model": payload.local_model,
+                "ai_control_cloud_provider": payload.cloud_provider,
+                "ai_control_cloud_base_url": cloud_base_url,
+                "ai_control_cloud_model": cloud_model,
+            }
+        )
+        return self.get_ai_control()
 
     def get_onboarding(self) -> OnboardingState:
         raw_values = self.sqlite_store.get_app_settings(["onboarding_seen_at", "onboarding_checklist"])

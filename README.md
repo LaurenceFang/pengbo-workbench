@@ -39,6 +39,7 @@ The core loop is designed around evidence and boundaries:
 - Start from the dashboard and choose an asset, data source, screener, or workflow.
 - Use the first-run checklist to understand demo mode, provider setup, local unlock, privacy boundaries, and live-execution gates before exploring sensitive areas.
 - Use Command Center to search a symbol, open or create its Research brief, refresh providers, export local reports, inspect audit context, and run no-secret readiness checks from one compact surface.
+- Use Dashboard AI Control to explicitly keep AI off, enable local Ollama mode, or choose a cloud provider interface before using assistant generation in Research.
 - Use Research to create a durable local brief with notes, analysis modules, source context, structured data-quality status, and export handoffs.
 - Use Data Sources to inspect packaged catalog coverage, read-only provider contracts, cache state, TTL, refresh behavior, offline fallback, provenance, freshness, data quality, and credential requirements.
 - Use Workflow Studio to run bounded templates that connect screeners, data sources, research, factors, backtests, paper trading, Binance intents, and reports.
@@ -70,7 +71,7 @@ The license does not change the product safety boundary: Pengbo is currently a l
 
 ## Workspaces
 
-- Dashboard: runtime readiness, market pulse, watchlist, and handoffs into the main workflows.
+- Dashboard: runtime readiness, market pulse, watchlist, AI Control for local/cloud assistant mode, and handoffs into the main workflows.
 - Asset: quote/history views, provider capability state, filings/fundamentals context, and multi-period charts.
 - Research: durable local briefs, structured analysis modules, notes, local AI assistant drafts with selectable evidence-grounded templates, exports, and handoffs from screeners and data sources.
 - Screeners: preset-driven and variant-tuned screening with bounded user controls.
@@ -88,7 +89,8 @@ The license does not change the product safety boundary: Pengbo is currently a l
 - Workflow Studio may create a Binance intent artifact, but submit requires an explicit user-owned confirmation step.
 - Sensitive local sidecar routes now use a desktop auth session header and route-level permission checks; this is not OAuth, hosted identity, remote sync, or a public login system.
 - The Research AI assistant is default-off, locally scoped, audit-bound, and limited to structured evidence with explicit context preview and redaction rules.
-- Cloud AI is disabled by default and can only run after a Research request selects Cloud, acknowledges the current redacted context preview, and uses local environment configuration; API keys are not returned by status endpoints, logs, or docs.
+- Dashboard AI Control can enable local Ollama mode or select a cloud interface for ChatGPT/OpenAI, Gemini, Grok, Claude, DeepSeek, Qwen/DashScope, or a custom OpenAI-compatible endpoint; API keys remain local environment variables and are not stored in SQLite.
+- Cloud AI is disabled by default and can only run after Dashboard enables cloud mode, a Research request selects Cloud, acknowledges the current redacted context preview, and uses local environment configuration; API keys are not returned by status endpoints, logs, or docs.
 - Provider secrets, Stronghold data, local databases, smoke artifacts, and generated binaries should not be committed to a public repository.
 - API source code can be committed; API keys, tokens, secrets, local identities, and provider credentials must not be committed.
 - Current sensitive values include EDGAR identity, Binance API key/secret, FRED key, CoinGecko key, `PENGBO_TRANSLATION_API_KEY`, and `PENGBO_AI_CLOUD_API_KEY`.
