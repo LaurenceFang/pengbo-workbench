@@ -113,10 +113,16 @@ release channel yet.
   Gemini, Grok, Claude, DeepSeek, Qwen/DashScope, and custom endpoints, plus
   Research generation still gated by context preview and local session
   permissions.
+- T85-T91 add the first cautious China-market connector pack: a source study,
+  connector manifest endpoint, fixture harness for configured-key/timeout/
+  malformed/license-blocked states, read-only Tushare A-share search/quote/
+  profile, no-key HKMA macro context, `china_market` Research briefs, export
+  integration, Stronghold/env token plumbing, and a packaged release smoke via
+  `npm run smoke:china-connectors:packaged`.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T85 will study cautious China-market data-source options.
+- T92 will harden credential audit trails and redaction evidence.

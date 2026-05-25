@@ -39,6 +39,15 @@ class QueueSession:
             raise response
         return response
 
+    def post(self, url, **kwargs):
+        self.requests.append((url, kwargs))
+        if not self.responses:
+            raise RuntimeError("no queued response")
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
+
 
 def make_settings(
     runtime_root: Path,
@@ -46,6 +55,8 @@ def make_settings(
     fred_api_key: str | None = None,
     coingecko_key: str | None = None,
     coingecko_pro_key: str | None = None,
+    tushare_token: str | None = None,
+    china_fixture: bool = False,
 ) -> RuntimeSettings:
     return RuntimeSettings(
         host="127.0.0.1",
@@ -61,6 +72,8 @@ def make_settings(
         fred_api_key=fred_api_key,
         coingecko_demo_api_key=coingecko_key,
         coingecko_pro_api_key=coingecko_pro_key,
+        tushare_token=tushare_token,
+        china_connector_fixture_mode=china_fixture,
     )
 
 
@@ -74,20 +87,44 @@ class DataSourceServiceTests(unittest.TestCase):
                 payload = response.json()
                 providers = {item["provider"]: item for item in payload["providers"]}
 
-                self.assertGreaterEqual(len(providers), 5)
+                self.assertGreaterEqual(len(providers), 7)
                 self.assertEqual(providers["worldbank"]["health"], "ok")
                 self.assertEqual(providers["worldbank"]["freshness_state"], "unknown")
                 self.assertEqual(providers["worldbank"]["data_quality"]["overall"], "unknown")
                 self.assertIsNotNone(providers["worldbank"]["freshness"]["cache_ttl_seconds"])
                 self.assertEqual(providers["dbnomics"]["health"], "ok")
                 self.assertEqual(providers["rss_events"]["health"], "ok")
+                self.assertEqual(providers["hkma"]["health"], "ok")
                 self.assertEqual(providers["fred"]["health"], "missing_credentials")
                 self.assertEqual(providers["fred"]["freshness_state"], "credential_required")
                 self.assertEqual(providers["fred"]["data_quality"]["overall"], "blocked")
                 self.assertEqual(providers["coingecko"]["health"], "missing_credentials")
                 self.assertEqual(providers["coingecko"]["freshness_state"], "credential_required")
+                self.assertEqual(providers["tushare"]["health"], "missing_credentials")
+                self.assertEqual(providers["tushare"]["freshness_state"], "credential_required")
                 self.assertTrue(providers["fred"]["requires_credentials"])
                 self.assertTrue(providers["coingecko"]["requires_credentials"])
+                self.assertTrue(providers["tushare"]["requires_credentials"])
+
+    def test_connector_manifest_exposes_china_market_read_only_boundaries(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            app = create_app(make_settings(Path(temp_dir)))
+            with TestClient(app) as client:
+                response = client.get("/api/v1/data-sources/manifests")
+                self.assertEqual(response.status_code, 200)
+                manifests = {item["provider_key"]: item for item in response.json()["manifests"]}
+
+                self.assertEqual(manifests["tushare"]["family"], "china_market")
+                self.assertEqual(manifests["tushare"]["credential_model"], "user_token")
+                self.assertEqual(manifests["tushare"]["license_status"], "approved_cautious_v1")
+                self.assertEqual(manifests["tushare"]["redistribution_risk"], "high")
+                self.assertTrue(manifests["tushare"]["read_only"])
+                self.assertFalse(manifests["tushare"]["live_trading"])
+                self.assertEqual(manifests["tushare"]["write_status"], "read_only")
+                self.assertEqual(manifests["hkma"]["family"], "china_market")
+                self.assertEqual(manifests["hkma"]["credential_model"], "none")
+                self.assertTrue(manifests["hkma"]["read_only"])
+                self.assertFalse(manifests["hkma"]["live_trading"])
 
     def test_worldbank_macro_series_fetch_and_cached_fallback(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -304,17 +341,98 @@ class DataSourceServiceTests(unittest.TestCase):
             with TestClient(app) as client:
                 fred = client.get("/api/v1/data-sources/sources/fred/status").json()
                 coingecko = client.get("/api/v1/data-sources/sources/coingecko/status").json()
+                tushare = client.get("/api/v1/data-sources/sources/tushare/status").json()
                 self.assertEqual(fred["health"], "missing_credentials")
                 self.assertTrue(fred["requires_credentials"])
                 self.assertEqual(coingecko["health"], "missing_credentials")
                 self.assertTrue(coingecko["requires_credentials"])
                 self.assertIn("demo or pro", coingecko["message"])
+                self.assertEqual(tushare["health"], "missing_credentials")
+                self.assertTrue(tushare["requires_credentials"])
+                self.assertIn("Tushare token", tushare["message"])
 
                 unlock_response = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
                 self.assertEqual(unlock_response.status_code, 200)
                 probe = client.post("/api/v1/connections/test", json={"provider": "fred"}).json()
                 self.assertEqual(probe["status"], "missing_credentials")
                 self.assertTrue(probe["requires_credentials"])
+                tushare_probe = client.post("/api/v1/connections/test", json={"provider": "tushare"}).json()
+                self.assertEqual(tushare_probe["status"], "missing_credentials")
+                self.assertTrue(tushare_probe["requires_credentials"])
+
+    def test_tushare_equity_search_masks_token_and_records_read_only_contract(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            app = create_app(make_settings(Path(temp_dir), tushare_token="unit-tushare-secret"))
+            with TestClient(app) as client:
+                service = app.state.container.data_source_service
+                service.session = QueueSession(
+                    [
+                        FakeResponse(
+                            {
+                                "code": 0,
+                                "data": {
+                                    "fields": ["ts_code", "name", "area", "industry", "market", "list_date"],
+                                    "items": [["600519.SH", "Kweichow Moutai", "Guizhou", "Beverages", "Main Board", "20010827"]],
+                                },
+                            },
+                            url="http://api.tushare.pro",
+                        )
+                    ]
+                )
+
+                response = client.get("/api/v1/data-sources/equities/search?provider=tushare&query=600519&limit=1")
+                self.assertEqual(response.status_code, 200)
+                payload = response.json()
+                self.assertEqual(payload["results"][0]["symbol"], "600519.SH")
+                self.assertTrue(payload["read_only"])
+                self.assertFalse(payload["live_trading"])
+                self.assertEqual(payload["write_status"], "read_only")
+                self.assertEqual(payload["provenance"]["source_url"], "http://api.tushare.pro")
+                self.assertNotIn("unit-tushare-secret", str(payload))
+                self.assertEqual(service.session.requests[0][1]["json"]["token"], "unit-tushare-secret")
+
+    def test_tushare_fixture_quote_cache_and_license_blocked_do_not_use_network(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            app = create_app(make_settings(Path(temp_dir), china_fixture=True))
+            with TestClient(app) as client:
+                service = app.state.container.data_source_service
+                service.session = QueueSession([RuntimeError("live network should not be used")])
+
+                first = client.get("/api/v1/data-sources/equities/quote?provider=tushare&symbol=600519.SH")
+                self.assertEqual(first.status_code, 200)
+                self.assertEqual(first.json()["price"], 1596.8)
+                self.assertEqual(first.json()["provenance"]["freshness_state"], "fresh")
+                self.assertEqual(service.session.requests, [])
+
+                cached = client.get("/api/v1/data-sources/equities/quote?provider=tushare&symbol=600519.SH&scenario=timeout")
+                self.assertEqual(cached.status_code, 200)
+                self.assertTrue(cached.json()["provenance"]["stale"])
+                self.assertEqual(cached.json()["provenance"]["freshness_state"], "refresh_failed")
+                self.assertIn("connector_fixture_timeout", cached.json()["provenance"]["unavailable_reason"])
+                self.assertEqual(service.session.requests, [])
+
+                blocked = client.get("/api/v1/data-sources/equities/quote?provider=tushare&symbol=600519.SH&scenario=license_blocked")
+                self.assertEqual(blocked.status_code, 200)
+                self.assertEqual(blocked.json()["provenance"]["freshness_state"], "unsupported")
+                self.assertEqual(blocked.json()["provenance"]["data_quality"]["overall"], "blocked")
+                self.assertIn("license_blocked", blocked.json()["provenance"]["unavailable_reason"])
+                self.assertEqual(service.session.requests, [])
+
+    def test_hkma_fixture_macro_series_is_no_key_and_official(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            app = create_app(make_settings(Path(temp_dir), china_fixture=True))
+            with TestClient(app) as client:
+                service = app.state.container.data_source_service
+                service.session = QueueSession([RuntimeError("live network should not be used")])
+
+                response = client.get("/api/v1/data-sources/macro/series?provider=hkma&seriesId=monetary_base_total&country=HK&limit=2")
+                self.assertEqual(response.status_code, 200)
+                payload = response.json()
+                self.assertEqual(payload["provider"], "hkma")
+                self.assertEqual(len(payload["observations"]), 2)
+                self.assertIn("official", payload["provenance"]["data_quality"]["source_confidence"]["signals"])
+                self.assertEqual(payload["provenance"]["freshness_state"], "fresh")
+                self.assertEqual(service.session.requests, [])
 
     def test_coingecko_market_fetch_uses_configured_pro_key(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -481,8 +599,12 @@ class DataSourceServiceTests(unittest.TestCase):
                 self.assertIn("# Data Sources Report", contents)
                 self.assertIn("## Evidence Pack Summary", contents)
                 self.assertIn("## Provider Catalog Contract", contents)
+                self.assertIn("## Connector Manifest Summary", contents)
+                self.assertIn("China-market pack", contents)
                 self.assertIn("| market | True | False | read_only | not testable | 7 | none |", contents)
                 self.assertIn("| binance | True | False | read_only | credential_probe | 7 | account |", contents)
+                self.assertIn("| tushare | china_market | user_token | approved_cautious_v1 | high | True | False |", contents)
+                self.assertIn("| hkma | china_market | none | approved_cautious_v1 | low | True | False |", contents)
                 self.assertIn("## Evidence Quality Table", contents)
                 self.assertIn("Freshness", contents)
                 self.assertIn("Cache age", contents)
@@ -490,7 +612,9 @@ class DataSourceServiceTests(unittest.TestCase):
                 self.assertIn("Private-state boundary", contents)
                 self.assertIn("World Bank Indicators", contents)
                 self.assertIn("CoinGecko Public Crypto", contents)
+                self.assertIn("Tushare A-share", contents)
                 self.assertIn("missing_credentials", contents)
+                self.assertIn("China-market connectors are research-only", contents)
                 self.assertIn("read_only=True", contents)
                 self.assertIn("live_trading=False", contents)
 
@@ -504,9 +628,12 @@ class DataSourceServiceTests(unittest.TestCase):
                 self.assertEqual(summaries["coingecko"]["health"], "missing_credentials")
                 self.assertEqual(summaries["coingecko"]["freshness_state"], "credential_required")
                 self.assertEqual(summaries["coingecko"]["data_quality"]["overall"], "blocked")
+                self.assertEqual(summaries["tushare"]["health"], "missing_credentials")
+                self.assertEqual(summaries["tushare"]["freshness_state"], "credential_required")
+                self.assertEqual(summaries["hkma"]["health"], "ok")
                 self.assertFalse(any(item["live_trading"] for item in payload["included_sources"]))
                 self.assertTrue(all(item["read_only"] for item in payload["included_sources"]))
-                self.assertGreaterEqual(len(payload["provenance_summary"]), 5)
+                self.assertGreaterEqual(len(payload["provenance_summary"]), 7)
 
 
 if __name__ == "__main__":

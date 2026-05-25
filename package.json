@@ -34,6 +34,7 @@
     "smoke:gateway-hardening:packaged": "powershell -ExecutionPolicy Bypass -File ./scripts/packaged_gateway_hardening_smoke.ps1",
     "smoke:watchlist:packaged": "powershell -ExecutionPolicy Bypass -File ./scripts/packaged_watchlist_smoke.ps1",
     "smoke:ai-research:packaged": "powershell -ExecutionPolicy Bypass -File ./scripts/packaged_ai_research_smoke.ps1",
+    "smoke:china-connectors:packaged": "powershell -ExecutionPolicy Bypass -File ./scripts/packaged_china_connectors_smoke.ps1",
     "smoke:workflow-studio": "node ./scripts/workflow_studio_smoke.mjs",
     "smoke:onboarding": "node ./scripts/onboarding_smoke.mjs",
     "smoke:visual-design": "node ./scripts/visual_design_smoke.mjs",

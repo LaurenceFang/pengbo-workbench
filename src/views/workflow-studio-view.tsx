@@ -234,6 +234,7 @@ function dataSourceKindOptions() {
   return [
     { value: "macro", label: "macro" },
     { value: "news", label: "news" },
+    { value: "equity", label: "equity" },
     { value: "crypto", label: "crypto" },
   ];
 }
@@ -244,6 +245,8 @@ function dataSourceProviderOptions() {
     { value: "dbnomics", label: "dbnomics" },
     { value: "rss_events", label: "rss_events" },
     { value: "fred", label: "fred" },
+    { value: "hkma", label: "hkma" },
+    { value: "tushare", label: "tushare" },
     { value: "coingecko", label: "coingecko" },
   ];
 }

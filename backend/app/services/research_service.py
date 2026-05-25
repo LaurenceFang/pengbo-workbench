@@ -257,6 +257,18 @@ class ResearchService:
         portfolio_context: ResearchPortfolioContext,
         source_context: ResearchBriefSourceContext | None,
     ) -> str:
+        if (
+            asset_snapshot.asset.provider == "tushare"
+            or asset_snapshot.asset.symbol.endswith((".SH", ".SZ"))
+            or (
+                source_context is not None
+                and (
+                    source_context.data_source_provider in {"tushare", "hkma"}
+                    or source_context.data_source_kind in {"equity", "a_share", "china_market"}
+                )
+            )
+        ):
+            return "china_market"
         if portfolio_context.in_portfolio:
             return "portfolio"
         if source_context and source_context.data_source_kind in {"macro", "macro_series"}:
@@ -328,6 +340,15 @@ class ResearchService:
                 "Confirm source provider freshness before citing this brief externally.",
                 "Pair the macro signal with asset-level evidence before forming a conclusion.",
             ]
+        elif template_key == "china_market":
+            thesis = (
+                f"{symbol} should be reviewed as a China-market research target with listing venue, currency, "
+                "policy/liquidity context, source-quality limits, and unsupported trading boundaries kept visible."
+            )
+            watch_items = [
+                "Confirm A-share/HK macro connector freshness, token state, and license notes before export.",
+                "Separate research evidence from any execution workflow; no A-share or HK order route is available.",
+            ]
         else:
             thesis = (
                 f"{symbol} has an observed asset snapshot that can support a cautious equity brief, "
@@ -375,6 +396,17 @@ class ResearchService:
                     status="simulated",
                 )
             )
+        if source_context and (source_context.data_source_provider or source_context.data_source_kind):
+            supporting_evidence.append(
+                ResearchBriefEvidenceItem(
+                    label="China-market source handoff" if template_key == "china_market" else "Data-source handoff",
+                    summary=(
+                        f"Provider={source_context.data_source_provider or 'n/a'}, "
+                        f"kind={source_context.data_source_kind or 'n/a'}, query={source_context.data_source_query or 'n/a'}."
+                    ),
+                    status="audited",
+                )
+            )
 
         counter_evidence = [
             ResearchBriefEvidenceItem(
@@ -388,6 +420,21 @@ class ResearchService:
                 status=self._status_for_capability(filings_status, asset_snapshot.stale),
             ),
         ]
+        if template_key == "china_market":
+            counter_evidence.extend(
+                [
+                    ResearchBriefEvidenceItem(
+                        label="Policy and liquidity boundary",
+                        summary="Policy, liquidity, venue, currency, and sector interpretation requires connector-backed evidence before firm claims.",
+                        status="blocked" if source_context is None else "audited",
+                    ),
+                    ResearchBriefEvidenceItem(
+                        label="Unsupported trading boundary",
+                        summary="A-share/HK connectors are read-only; live trading and order submission are unsupported.",
+                        status="unsupported",
+                    ),
+                ]
+            )
         for summary in screener_context.summaries:
             if not summary.matched:
                 counter_evidence.append(
@@ -408,6 +455,13 @@ class ResearchService:
             risks.append(f"Evidence coverage is incomplete for: {', '.join(unsupported_or_blocked)}.")
         if factor_context and factor_context.missing_data:
             risks.append(f"Factor evidence has missing input(s): {', '.join(factor_context.missing_data)}.")
+        if template_key == "china_market":
+            risks.extend(
+                [
+                    "China-market outputs must not soften credential_required, license_blocked, stale, or simulated source states.",
+                    "A-share/HK data may carry redistribution restrictions; exports must include provenance and license notes.",
+                ]
+            )
 
         assumptions = [
             f"Template: {template_key}.",
@@ -416,6 +470,10 @@ class ResearchService:
         ]
         if source_context and source_context.source_label:
             assumptions.append(f"Source handoff: {source_context.source_label}.")
+        if template_key == "china_market":
+            assumptions.append(
+                "China-market template sections cover policy, liquidity, listing venue, currency, sector, source quality, credential/license boundary, and unsupported trading boundary."
+            )
 
         provenance = [
             ResearchBriefProvenanceItem(
@@ -445,6 +503,17 @@ class ResearchService:
                         status="audited",
                     )
                 )
+        if source_context and source_context.data_source_provider:
+            provenance.append(
+                ResearchBriefProvenanceItem(
+                    label="Data-source provider",
+                    detail=(
+                        f"{source_context.data_source_provider}; kind={source_context.data_source_kind or 'unknown'}; "
+                        f"query={source_context.data_source_query or 'not recorded'}."
+                    ),
+                    status="audited",
+                )
+            )
         if portfolio_context.provenance:
             provenance.append(
                 ResearchBriefProvenanceItem(
@@ -479,7 +548,7 @@ class ResearchService:
         source_context: ResearchBriefSourceContext | None,
     ) -> dict:
         asset_snapshot = self.asset_service.get_asset_workspace(symbol)
-        title = f"{symbol} Research Brief"
+        title = f"{symbol} China Market Research Brief" if asset_snapshot.asset.provider == "tushare" else f"{symbol} Research Brief"
         generated_at = _utc_now_iso()
         screener_context = self._build_screener_context(symbol, source_context)
         factor_context = self._build_factor_context(symbol, source_context)

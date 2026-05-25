@@ -1857,7 +1857,7 @@ Implementation Log:
 ### T85 - China Market Data Source Study
 
 Priority: P2
-Status: Planned
+Status: Completed
 Target Window: 2026-12-12 to 2026-12-18
 Depends on: T77
 
@@ -1871,10 +1871,16 @@ Done when:
 
 - The team has a legally and technically cautious China-market source plan.
 
+Implementation Log:
+
+- Added the cautious source plan in `docs/china-market-source-study.md`.
+- Selected Tushare Pro HTTP API as the first user-token A-share source and HKMA Open API as the first no-key HK/China macro source; AKShare remains candidate-only pending upstream-by-upstream provenance and redistribution review.
+- Boundary: no automated account/API-key acquisition is required for tests or packaged signoff; fixtures and local user-provided tokens keep secrets out of repo and smoke output.
+
 ### T86 - Connector Manifest Contract
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-12-19 to 2026-12-23
 Depends on: T85
 
@@ -1888,10 +1894,16 @@ Done when:
 
 - New connectors can be added without custom one-off product behavior.
 
+Implementation Log:
+
+- Added `ConnectorManifest`/`ConnectorManifestResponse` models and `GET /api/v1/data-sources/manifests`.
+- Extended the provider catalog with Tushare and HKMA manifest metadata: regions, asset coverage, credentials, freshness, rate/license notes, redistribution risk, read-only, no-live-trading, and write-status fields.
+- Data-source report export now includes a Connector Manifest Summary table.
+
 ### T87 - Connector Test Harness
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-12-24 to 2026-12-30
 Depends on: T86
 
@@ -1905,10 +1917,16 @@ Done when:
 
 - Connector quality can be verified before UI integration.
 
+Implementation Log:
+
+- Added `backend/app/services/connector_harness.py` with A-share and HKMA fixtures plus configured-key, timeout, malformed-response, and license-blocked scenario handling.
+- Fixture scenarios are only available in backend test mode or `PENGBO_CHINA_CONNECTOR_FIXTURES=1` packaged smoke mode.
+- Added unit coverage for no-key status, token masking, fixture reads, cached fallback, and license-blocked/no-network behavior.
+
 ### T88 - A-Share Read-Only Connector V1
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2026-12-31 to 2027-01-08
 Depends on: T87
 
@@ -1922,10 +1940,17 @@ Done when:
 
 - A-share research can begin with honest read-only data status.
 
+Implementation Log:
+
+- Added Tushare A-share endpoints for search, quote/status, and basic company profile.
+- Added controlled A-share catalog seeds (`600519.SH`, `000001.SZ`, `300750.SZ`) and fixture quote/profile support in packaged smoke mode.
+- Tauri Stronghold/env plumbing now supports `tushare.token`, `PENGBO_TUSHARE_TOKEN`, and `TUSHARE_TOKEN`; API responses and exports keep the token redacted.
+- Data Sources UI surfaces Tushare credential state and A-share preview with read-only/no-live-trading markers.
+
 ### T89 - HK/China Macro Connector V1
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2027-01-09 to 2027-01-16
 Depends on: T88
 
@@ -1939,10 +1964,16 @@ Done when:
 
 - Regional macro context can appear in research briefs without manual copy/paste.
 
+Implementation Log:
+
+- Added HKMA Open API as a no-key Data Sources provider with macro series support through `/api/v1/data-sources/macro/series?provider=hkma`.
+- Data Sources UI now includes an HKMA macro source configuration and report export can use HKMA series.
+- Unit and packaged smoke coverage verify fixture-backed HKMA macro reads with official provenance and no credential requirement.
+
 ### T90 - China Market Research Template
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2027-01-17 to 2027-01-23
 Depends on: T89
 
@@ -1956,10 +1987,16 @@ Done when:
 
 - China-market output feels purpose-built rather than a translated US-equity template.
 
+Implementation Log:
+
+- Added `china_market` Research decision-review template and assistant prompt template.
+- Workflow Studio `data_sources_to_research` can collect equity/A-share samples and create China-market research briefs.
+- Briefs for Tushare-backed `.SH`/`.SZ` assets include listing venue, currency, policy/liquidity, source-quality, credential/license, redistribution, and unsupported-trading boundaries.
+
 ### T91 - Connector Packaged Signoff
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2027-01-24 to 2027-01-30
 Depends on: T90
 
@@ -1972,6 +2009,12 @@ Task:
 Done when:
 
 - The first China-market connector pack is usable and honestly bounded.
+
+Implementation Log:
+
+- Added `scripts/packaged_china_connectors_smoke.ps1` and `npm run smoke:china-connectors:packaged`.
+- The smoke uses the real release EXE, backs up/restores the packaged runtime, validates no-key Tushare/HKMA status, manifest contracts, Tushare search/quote/profile, HKMA macro, cached timeout fallback, license-blocked/no-live-trading boundaries, Workflow Studio to Research, Research export, and Data Sources export.
+- Evidence target: `logs/china-connectors-packaged-smoke-latest.json`.
 
 ### T92 - Credential Audit Trail Hardening
 

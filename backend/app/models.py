@@ -162,6 +162,7 @@ AIPromptTemplateKey = Literal[
     "earnings_review",
     "portfolio_risk",
     "provider_limitation",
+    "china_market",
     "report_rewrite",
 ]
 
@@ -594,6 +595,30 @@ class DataSourceStatusResponse(BaseModel):
     providers: list[DataSourceRuntimeStatus]
 
 
+class ConnectorManifest(BaseModel):
+    provider_key: str
+    label: str
+    family: str
+    regions: list[str] = Field(default_factory=list)
+    asset_classes: list[str] = Field(default_factory=list)
+    capabilities: list[str] = Field(default_factory=list)
+    credential_model: str
+    freshness: SourceFreshnessMetadata | None = None
+    rate_limits: str | None = None
+    license_note: str | None = None
+    license_status: str
+    redistribution_risk: str
+    read_only: bool = True
+    live_trading: bool = False
+    write_status: str = "read_only"
+    test_modes: list[str] = Field(default_factory=list)
+    source_url: str | None = None
+
+
+class ConnectorManifestResponse(BaseModel):
+    manifests: list[ConnectorManifest]
+
+
 class DataSourceProvenance(BaseModel):
     provider: str
     label: str
@@ -621,6 +646,68 @@ class MacroSeriesResponse(BaseModel):
     unit: str | None = None
     observations: list[MacroSeriesPoint] = Field(default_factory=list)
     provenance: DataSourceProvenance
+
+
+class EquitySearchItem(BaseModel):
+    symbol: str
+    name: str
+    exchange: str | None = None
+    market: str | None = None
+    area: str | None = None
+    industry: str | None = None
+    currency: str = "CNY"
+    asset_class: str = "equity"
+
+
+class EquitySearchResponse(BaseModel):
+    provider: str
+    query: str | None = None
+    region: str = "CN"
+    results: list[EquitySearchItem] = Field(default_factory=list)
+    provenance: DataSourceProvenance
+    read_only: bool = True
+    live_trading: bool = False
+    write_status: str = "read_only"
+    unsupported_trading_reason: str = "A-share connectors are research-only and expose no order submission path."
+
+
+class EquityQuoteResponse(BaseModel):
+    provider: str
+    symbol: str
+    name: str | None = None
+    price: float | None = None
+    open: float | None = None
+    high: float | None = None
+    low: float | None = None
+    previous_close: float | None = None
+    change: float | None = None
+    change_pct: float | None = None
+    volume: float | None = None
+    amount: float | None = None
+    currency: str = "CNY"
+    as_of: str | None = None
+    provenance: DataSourceProvenance
+    read_only: bool = True
+    live_trading: bool = False
+    write_status: str = "read_only"
+    unsupported_trading_reason: str = "A-share connectors are research-only and expose no order submission path."
+
+
+class EquityProfileResponse(BaseModel):
+    provider: str
+    symbol: str
+    name: str | None = None
+    exchange: str | None = None
+    market: str | None = None
+    area: str | None = None
+    industry: str | None = None
+    list_date: str | None = None
+    currency: str = "CNY"
+    provenance: DataSourceProvenance
+    read_only: bool = True
+    live_trading: bool = False
+    write_status: str = "read_only"
+    unsupported_trading_reason: str = "A-share connectors are research-only and expose no order submission path."
 
 
 class CryptoMarketItem(BaseModel):
@@ -664,6 +751,8 @@ class DataSourceReportExportRequest(BaseModel):
     macro_country: str = Field(default="CN", alias="macroCountry")
     news_query: str = Field(default="market OR earnings", alias="newsQuery")
     crypto_ids: str = Field(default="bitcoin,ethereum,solana", alias="cryptoIds")
+    equity_provider: str = Field(default="tushare", alias="equityProvider")
+    equity_symbol: str = Field(default="600519.SH", alias="equitySymbol")
 
 
 class DataSourceReportSourceSummary(BaseModel):
@@ -948,7 +1037,7 @@ class ResearchBriefProvenanceItem(BaseModel):
 
 
 class ResearchBriefDecisionReview(BaseModel):
-    template_key: Literal["equity", "crypto", "portfolio", "macro"]
+    template_key: Literal["equity", "crypto", "portfolio", "macro", "china_market"]
     thesis: str
     assumptions: list[str] = Field(default_factory=list)
     supporting_evidence: list[ResearchBriefEvidenceItem] = Field(default_factory=list)

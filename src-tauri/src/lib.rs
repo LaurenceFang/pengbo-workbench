@@ -271,6 +271,9 @@ fn save_connection_secret(
             save_profile_secret_value(&app, &profile_key, "coingecko.demo_api_key", payload.api_key)?;
             save_profile_secret_value(&app, &profile_key, "coingecko.pro_api_key", payload.secret)?;
         }
+        "tushare" => {
+            save_profile_secret_value(&app, &profile_key, "tushare.token", payload.api_key)?;
+        }
         _ => return Err(format!("unsupported provider: {provider}")),
     }
     if provider_key != "edgar" {
@@ -308,6 +311,9 @@ fn clear_connection_secret(
             save_profile_secret_value(&app, &profile_key, "coingecko.demo_api_key", None)?;
             save_profile_secret_value(&app, &profile_key, "coingecko.pro_api_key", None)?;
         }
+        "tushare" => {
+            save_profile_secret_value(&app, &profile_key, "tushare.token", None)?;
+        }
         _ => return Err(format!("unsupported provider: {provider}")),
     }
 
@@ -337,7 +343,7 @@ fn test_connection(
 ) -> Result<ConnectionTestResponse, String> {
     if matches!(
         provider.to_lowercase().as_str(),
-        "binance" | "edgar" | "fred" | "coingecko"
+        "binance" | "edgar" | "fred" | "coingecko" | "tushare"
     ) {
         ensure_local_unlocked(&app, state.inner(), "provider_credentials")?;
     }
@@ -900,6 +906,19 @@ fn sidecar_envs(app: &AppHandle) -> Result<Vec<(String, String)>, String> {
         .filter(|value| !value.trim().is_empty());
     if let Some(api_key) = coingecko_pro_api_key {
         envs.push(("PENGBO_COINGECKO_PRO_API_KEY".to_string(), api_key));
+    }
+
+    let tushare_token = load_profile_secret_value_from_client(&client, &active_profile_id, "tushare.token")?
+        .or_else(|| env::var("PENGBO_TUSHARE_TOKEN").ok())
+        .or_else(|| env::var("TUSHARE_TOKEN").ok())
+        .filter(|value| !value.trim().is_empty());
+    if let Some(token) = tushare_token {
+        envs.push(("PENGBO_TUSHARE_TOKEN".to_string(), token));
+    }
+    if let Ok(fixture_mode) = env::var("PENGBO_CHINA_CONNECTOR_FIXTURES") {
+        if !fixture_mode.trim().is_empty() {
+            envs.push(("PENGBO_CHINA_CONNECTOR_FIXTURES".to_string(), fixture_mode));
+        }
     }
     if let Some(build_summary_path) = build_summary_source_path(app, &paths) {
         envs.push((

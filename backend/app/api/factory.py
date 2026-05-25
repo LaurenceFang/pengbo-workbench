@@ -47,7 +47,10 @@ class AppContainer:
         self.sqlite_store.initialize()
         self.duck_store.initialize()
         self.binance_provider = BinanceProvider(settings)
-        self.market_provider = MarketProvider(self.binance_provider)
+        self.market_provider = MarketProvider(
+            self.binance_provider,
+            china_fixture_mode=settings.china_connector_fixture_mode,
+        )
         self.fundamental_provider = FundamentalProvider()
         self.filings_provider = FilingsProvider(settings.edgar_identity)
         self.watchlist_service = WatchlistService(self.sqlite_store)
@@ -60,6 +63,7 @@ class AppContainer:
             self.binance_provider,
             fred_configured=bool(settings.fred_api_key),
             coingecko_configured=bool(settings.coingecko_demo_api_key or settings.coingecko_pro_api_key),
+            tushare_configured=bool(settings.tushare_token or settings.china_connector_fixture_mode),
         )
         self.data_source_service = DataSourceService(
             settings,

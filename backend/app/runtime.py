@@ -33,6 +33,8 @@ class RuntimeSettings:
     fred_api_key: str | None = None
     coingecko_demo_api_key: str | None = None
     coingecko_pro_api_key: str | None = None
+    tushare_token: str | None = None
+    china_connector_fixture_mode: bool = False
     translation_provider: str | None = None
     translation_api_key: str | None = None
     translation_base_url: str | None = None
@@ -117,6 +119,9 @@ class RuntimeSettings:
             fred_api_key=os.getenv("PENGBO_FRED_API_KEY") or os.getenv("FRED_API_KEY"),
             coingecko_demo_api_key=os.getenv("PENGBO_COINGECKO_DEMO_API_KEY"),
             coingecko_pro_api_key=os.getenv("PENGBO_COINGECKO_PRO_API_KEY"),
+            tushare_token=os.getenv("PENGBO_TUSHARE_TOKEN") or os.getenv("TUSHARE_TOKEN"),
+            china_connector_fixture_mode=os.getenv("PENGBO_CHINA_CONNECTOR_FIXTURES", "").strip().lower()
+            in {"1", "true", "yes", "on"},
             translation_provider=os.getenv("PENGBO_TRANSLATION_PROVIDER"),
             translation_api_key=os.getenv("PENGBO_TRANSLATION_API_KEY"),
             translation_base_url=os.getenv("PENGBO_TRANSLATION_BASE_URL"),

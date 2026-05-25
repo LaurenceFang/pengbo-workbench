@@ -278,6 +278,8 @@ class SettingsService:
             missing_credentials.append("FRED API key")
         if not (self.settings.coingecko_demo_api_key or self.settings.coingecko_pro_api_key):
             missing_credentials.append("CoinGecko key")
+        if not self.settings.tushare_token and not self.settings.china_connector_fixture_mode:
+            missing_credentials.append("Tushare token")
         if not (self.settings.binance_api_key and self.settings.binance_secret):
             missing_credentials.append("Binance account credentials")
 
@@ -299,6 +301,7 @@ class SettingsService:
                 "EDGAR filings",
                 "FRED keyed macro series",
                 "CoinGecko market preview",
+                "Tushare A-share research connector",
                 "Binance private account state",
                 "Binance live execution",
             ],

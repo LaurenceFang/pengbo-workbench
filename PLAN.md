@@ -83,11 +83,19 @@ The active product-trust sequence is:
 - T82: evidence-grounded prompt layer. Completed.
 - T83: cloud LLM explicit opt-in. Completed.
 - T84: AI research packaged signoff. Completed.
-- T85+: China-market connectors and broader
-  public-trust work.
+- T85: China-market data source study. Completed.
+- T86: connector manifest contract. Completed.
+- T87: connector test harness. Completed.
+- T88: A-share read-only connector v1. Completed.
+- T89: HK/China macro connector v1. Completed.
+- T90: China-market research template. Completed.
+- T91: connector packaged signoff. Completed.
+- T92+: credential audit trail hardening and broader public-trust work.
 
 The current research-flow map is tracked in
 [docs/research-flow-definition.md](docs/research-flow-definition.md).
+The cautious China-market source plan is tracked in
+[docs/china-market-source-study.md](docs/china-market-source-study.md).
 
 ## Validation Principle
 

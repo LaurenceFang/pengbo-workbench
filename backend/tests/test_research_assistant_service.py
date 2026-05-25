@@ -82,6 +82,7 @@ class ResearchAssistantBoundaryTests(unittest.TestCase):
                         "earnings_review",
                         "portfolio_risk",
                         "provider_limitation",
+                        "china_market",
                         "report_rewrite",
                     },
                 )

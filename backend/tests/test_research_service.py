@@ -16,9 +16,14 @@ from backend.app.storage.sqlite_store import SqliteStore
 
 def make_asset_workspace(*, symbol: str, stale: bool = False):
     asset_class = "crypto" if "/" in symbol else "equity"
-    provider = "ccxt:binance" if asset_class == "crypto" else "openbb-fallback:yahoo"
-    currency = "USDT" if asset_class == "crypto" else "USD"
-    market = "Binance" if asset_class == "crypto" else "NASDAQ"
+    if symbol.endswith((".SH", ".SZ")):
+        provider = "tushare"
+        currency = "CNY"
+        market = "SSE" if symbol.endswith(".SH") else "SZSE"
+    else:
+        provider = "ccxt:binance" if asset_class == "crypto" else "openbb-fallback:yahoo"
+        currency = "USDT" if asset_class == "crypto" else "USD"
+        market = "Binance" if asset_class == "crypto" else "NASDAQ"
     return SimpleNamespace(
         updated_at="2026-04-22T00:00:00+00:00",
         stale=stale,
@@ -301,6 +306,44 @@ class ResearchServiceTests(unittest.TestCase):
         recent = service.list_recent_briefs()
         self.assertEqual(len(recent), 1)
         self.assertEqual(recent[0].brief_id, brief.brief_id)
+
+    def test_china_market_brief_uses_regional_template_and_boundaries(self):
+        service = ResearchService(
+            self.settings,
+            self.store,
+            FakeAssetService({"600519.SH": make_asset_workspace(symbol="600519.SH")}),
+            FakeScreenerService(),
+            FakePortfolioService(),
+            FakeWatchlistService(),
+        )
+
+        brief = service.create_brief(
+            SimpleNamespace(
+                symbol="600519.SH",
+                source_preset_key=None,
+                source_variant_key=None,
+                source_universe_source=None,
+                data_source_provider="tushare",
+                data_source_kind="equity",
+                data_source_query="600519.SH",
+                factor_run_id=None,
+                backtest_run_id=None,
+                paper_session_id=None,
+                intent_id=None,
+            )
+        )
+
+        self.assertEqual(brief.decision_review.template_key, "china_market")
+        self.assertIn("China Market Research Brief", brief.title)
+        self.assertTrue(any(item.label == "China-market source handoff" for item in brief.decision_review.supporting_evidence))
+        self.assertTrue(any(item.label == "Unsupported trading boundary" for item in brief.decision_review.counter_evidence))
+        self.assertTrue(any("redistribution restrictions" in item for item in brief.decision_review.risks))
+
+        export = service.export_brief(brief.brief_id)
+        contents = Path(export.export_path).read_text(encoding="utf-8")
+        self.assertIn("# 600519.SH China Market Research Brief", contents)
+        self.assertIn("china_market", contents)
+        self.assertIn("Unsupported trading boundary", contents)
 
     def test_notes_update_and_export_are_persisted(self):
         service = self.make_service(stale=True)

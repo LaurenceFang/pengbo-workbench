@@ -60,6 +60,7 @@ LANGUAGE_RULES = [
     "Use only observed, cached, simulated, blocked, audited, unsupported, or degraded evidence labels already present in context.",
     "Do not add web facts, price targets, earnings dates, recommendations, or provider claims absent from local evidence.",
     "Preserve credential_required, unsupported, stale, and simulated boundaries in plain language.",
+    "For China-market briefs, preserve policy, liquidity, listing venue, currency, sector, source-quality, license, and no-live-trading boundaries.",
     "Do not recommend live execution, order submission, kill-switch changes, or credential disclosure.",
 ]
 
@@ -104,6 +105,13 @@ PROMPT_TEMPLATES: dict[AIPromptTemplateKey, AIPromptTemplateDefinition] = {
         title="Provider limitation",
         purpose="Explain stale, blocked, credential-gated, or unsupported provider states.",
         required_evidence=["data_quality", "capabilities", "provenance"],
+        language_rules=LANGUAGE_RULES,
+    ),
+    "china_market": AIPromptTemplateDefinition(
+        template_key="china_market",
+        title="China market review",
+        purpose="Draft a China-market research review only from connector-backed evidence and visible boundaries.",
+        required_evidence=["decision_review", "source_handoff", "data_quality", "license_boundary", "unsupported_trading_boundary"],
         language_rules=LANGUAGE_RULES,
     ),
     "report_rewrite": AIPromptTemplateDefinition(
@@ -654,6 +662,11 @@ class ResearchAssistantService:
         if template_key == "provider_limitation":
             limits = "; ".join(brief.data_quality.limitations if brief.data_quality else []) or "No explicit limitation recorded."
             return f"Provider limitation view for {brief.symbol}: {limits} Capability states must remain visible before export."
+        if template_key == "china_market":
+            return (
+                f"China-market review for {brief.symbol}: use template {brief.decision_review.template_key}, "
+                "preserve policy, liquidity, venue, currency, sector, source-quality, credential/license, and no-live-trading boundaries."
+            )
         if template_key == "report_rewrite":
             return f"Report rewrite boundary for {brief.symbol}: rewrite only the local evidence story and keep private-state exclusions explicit."
         if template_key == "thesis":
@@ -668,6 +681,8 @@ class ResearchAssistantService:
         questions = list(brief.decision_review.watch_items[:3])
         if template_key == "provider_limitation":
             questions.insert(0, "Which provider state is observed, cached, blocked, credential_required, or unsupported?")
+        if template_key == "china_market":
+            questions.insert(0, "Which A-share/HK macro connector evidence is fresh, cached, credential_required, or license_blocked?")
         if template_key == "portfolio_risk":
             questions.insert(0, "Does the local portfolio context show an actual holding or only a research handoff draft?")
         if brief.asset_snapshot.capabilities.fundamentals_status != "available":
@@ -684,6 +699,8 @@ class ResearchAssistantService:
             risks.append("Filing evidence is not available, so earnings commentary must remain limited.")
         if template_key == "provider_limitation":
             risks.append("Provider limitation language must not be softened into an availability claim.")
+        if template_key == "china_market":
+            risks.append("China-market language must not imply live trading support or omit license/redistribution limits.")
         if brief.stale:
             risks.append("The active asset snapshot is cached or stale.")
         if brief.data_quality and brief.data_quality.limitations:

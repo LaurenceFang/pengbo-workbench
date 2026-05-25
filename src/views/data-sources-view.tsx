@@ -5,11 +5,13 @@ import { useAsyncResource } from "../hooks/use-async-resource";
 import { useI18n } from "../i18n";
 import {
   api,
+  type ConnectorManifestResponse,
   type ConnectionsCatalogResponse,
   type CryptoMarketsResponse,
   type DataQualityLevel,
   type DataSourceRuntimeStatus,
   type DataSourceStatusResponse,
+  type EquityQuoteResponse,
   type FreshnessState,
   type MacroSeriesResponse,
   type NewsEventsResponse,
@@ -87,6 +89,19 @@ const MACRO_SOURCE_CONFIG: Record<string, MacroSourceConfig> = {
     countries: [{ value: "US", label: "United States" }],
     buildSeriesId: (series) => series,
   },
+  hkma: {
+    label: "HKMA",
+    defaultSeries: "monetary_base_total",
+    defaultCountry: "HK",
+    series: [
+      { value: "monetary_base_total", label: "Monetary base total" },
+      { value: "m3_hkd", label: "M3 HKD" },
+      { value: "exrate_hkd_usd", label: "HKD/USD" },
+      { value: "hibor_fixing_3m", label: "HIBOR 3-month" },
+    ],
+    countries: [{ value: "HK", label: "Hong Kong" }],
+    buildSeriesId: (series) => series,
+  },
 };
 type AsyncResource<T> = {
   data: T | null;
@@ -101,6 +116,7 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
   const [macroProvider, setMacroProvider] = useState("worldbank");
   const [macroSeriesId, setMacroSeriesId] = useState("NY.GDP.MKTP.CD");
   const [macroCountry, setMacroCountry] = useState("CN");
+  const [equitySymbol, setEquitySymbol] = useState("600519.SH");
   const [newsQuery, setNewsQuery] = useState("market OR earnings");
   const [exportBusy, setExportBusy] = useState(false);
   const [exportPath, setExportPath] = useState<string | null>(null);
@@ -118,6 +134,9 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
   const catalog = useAsyncResource<ConnectionsCatalogResponse>(async () => api.getConnectionsCatalog(), [], {
     enabled: backendStatus === "online",
   });
+  const manifests = useAsyncResource<ConnectorManifestResponse>(async () => api.getDataSourceManifests(), [], {
+    enabled: backendStatus === "online",
+  });
   const macro = useAsyncResource<MacroSeriesResponse>(
     async () => api.getMacroSeries({ provider: macroProvider, seriesId: macroApiSeriesId, country: macroCountry, limit: 8 }),
     [macroProvider, macroApiSeriesId, macroCountry],
@@ -126,6 +145,13 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
   const providerItems = sourceStatus.data?.providers ?? [];
   const coingeckoStatus = providerItems.find((item) => item.provider === "coingecko") ?? null;
   const coingeckoConfigured = coingeckoStatus?.configured ?? false;
+  const tushareStatus = providerItems.find((item) => item.provider === "tushare") ?? null;
+  const tushareConfigured = tushareStatus?.configured ?? false;
+  const equityQuote = useAsyncResource<EquityQuoteResponse>(
+    async () => api.getEquityQuote({ provider: "tushare", symbol: equitySymbol }),
+    [equitySymbol, tushareConfigured],
+    { enabled: backendStatus === "online" && tushareConfigured },
+  );
   const crypto = useAsyncResource<CryptoMarketsResponse>(
     async () => api.getCryptoMarkets({ ids: "bitcoin,ethereum,solana", limit: 3 }),
     [coingeckoConfigured],
@@ -149,11 +175,16 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
     item.capabilities.some((capability) => capability.requires_credentials),
   ).length;
   const selectedCatalog = selectedStatus ? catalogMap.get(selectedStatus.provider) : null;
+  const selectedManifest = selectedStatus
+    ? (manifests.data?.manifests ?? []).find((item) => item.provider_key === selectedStatus.provider)
+    : null;
 
   async function refreshAll() {
     sourceStatus.reload();
     catalog.reload();
+    manifests.reload();
     macro.reload();
+    equityQuote.reload();
     crypto.reload();
     news.reload();
   }
@@ -215,6 +246,8 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
         macroCountry,
         newsQuery,
         cryptoIds: "bitcoin,ethereum,solana",
+        equityProvider: "tushare",
+        equitySymbol,
       });
       setExportPath(result.export_path);
     } catch (error) {
@@ -324,6 +357,8 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
                 <Metric label={i18n.t("dataSources.testing")} value={selectedCatalog.testable ? selectedCatalog.test_mode ?? "testable" : "planned"} />
                 <Metric label="Read only" value={selectedCatalog.read_only ? i18n.t("dataSources.yes") : i18n.t("dataSources.no")} />
                 <Metric label="Live trading" value={selectedCatalog.live_trading ? i18n.t("dataSources.yes") : i18n.t("dataSources.no")} />
+                <Metric label="License" value={selectedManifest?.license_status ?? "catalog"} />
+                <Metric label="Redistribution" value={selectedManifest?.redistribution_risk ?? "unknown"} />
               </div>
               {selectedCatalog.rate_limit_note ? <p className="source-copy">{selectedCatalog.rate_limit_note}</p> : null}
               <p className="source-copy">{selectedCatalog.cache_policy ?? selectedCatalog.description}</p>
@@ -354,7 +389,7 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
                 {!isTauriRuntime() ? <InlineState label="Desktop credential storage is only available in the packaged app." /> : null}
                 <div className="form-grid two-up">
                   <label className="field">
-                    <span>{selectedStatus.provider === "fred" ? "FRED API key" : "CoinGecko demo key"}</span>
+                    <span>{credentialPrimaryLabel(selectedStatus.provider)}</span>
                     <input
                       aria-label={`data-source-secret provider=${selectedStatus.provider} field=api-key`}
                       value={providerApiKey}
@@ -441,6 +476,15 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
             </label>
           </div>
           <MacroPreview macro={macro} i18n={i18n} />
+          <label className="field">
+            <span>A-share symbol</span>
+            <select value={equitySymbol} onChange={(event) => setEquitySymbol(event.target.value)}>
+              <option value="600519.SH">600519.SH / Kweichow Moutai</option>
+              <option value="000001.SZ">000001.SZ / Ping An Bank</option>
+              <option value="300750.SZ">300750.SZ / CATL</option>
+            </select>
+          </label>
+          <EquityPreview equityQuote={equityQuote} tushareStatus={tushareStatus} i18n={i18n} />
           <CryptoPreview crypto={crypto} coingeckoStatus={coingeckoStatus} i18n={i18n} />
           <label className="field">
             <span>{i18n.t("dataSources.eventQuery")}</span>
@@ -454,7 +498,13 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
 }
 
 function isKeyedSource(provider: string): boolean {
-  return provider === "fred" || provider === "coingecko";
+  return provider === "fred" || provider === "coingecko" || provider === "tushare";
+}
+
+function credentialPrimaryLabel(provider: string): string {
+  if (provider === "fred") return "FRED API key";
+  if (provider === "tushare") return "Tushare token";
+  return "CoinGecko demo key";
 }
 
 function ProviderStatusPanel({
@@ -579,6 +629,70 @@ function MacroPreview({ macro, i18n }: { macro: AsyncResource<MacroSeriesRespons
         </tbody>
       </table>
       <SourceLine provenance={macro.data.provenance} i18n={i18n} />
+    </div>
+  );
+}
+
+function EquityPreview({
+  equityQuote,
+  tushareStatus,
+  i18n,
+}: {
+  equityQuote: AsyncResource<EquityQuoteResponse>;
+  tushareStatus: DataSourceRuntimeStatus | null;
+  i18n: ReturnType<typeof useI18n>;
+}) {
+  if (tushareStatus && !tushareStatus.configured) {
+    return (
+      <div className="data-preview-block" aria-label="data-source-preview kind=equity state=missing_credentials provider=tushare">
+        <div className="capability-block-head">
+          <strong>A-share context</strong>
+          <span className="mini-pill status-missing_credentials">{i18n.t("dataSources.credentialRequired")}</span>
+        </div>
+        <p>{tushareStatus.message}</p>
+        <div className="sample-state-grid">
+          <div>
+            <strong>600519.SH / 000001.SZ / 300750.SZ</strong>
+            <span>Read-only research seeds remain visible without changing the default watchlist.</span>
+          </div>
+          <div>
+            <strong>Boundary</strong>
+            <span>No A-share or HK trading path is exposed.</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (equityQuote.loading) return <InlineState label="Loading A-share quote..." />;
+  if (equityQuote.error) return <InlineState label={equityQuote.error} actionLabel="Retry A-share" onAction={equityQuote.reload} />;
+  if (!equityQuote.data) return null;
+  return (
+    <div
+      className="data-preview-block"
+      aria-label={`data-source-preview kind=equity state=${equityQuote.data.provenance.freshness_state} provider=${equityQuote.data.provider} read_only=${String(equityQuote.data.read_only)} live_trading=${String(equityQuote.data.live_trading)}`}
+    >
+      <div className="capability-block-head">
+        <strong>{equityQuote.data.name ?? equityQuote.data.symbol}</strong>
+        <span className={`mini-pill ${equityQuote.data.provenance.stale ? "status-cached" : "status-ok"}`}>
+          {equityQuote.data.provenance.stale ? formatFreshnessState(equityQuote.data.provenance.freshness_state) : equityQuote.data.provider}
+        </span>
+      </div>
+      <div className="mini-table">
+        <span>
+          <strong>{equityQuote.data.symbol}</strong>
+          {equityQuote.data.price == null ? "--" : `${formatNumber(equityQuote.data.price)} ${equityQuote.data.currency}`}
+        </span>
+        <span>
+          <strong>Change</strong>
+          {equityQuote.data.change_pct == null ? "--" : `${formatNumber(equityQuote.data.change_pct)}%`}
+        </span>
+        <span>
+          <strong>Write</strong>
+          {equityQuote.data.write_status}
+        </span>
+      </div>
+      <p className="source-line">{equityQuote.data.unsupported_trading_reason}</p>
+      <SourceLine provenance={equityQuote.data.provenance} i18n={i18n} />
     </div>
   );
 }

@@ -13,6 +13,7 @@ from ..models import (
     ConnectionCheckResponse,
     ConnectionsCatalogResponse,
     ConnectionsStatusResponse,
+    ConnectorManifestResponse,
     CreateCredentialProfileRequest,
     CreateResearchBriefRequest,
     CredentialProfile,
@@ -28,6 +29,9 @@ from ..models import (
     FactorRunListItem,
     FactorRunRequest,
     FactorRunResponse,
+    EquityProfileResponse,
+    EquityQuoteResponse,
+    EquitySearchResponse,
     FundamentalOverview,
     HealthResponse,
     LocalAuthSessionRequest,
@@ -705,13 +709,17 @@ def register_routes(app: FastAPI) -> None:
 
     @app.post("/api/v1/connections/test", response_model=ConnectionCheckResponse)
     def test_connection(request: Request, payload: ConnectionCheckRequest) -> ConnectionCheckResponse:
-        if payload.provider.lower() in {"binance", "edgar", "fred", "coingecko"}:
+        if payload.provider.lower() in {"binance", "edgar", "fred", "coingecko", "tushare"}:
             _require_unlocked(request, "provider_credentials")
         return _container(request).connections_service.test_connection(payload.provider)
 
     @app.get("/api/v1/data-sources/status", response_model=DataSourceStatusResponse)
     def get_data_source_status(request: Request) -> DataSourceStatusResponse:
         return _container(request).data_source_service.list_status()
+
+    @app.get("/api/v1/data-sources/manifests", response_model=ConnectorManifestResponse)
+    def get_data_source_manifests(request: Request) -> ConnectorManifestResponse:
+        return _container(request).data_source_service.list_manifests()
 
     @app.get("/api/v1/data-sources/sources/{provider}/status", response_model=DataSourceRuntimeStatus)
     def get_data_source_provider_status(request: Request, provider: str) -> DataSourceRuntimeStatus:
@@ -731,6 +739,64 @@ def register_routes(app: FastAPI) -> None:
                 series_id=seriesId,
                 country=country,
                 limit=limit,
+            )
+        except ValueError as error:
+            raise _value_error_to_http(error) from error
+        except Exception as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
+
+    @app.get("/api/v1/data-sources/equities/search", response_model=EquitySearchResponse)
+    def get_data_source_equity_search(
+        request: Request,
+        provider: str = "tushare",
+        query: str = "",
+        region: str = "CN",
+        limit: int = Query(20, ge=1, le=100),
+        scenario: str | None = None,
+    ) -> EquitySearchResponse:
+        try:
+            return _container(request).data_source_service.search_equities(
+                provider=provider,
+                query=query,
+                region=region,
+                limit=limit,
+                scenario=scenario,
+            )
+        except ValueError as error:
+            raise _value_error_to_http(error) from error
+        except Exception as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
+
+    @app.get("/api/v1/data-sources/equities/quote", response_model=EquityQuoteResponse)
+    def get_data_source_equity_quote(
+        request: Request,
+        provider: str = "tushare",
+        symbol: str = "600519.SH",
+        scenario: str | None = None,
+    ) -> EquityQuoteResponse:
+        try:
+            return _container(request).data_source_service.get_equity_quote(
+                provider=provider,
+                symbol=symbol,
+                scenario=scenario,
+            )
+        except ValueError as error:
+            raise _value_error_to_http(error) from error
+        except Exception as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
+
+    @app.get("/api/v1/data-sources/equities/profile", response_model=EquityProfileResponse)
+    def get_data_source_equity_profile(
+        request: Request,
+        provider: str = "tushare",
+        symbol: str = "600519.SH",
+        scenario: str | None = None,
+    ) -> EquityProfileResponse:
+        try:
+            return _container(request).data_source_service.get_equity_profile(
+                provider=provider,
+                symbol=symbol,
+                scenario=scenario,
             )
         except ValueError as error:
             raise _value_error_to_http(error) from error

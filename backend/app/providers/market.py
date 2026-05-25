@@ -10,8 +10,9 @@ from .binance import BinanceProvider
 
 
 class MarketProvider:
-    def __init__(self, binance_provider: BinanceProvider) -> None:
+    def __init__(self, binance_provider: BinanceProvider, *, china_fixture_mode: bool = False) -> None:
         self.binance_provider = binance_provider
+        self.china_fixture_mode = china_fixture_mode
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": "Mozilla/5.0 Pengbo Workbench/0.1"})
 
@@ -30,6 +31,8 @@ class MarketProvider:
         return chart
 
     def get_latest_quote(self, entry: AssetCatalogEntry) -> dict[str, Any]:
+        if entry.provider == "tushare" and self.china_fixture_mode:
+            return self._china_fixture_quote(entry)
         if entry.binance_symbol:
             return self.binance_provider.get_public_quote(entry.symbol)
 
@@ -63,6 +66,34 @@ class MarketProvider:
         interval: str = "1d",
     ) -> list[dict[str, Any]]:
         normalized_interval = _normalize_interval(interval)
+        if entry.provider == "tushare" and self.china_fixture_mode:
+            quote = self._china_fixture_quote(entry)
+            return [
+                {
+                    "timestamp": "2026-05-20",
+                    "open": round(quote["price"] * 0.98, 2),
+                    "high": round(quote["price"] * 1.01, 2),
+                    "low": round(quote["price"] * 0.97, 2),
+                    "close": round(quote["price"] * 0.99, 2),
+                    "volume": 100000.0,
+                },
+                {
+                    "timestamp": "2026-05-21",
+                    "open": round(quote["price"] * 0.99, 2),
+                    "high": round(quote["price"] * 1.02, 2),
+                    "low": round(quote["price"] * 0.98, 2),
+                    "close": round(quote["price"] - quote["change"], 2),
+                    "volume": 110000.0,
+                },
+                {
+                    "timestamp": "2026-05-22",
+                    "open": round(quote["price"] - quote["change"], 2),
+                    "high": round(quote["price"] * 1.01, 2),
+                    "low": round(quote["price"] * 0.98, 2),
+                    "close": quote["price"],
+                    "volume": 120000.0,
+                },
+            ]
         if entry.binance_symbol:
             binance_interval = _BINANCE_INTERVALS[normalized_interval]
             limit = _default_binance_limit(normalized_interval)
@@ -97,6 +128,23 @@ class MarketProvider:
                 }
             )
         return _aggregate_points(points, normalized_interval)
+
+    def _china_fixture_quote(self, entry: AssetCatalogEntry) -> dict[str, Any]:
+        fixture_prices = {
+            "600519.SH": (1596.8, 12.8, 0.81),
+            "000001.SZ": (11.23, 0.15, 1.35),
+            "300750.SZ": (191.5, 3.6, 1.92),
+        }
+        price, change, change_pct = fixture_prices.get(entry.symbol, (100.0, 0.0, 0.0))
+        return {
+            "symbol": entry.symbol,
+            "price": price,
+            "change": change,
+            "change_pct": change_pct,
+            "currency": entry.currency,
+            "provider": entry.provider,
+            "as_of": datetime.now(UTC).isoformat(),
+        }
 
 
 SUPPORTED_PRICE_INTERVALS = {"15m", "30m", "1h", "2h", "4h", "8h", "1d", "1wk", "1mo", "1y"}

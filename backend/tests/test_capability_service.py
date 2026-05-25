@@ -43,6 +43,8 @@ class CapabilityServiceTests(unittest.TestCase):
         self.assertIn("rss_events", provider_keys)
         self.assertIn("fred", provider_keys)
         self.assertIn("coingecko", provider_keys)
+        self.assertIn("tushare", provider_keys)
+        self.assertIn("hkma", provider_keys)
         self.assertTrue(set(DATA_SOURCE_PROVIDERS).issubset(set(provider_keys)))
         self.assertTrue(all(len(item.capabilities) == len(CAPABILITY_ORDER) for item in catalog.providers))
         self.assertTrue(all(item.read_only for item in catalog.providers))
@@ -112,6 +114,20 @@ class CapabilityServiceTests(unittest.TestCase):
         self.assertIn("does not provide history", history.unsupported_reason or "")
         self.assertIn("demo or pro", coingecko.credential_note or "")
 
+        tushare = next(item for item in catalog.providers if item.provider == "tushare")
+        self.assertFalse(tushare.live_trading)
+        self.assertEqual(tushare.write_status, "read_only")
+        self.assertEqual(tushare.test_mode, "credential_or_fixture_probe")
+        self.assertIn("A-share", tushare.label)
+        tushare_quotes = next(item for item in tushare.capabilities if item.key == "quotes")
+        self.assertTrue(tushare_quotes.requires_credentials)
+        self.assertEqual(tushare_quotes.status_hint, "credential_required")
+
+        hkma = next(item for item in catalog.providers if item.provider == "hkma")
+        self.assertFalse(hkma.live_trading)
+        self.assertEqual(hkma.write_status, "read_only")
+        self.assertFalse(any(capability.requires_credentials for capability in hkma.capabilities))
+
     def test_asset_applicability_distinguishes_unsupported_credentials_and_temporary_failures(self) -> None:
         settings = RuntimeSettings(
             host="127.0.0.1",
@@ -172,6 +188,8 @@ class ConnectionsCatalogApiTests(unittest.TestCase):
                 self.assertEqual(provider_keys[:4], ["market", "fundamentals", "edgar", "binance"])
                 self.assertIn("worldbank", provider_keys)
                 self.assertIn("coingecko", provider_keys)
+                self.assertIn("tushare", provider_keys)
+                self.assertIn("hkma", provider_keys)
                 self.assertEqual(len(payload["providers"][0]["capabilities"]), 7)
                 self.assertTrue(all(item["read_only"] for item in payload["providers"]))
                 self.assertTrue(all(not item["live_trading"] for item in payload["providers"]))
@@ -185,6 +203,14 @@ class ConnectionsCatalogApiTests(unittest.TestCase):
                 unsupported = next(item for item in market["capabilities"] if item["key"] == "filings")
                 self.assertEqual(unsupported["status_hint"], "unsupported")
                 self.assertIn("does not provide filings", unsupported["unsupported_reason"])
+
+                manifests = client.get("/api/v1/data-sources/manifests")
+                self.assertEqual(manifests.status_code, 200)
+                manifest_by_provider = {item["provider_key"]: item for item in manifests.json()["manifests"]}
+                self.assertEqual(manifest_by_provider["tushare"]["family"], "china_market")
+                self.assertEqual(manifest_by_provider["hkma"]["credential_model"], "none")
+                self.assertTrue(manifest_by_provider["tushare"]["read_only"])
+                self.assertFalse(manifest_by_provider["tushare"]["live_trading"])
 
     def test_public_read_only_provider_test_records_planned_health_without_credentials(self) -> None:
         with TemporaryDirectory() as temp_dir:

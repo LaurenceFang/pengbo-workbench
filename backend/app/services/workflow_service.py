@@ -84,7 +84,7 @@ class WorkflowService:
             WorkflowTemplateDefinition(
                 template_key="data_sources_to_research",
                 title="Data Sources to Research Brief",
-                description="Sample a read-only macro, event, or crypto source and create a research brief with provenance.",
+                description="Sample a read-only macro, event, equity, or crypto source and create a research brief with provenance.",
                 steps=[
                     self._template_step("collect_data_source_sample", "Collect data source sample", "read_only"),
                     self._template_step("create_research_brief", "Create research brief", "local_analysis"),
@@ -411,6 +411,24 @@ class WorkflowService:
                 "data_source_kind": "crypto",
                 "data_source_query": ids,
                 "sample_count": len(response.assets),
+                "stale": response.provenance.stale,
+                "fetched_at": response.provenance.fetched_at,
+            }
+        if kind in {"equity", "a_share", "china_market"}:
+            equity_symbol = str(_input_value(payload, "equitySymbol", "equity_symbol", "symbol", default=symbol)).upper()
+            response = self.data_source_service.get_equity_quote(
+                provider=provider,
+                symbol=equity_symbol,
+            )
+            context["symbol"] = equity_symbol
+            context["data_source_provider"] = response.provider
+            context["data_source_kind"] = "equity"
+            context["data_source_query"] = equity_symbol
+            return {
+                "data_source_provider": response.provider,
+                "data_source_kind": "equity",
+                "data_source_query": equity_symbol,
+                "sample_count": 1 if response.price is not None else 0,
                 "stale": response.provenance.stale,
                 "fetched_at": response.provenance.fetched_at,
             }

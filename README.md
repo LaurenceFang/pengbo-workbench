@@ -21,12 +21,15 @@ The active roadmap is tracked in [IMPLEMENTATION_TASKS.md](IMPLEMENTATION_TASKS.
 
 These tasks were intentionally prioritized before broader public, account, remote, team, AI, or China-market connector work. The next roadmap lane begins at `T57 - License And Open Source Boundary`, followed by open-source readiness, CI, releases, demo mode, contributor readiness, research-flow polish, data governance, local AI assistance, China-market connectors, and security packaged signoff.
 
-`T58 - Version Governance Cleanup`, `T59 - GitHub Actions CI Baseline`, `T60 - Demo Mode And No-Key Startup`, `T61 - First Release Packaging`, `T62 - README Product Proof Upgrade`, `T63 - Contributor Entry Kit`, `T64 - Research Flow Definition`, `T65 - Asset Page Research Entry Polish`, `T66 - Data Status Strip Everywhere`, `T67 - Research Brief Quality Upgrade`, `T68 - Report Export Evidence Pack`, `T69 - Command Center V1`, `T69# Temp - Packaged Desktop Video Walkthrough`, `T70 - First-Run Product Onboarding`, `T71 - Provider Capability Matrix`, `T72 - Provider Credential State Model`, `T73 - Provider Freshness And Cache Policy`, `T74 - Data Quality Status Contract`, `T75 - Provenance UI And Export Sync`, `T76 - Existing Provider Audit`, `T77 - Data Sources Packaged Signoff V2`, `T78 - Local LLM Runtime Probe`, `T79 - AI Permission Boundary`, `T80 - Research Assistant Backend`, `T81 - Research Assistant UI`, `T82 - Evidence-Grounded Prompt Layer`, `T83 - Cloud LLM Explicit Opt-In`, and `T84 - AI Research Packaged Signoff` are implemented. The first GitHub Release is available at [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0). The next product-trust task is `T85 - China Market Data Source Study`.
+`T58 - Version Governance Cleanup`, `T59 - GitHub Actions CI Baseline`, `T60 - Demo Mode And No-Key Startup`, `T61 - First Release Packaging`, `T62 - README Product Proof Upgrade`, `T63 - Contributor Entry Kit`, `T64 - Research Flow Definition`, `T65 - Asset Page Research Entry Polish`, `T66 - Data Status Strip Everywhere`, `T67 - Research Brief Quality Upgrade`, `T68 - Report Export Evidence Pack`, `T69 - Command Center V1`, `T69# Temp - Packaged Desktop Video Walkthrough`, `T70 - First-Run Product Onboarding`, `T71 - Provider Capability Matrix`, `T72 - Provider Credential State Model`, `T73 - Provider Freshness And Cache Policy`, `T74 - Data Quality Status Contract`, `T75 - Provenance UI And Export Sync`, `T76 - Existing Provider Audit`, `T77 - Data Sources Packaged Signoff V2`, `T78 - Local LLM Runtime Probe`, `T79 - AI Permission Boundary`, `T80 - Research Assistant Backend`, `T81 - Research Assistant UI`, `T82 - Evidence-Grounded Prompt Layer`, `T83 - Cloud LLM Explicit Opt-In`, `T84 - AI Research Packaged Signoff`, and `T85-T91 - China Market Connectors` are implemented. The first GitHub Release is available at [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0). The next product-trust task is `T92 - Credential Audit Trail Hardening`.
 
 For the product-team assessment behind this direction, see [docs/product-team-assessment-2026-05-17.md](docs/product-team-assessment-2026-05-17.md).
 
 For the primary research journey that guides the next polish tasks, see
 [docs/research-flow-definition.md](docs/research-flow-definition.md).
+
+For the cautious China-market data-source plan behind the first A-share/HK macro
+connector pack, see [docs/china-market-source-study.md](docs/china-market-source-study.md).
 
 ## Product Proof
 
@@ -42,6 +45,7 @@ The core loop is designed around evidence and boundaries:
 - Use Dashboard AI Control to explicitly keep AI off, enable local Ollama mode, or choose a cloud provider interface before using assistant generation in Research.
 - Use Research to create a durable local brief with notes, analysis modules, source context, structured data-quality status, and export handoffs.
 - Use Data Sources to inspect packaged catalog coverage, read-only provider contracts, cache state, TTL, refresh behavior, offline fallback, provenance, freshness, data quality, and credential requirements.
+- Use the China-market connector pack for read-only Tushare A-share search/quote/profile, HKMA macro context, `china_market` Research briefs, and local report exports that preserve source/license boundaries.
 - Use Workflow Studio to run bounded templates that connect screeners, data sources, research, factors, backtests, paper trading, Binance intents, and reports.
 - Use Manual and Settings to understand local unlock, reset behavior, data boundaries, and live-trading confirmation rules.
 
@@ -93,7 +97,7 @@ The license does not change the product safety boundary: Pengbo is currently a l
 - Cloud AI is disabled by default and can only run after Dashboard enables cloud mode, a Research request selects Cloud, acknowledges the current redacted context preview, and uses local environment configuration; API keys are not returned by status endpoints, logs, or docs.
 - Provider secrets, Stronghold data, local databases, smoke artifacts, and generated binaries should not be committed to a public repository.
 - API source code can be committed; API keys, tokens, secrets, local identities, and provider credentials must not be committed.
-- Current sensitive values include EDGAR identity, Binance API key/secret, FRED key, CoinGecko key, `PENGBO_TRANSLATION_API_KEY`, and `PENGBO_AI_CLOUD_API_KEY`.
+- Current sensitive values include EDGAR identity, Binance API key/secret, FRED key, CoinGecko key, Tushare token, `PENGBO_TRANSLATION_API_KEY`, and `PENGBO_AI_CLOUD_API_KEY`.
 - Stronghold is a local single-user desktop secret store. It is not a multi-user permission system and does not protect against higher-privilege processes on the same machine.
 - Public network exposure, multi-user accounts, sessions, and hosted operation are deferred until the relevant security tasks are explicitly selected and implemented.
 
@@ -178,6 +182,7 @@ npm run smoke:packaged-startup
 npm run smoke:data-sources:packaged
 npm run smoke:workflow-studio:packaged
 npm run smoke:ai-research:packaged
+npm run smoke:china-connectors:packaged
 ```
 
 Run only the smoke checks relevant to the files changed in a given task. Documentation-only and ignore-only changes normally do not require packaged smoke validation.

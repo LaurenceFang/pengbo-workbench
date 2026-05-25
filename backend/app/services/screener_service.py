@@ -27,7 +27,21 @@ SCORE_HIGH_THRESHOLD = 72.0
 SCORE_MEDIUM_THRESHOLD = 50.0
 
 EXPANDED_UNIVERSE_SYMBOLS: dict[str, list[str]] = {
-    "equity": ["AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN", "COST", "LLY", "SPY", "QQQ"],
+    "equity": [
+        "AAPL",
+        "MSFT",
+        "NVDA",
+        "GOOGL",
+        "META",
+        "AMZN",
+        "COST",
+        "LLY",
+        "600519.SH",
+        "000001.SZ",
+        "300750.SZ",
+        "SPY",
+        "QQQ",
+    ],
     "etf": ["SPY", "QQQ", "TQQQ"],
     "index": ["SPY", "QQQ", "TQQQ", "DXY", "US10Y"],
     "crypto": ["BTC/USDT", "ETH/USDT", "BNB/USDT", "SOL/USDT", "XRP/USDT", "LINK/USDT", "DOGE/USDT"],

@@ -166,6 +166,14 @@ class FakeDataSourceService:
             provenance=SimpleNamespace(stale=False, fetched_at="2026-05-14T00:00:00+00:00"),
         )
 
+    def get_equity_quote(self, *, provider: str, symbol: str):
+        return SimpleNamespace(
+            provider=provider,
+            symbol=symbol,
+            price=1596.8,
+            provenance=SimpleNamespace(stale=False, fetched_at="2026-05-22T00:00:00+00:00"),
+        )
+
 
 def make_workflow_service(sqlite_store: SqliteStore) -> tuple[WorkflowService, FakeExecutionService]:
     execution = FakeExecutionService()
@@ -226,6 +234,7 @@ class WorkflowServiceTest(unittest.TestCase):
         cases = [
             ("screener_to_research", {}),
             ("data_sources_to_research", {"symbol": "AAPL", "dataSourceKind": "macro", "dataSourceProvider": "worldbank"}),
+            ("data_sources_to_research", {"symbol": "600519.SH", "dataSourceKind": "equity", "dataSourceProvider": "tushare"}),
             ("research_to_factor", {"symbol": "AAPL"}),
             ("factor_to_backtest", {}),
             ("backtest_to_paper", {}),

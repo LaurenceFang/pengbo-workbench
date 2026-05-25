@@ -3,7 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ..data_seed import AssetCatalogEntry
-from ..models import ConnectionsCatalogResponse, ProviderCapability, ProviderCapabilityProviderItem
+from ..models import (
+    ConnectionsCatalogResponse,
+    ConnectorManifest,
+    ConnectorManifestResponse,
+    ProviderCapability,
+    ProviderCapabilityProviderItem,
+)
 from ..providers.binance import BinanceProvider
 from ..providers.filings import FilingsProvider
 
@@ -360,6 +366,74 @@ PROVIDER_REGISTRY: tuple[ProviderSourceDefinition, ...] = (
         ),
         matrix_summary="Credential-gated public crypto context; not an execution provider.",
     ),
+    ProviderSourceDefinition(
+        provider="tushare",
+        label="Tushare A-share",
+        description="User-token read-only A-share daily market, search, and company profile connector for China-market research.",
+        credential_gated_capabilities=("quotes", "history", "fundamentals", "research"),
+        endpoint_coverage=(
+            "data-source equity search",
+            "data-source equity quote",
+            "data-source equity profile",
+            "workflow data-source step",
+            "research context",
+            "data-source report export",
+        ),
+        data_domains=("a_share", "quotes", "company_profile", "eod_market"),
+        asset_coverage=("A-share seed equities", "Mainland listed equities where user token permissions allow"),
+        regions=("China Mainland",),
+        locales=("zh-CN", "en-US"),
+        credential_note="Requires PENGBO_TUSHARE_TOKEN or a saved desktop Tushare token.",
+        rate_limit_note="Tushare token permissions, points, and endpoint limits vary by user account; blocked permission states stay visible.",
+        cache_policy="A-share search, quote, and profile responses are cached by provider/query and reused after refresh failure.",
+        cache_ttl_seconds=86400,
+        stale_after_seconds=604800,
+        refresh_behavior="Refresh on explicit A-share search, quote, profile, workflow, or report sample request.",
+        offline_behavior="Use cached A-share snapshots after live refresh failure; missing tokens remain credential_required.",
+        freshness_label="Latest successful Tushare response for the requested A-share query.",
+        expected_lag="end-of-day or account-permission dependent",
+        as_of_field="trade_date",
+        provenance_upstream="Tushare Pro HTTP API",
+        provenance_license_note="User-owned token with account permission/points limits; redistribution risk remains high for exported market data.",
+        provenance_source_url="https://tushare.pro/document/2?doc_id=130",
+        testable=True,
+        test_mode="credential_or_fixture_probe",
+        capabilities=(
+            CapabilityDefinition("quotes", notes=("A-share EOD quote/status requires a configured Tushare token.",), endpoint_coverage=("equity quote", "research source context"), testable=True, test_mode="credential_or_fixture_probe"),
+            CapabilityDefinition("history", notes=("Daily OHLCV history is read-only and permission dependent.",), endpoint_coverage=("equity quote/status", "report sample"), testable=True, test_mode="fixture_probe"),
+            CapabilityDefinition("fundamentals", notes=("Basic company profile fields are available through stock_basic.",), endpoint_coverage=("equity profile", "research evidence"), testable=True, test_mode="credential_or_fixture_probe"),
+            CapabilityDefinition("research", notes=("Research can include A-share source quality and listing-venue boundaries.",), endpoint_coverage=("china_market research template", "report export"), testable=True, test_mode="fixture_probe"),
+        ),
+        matrix_summary="First cautious A-share connector: user-token, read-only, cache-aware, no trading path.",
+    ),
+    ProviderSourceDefinition(
+        provider="hkma",
+        label="HKMA Open API",
+        description="No-key Hong Kong monetary statistics connector for HK/China regional macro research.",
+        endpoint_coverage=("data-source macro series", "workflow data-source step", "research context", "data-source report export"),
+        data_domains=("macro", "hong_kong", "monetary_statistics", "rates"),
+        asset_coverage=("Hong Kong macro series", "China regional macro context"),
+        regions=("Hong Kong", "China"),
+        locales=("en-US", "zh-CN"),
+        rate_limit_note="HKMA Open API is free and no registration is required, subject to HKMA site terms.",
+        cache_policy="HKMA macro responses are cached by series id and query parameters.",
+        cache_ttl_seconds=86400,
+        stale_after_seconds=604800,
+        refresh_behavior="Refresh when HKMA macro series is requested from Data Sources, workflow, or report export.",
+        offline_behavior="Use cached HKMA series after live refresh failure; no credentials are required.",
+        freshness_label="Latest successful HKMA monetary statistics response.",
+        expected_lag="monthly or dataset-dependent",
+        as_of_field="end_of_month",
+        provenance_upstream="Hong Kong Monetary Authority Open API",
+        provenance_license_note="Official no-key open API; reuse remains subject to HKMA and DATA.GOV.HK terms.",
+        provenance_source_url="https://apidocs.hkma.gov.hk/abouthkmasapi/",
+        testable=True,
+        test_mode="public_or_fixture_probe",
+        capabilities=(
+            CapabilityDefinition("research", notes=("Research can include HKMA macro series with source/licensing boundaries.",), endpoint_coverage=("macro series", "china_market template", "data-source report"), testable=True, test_mode="public_or_fixture_probe"),
+        ),
+        matrix_summary="No-key official HK macro source for China regional research context.",
+    ),
 )
 
 PROVIDER_REGISTRY_BY_KEY: dict[str, ProviderSourceDefinition] = {
@@ -382,11 +456,13 @@ class CapabilityService:
         *,
         fred_configured: bool = False,
         coingecko_configured: bool = False,
+        tushare_configured: bool = False,
     ) -> None:
         self.filings_provider = filings_provider
         self.binance_provider = binance_provider
         self.fred_configured = fred_configured
         self.coingecko_configured = coingecko_configured
+        self.tushare_configured = tushare_configured
 
     def _provider_is_configured(self, provider: str) -> bool:
         if provider == "edgar":
@@ -397,6 +473,8 @@ class CapabilityService:
             return self.fred_configured
         if provider == "coingecko":
             return self.coingecko_configured
+        if provider == "tushare":
+            return self.tushare_configured
         return True
 
     def get_source_definition(self, provider: str) -> ProviderSourceDefinition | None:
@@ -519,6 +597,43 @@ class CapabilityService:
                 for definition in PROVIDER_REGISTRY
             ]
         )
+
+    def get_connector_manifests(self) -> ConnectorManifestResponse:
+        manifests: list[ConnectorManifest] = []
+        for definition in PROVIDER_REGISTRY:
+            family = "china_market" if definition.provider in {"tushare", "hkma"} else "core"
+            credential_model = "user_token" if definition.credential_note else "none"
+            if definition.provider in {"fred", "coingecko"}:
+                credential_model = "user_api_key"
+            if definition.provider == "binance":
+                credential_model = "user_account_key"
+            if definition.provider == "edgar":
+                credential_model = "user_identity"
+            redistribution_risk = "high" if definition.provider == "tushare" else "low"
+            if definition.provider in {"market", "fundamentals", "rss_events", "coingecko"}:
+                redistribution_risk = "medium"
+            manifests.append(
+                ConnectorManifest(
+                    provider_key=definition.provider,
+                    label=definition.label,
+                    family=family,
+                    regions=list(definition.regions),
+                    asset_classes=list(definition.asset_coverage),
+                    capabilities=[capability.key for capability in definition.capabilities],
+                    credential_model=credential_model,
+                    freshness=self._freshness_payload(definition),
+                    rate_limits=definition.rate_limit_note,
+                    license_note=definition.provenance_license_note,
+                    license_status="approved_cautious_v1" if definition.provider in {"tushare", "hkma"} else "catalog_reviewed",
+                    redistribution_risk=redistribution_risk,
+                    read_only=definition.read_only,
+                    live_trading=definition.live_trading,
+                    write_status=definition.write_status,
+                    test_modes=[definition.test_mode] if definition.test_mode else [],
+                    source_url=definition.provenance_source_url,
+                )
+            )
+        return ConnectorManifestResponse(manifests=manifests)
 
     def assess_fundamentals(
         self,

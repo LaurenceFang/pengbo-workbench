@@ -170,6 +170,8 @@ class ConnectionsService:
             return "Add a FRED API key before testing this macro data source."
         if provider == "coingecko":
             return "Add a CoinGecko demo or pro key before testing crypto market context."
+        if provider == "tushare":
+            return "Add a Tushare token before testing read-only A-share research data."
         return "Save the required provider credential before testing readiness."
 
     def _invalid_credential_action(self, provider: str) -> str:
@@ -177,7 +179,7 @@ class ConnectionsService:
             return "Check the EDGAR identity format and retry the filings probe."
         if provider == "binance":
             return "Check Binance key permissions, IP restrictions, and secret value, then retry."
-        if provider in {"fred", "coingecko"}:
+        if provider in {"fred", "coingecko", "tushare"}:
             return "Check the API key, plan permissions, and provider availability, then retry."
         return "Check provider credentials and retry the readiness test."
 

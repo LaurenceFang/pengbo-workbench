@@ -325,6 +325,30 @@ export type DataSourceStatusResponse = {
   providers: DataSourceRuntimeStatus[];
 };
 
+export type ConnectorManifest = {
+  provider_key: string;
+  label: string;
+  family: string;
+  regions: string[];
+  asset_classes: string[];
+  capabilities: string[];
+  credential_model: string;
+  freshness: SourceFreshnessMetadata | null;
+  rate_limits: string | null;
+  license_note: string | null;
+  license_status: string;
+  redistribution_risk: string;
+  read_only: boolean;
+  live_trading: boolean;
+  write_status: string;
+  test_modes: string[];
+  source_url: string | null;
+};
+
+export type ConnectorManifestResponse = {
+  manifests: ConnectorManifest[];
+};
+
 export type DataSourceProvenance = {
   provider: string;
   label: string;
@@ -347,6 +371,49 @@ export type MacroSeriesResponse = {
   unit: string | null;
   observations: Array<{ date: string; value: number | null }>;
   provenance: DataSourceProvenance;
+};
+
+export type EquitySearchResponse = {
+  provider: string;
+  query: string | null;
+  region: string;
+  results: Array<{
+    symbol: string;
+    name: string;
+    exchange: string | null;
+    market: string | null;
+    area: string | null;
+    industry: string | null;
+    currency: string;
+    asset_class: string;
+  }>;
+  provenance: DataSourceProvenance;
+  read_only: boolean;
+  live_trading: boolean;
+  write_status: string;
+  unsupported_trading_reason: string;
+};
+
+export type EquityQuoteResponse = {
+  provider: string;
+  symbol: string;
+  name: string | null;
+  price: number | null;
+  open: number | null;
+  high: number | null;
+  low: number | null;
+  previous_close: number | null;
+  change: number | null;
+  change_pct: number | null;
+  volume: number | null;
+  amount: number | null;
+  currency: string;
+  as_of: string | null;
+  provenance: DataSourceProvenance;
+  read_only: boolean;
+  live_trading: boolean;
+  write_status: string;
+  unsupported_trading_reason: string;
 };
 
 export type CryptoMarketsResponse = {
@@ -1208,7 +1275,7 @@ export type ResearchBriefProvenanceItem = {
 };
 
 export type ResearchBriefDecisionReview = {
-  template_key: "equity" | "crypto" | "portfolio" | "macro";
+  template_key: "equity" | "crypto" | "portfolio" | "macro" | "china_market";
   thesis: string;
   assumptions: string[];
   supporting_evidence: ResearchBriefEvidenceItem[];
@@ -1378,6 +1445,7 @@ export type AIPromptTemplateKey =
   | "earnings_review"
   | "portfolio_risk"
   | "provider_limitation"
+  | "china_market"
   | "report_rewrite";
 
 export type AIAssistantGenerateResponse = {
@@ -1847,6 +1915,7 @@ export const api = {
     return profile;
   },
   getDataSourceStatus: () => apiFetch<DataSourceStatusResponse>("/data-sources/status"),
+  getDataSourceManifests: () => apiFetch<ConnectorManifestResponse>("/data-sources/manifests"),
   getDataSourceProviderStatus: (provider: string) =>
     apiFetch<DataSourceRuntimeStatus>(`/data-sources/sources/${encodeURIComponent(provider)}/status`),
   getMacroSeries: (params: { provider?: string; seriesId?: string; country?: string; limit?: number } = {}) => {
@@ -1856,6 +1925,20 @@ export const api = {
     if (params.country) query.set("country", params.country);
     if (params.limit) query.set("limit", String(params.limit));
     return apiFetch<MacroSeriesResponse>(`/data-sources/macro/series?${query.toString()}`);
+  },
+  searchEquities: (params: { provider?: string; query?: string; region?: string; limit?: number } = {}) => {
+    const query = new URLSearchParams();
+    if (params.provider) query.set("provider", params.provider);
+    if (params.query) query.set("query", params.query);
+    if (params.region) query.set("region", params.region);
+    if (params.limit) query.set("limit", String(params.limit));
+    return apiFetch<EquitySearchResponse>(`/data-sources/equities/search?${query.toString()}`);
+  },
+  getEquityQuote: (params: { provider?: string; symbol?: string } = {}) => {
+    const query = new URLSearchParams();
+    if (params.provider) query.set("provider", params.provider);
+    if (params.symbol) query.set("symbol", params.symbol);
+    return apiFetch<EquityQuoteResponse>(`/data-sources/equities/quote?${query.toString()}`);
   },
   getCryptoMarkets: (params: { ids?: string; limit?: number } = {}) => {
     const query = new URLSearchParams();
@@ -1875,6 +1958,8 @@ export const api = {
     macroCountry: string;
     newsQuery: string;
     cryptoIds: string;
+    equityProvider?: string;
+    equitySymbol?: string;
   }) => jsonRequest<DataSourceReportExportResponse>("/data-sources/reports/export", "POST", payload),
   getBinanceAccount: () => apiFetch<BinanceAccountSnapshot>("/connections/binance/account"),
   getPortfolioSummary: () => apiFetch<PortfolioSummaryResponse>("/portfolio/summary"),
@@ -1966,7 +2051,7 @@ export const api = {
       method: "DELETE",
     }),
   testConnection: async (provider: string) => {
-    if (["binance", "edgar", "fred", "coingecko"].includes(provider.toLowerCase())) {
+    if (["binance", "edgar", "fred", "coingecko", "tushare"].includes(provider.toLowerCase())) {
       await ensureLocalSecurityUnlocked("provider_credentials");
     }
     if (isTauriRuntime()) {

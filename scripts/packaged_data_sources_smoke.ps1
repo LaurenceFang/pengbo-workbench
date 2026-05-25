@@ -13,8 +13,8 @@ Add-Type -AssemblyName UIAutomationTypes
 
 $baseUrl = "http://127.0.0.1:8765/api/v1"
 $sidecarPath = (Join-Path (Join-Path $PSScriptRoot "..") "src-tauri\\target\\release\\binaries\\pengbo-sidecar\\pengbo-sidecar.exe")
-$expectedCatalogProviders = @("market", "fundamentals", "edgar", "binance", "worldbank", "dbnomics", "rss_events", "fred", "coingecko")
-$expectedDataSourceProviders = @("worldbank", "dbnomics", "rss_events", "fred", "coingecko")
+$expectedCatalogProviders = @("market", "fundamentals", "edgar", "binance", "worldbank", "dbnomics", "rss_events", "fred", "coingecko", "tushare", "hkma")
+$expectedDataSourceProviders = @("worldbank", "dbnomics", "rss_events", "fred", "coingecko", "tushare", "hkma")
 $result = [ordered]@{
     exe_path = ""
     started_at = (Get-Date).ToString("o")
@@ -340,7 +340,7 @@ try {
         $marker = Wait-ForElementNameStartsWith -Root $window -Prefix "data-source-provider provider=$provider health=" -TimeoutSeconds $UiTimeoutSeconds
         $result.ui_markers[$provider] = $marker.name
     }
-    foreach ($provider in @("fred", "coingecko")) {
+    foreach ($provider in @("fred", "coingecko", "tushare")) {
         $marker = Wait-ForElementNameStartsWith -Root $window -Prefix "data-source-provider provider=$provider health=" -TimeoutSeconds $UiTimeoutSeconds
         Invoke-UiElement -Element $marker.element
         $credentialPanel = Wait-ForElementNameStartsWith -Root $window -Prefix "data-source-credential-panel provider=$provider" -TimeoutSeconds $UiTimeoutSeconds

@@ -19,6 +19,11 @@ from ..models import (
     DataSourceRuntimeStatus,
     FreshnessState,
     DataSourceStatusResponse,
+    ConnectorManifestResponse,
+    EquityProfileResponse,
+    EquityQuoteResponse,
+    EquitySearchItem,
+    EquitySearchResponse,
     MacroSeriesPoint,
     MacroSeriesResponse,
     NewsEventItem,
@@ -28,12 +33,14 @@ from ..models import (
 from ..runtime import RuntimeSettings
 from ..storage.duckdb_store import DuckDbStore
 from .capability_service import CapabilityService
+from .connector_harness import ConnectorFixtureHarness, ConnectorScenarioError
 from .data_quality_service import quality_from_provider_state
 
 
-PUBLIC_DATA_SOURCE_PROVIDERS = {"worldbank", "dbnomics", "rss_events"}
-KEYED_DATA_SOURCE_PROVIDERS = {"fred", "coingecko"}
+PUBLIC_DATA_SOURCE_PROVIDERS = {"worldbank", "dbnomics", "rss_events", "hkma"}
+KEYED_DATA_SOURCE_PROVIDERS = {"fred", "coingecko", "tushare"}
 DATA_SOURCE_PROVIDERS = PUBLIC_DATA_SOURCE_PROVIDERS | KEYED_DATA_SOURCE_PROVIDERS
+CHINA_MARKET_PROVIDERS = {"tushare", "hkma", "worldbank", "dbnomics"}
 
 
 class DataSourceService:
@@ -48,6 +55,9 @@ class DataSourceService:
         self.capability_service = capability_service
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": "Pengbo Workbench/0.1 data-source-research"})
+        self.fixture_harness = ConnectorFixtureHarness(
+            allowed=settings.runtime_mode == "test" or settings.china_connector_fixture_mode
+        )
 
     def _now_iso(self) -> str:
         return datetime.now(UTC).isoformat()
@@ -150,7 +160,7 @@ class DataSourceService:
                 configured=self._configured(provider),
                 stale=stale,
                 limitations=[unavailable_reason] if unavailable_reason else [],
-                source_confidence="official" if provider in {"worldbank", "fred"} else "public",
+                source_confidence="official" if provider in {"worldbank", "fred", "hkma"} else "public",
             ),
         )
 
@@ -187,7 +197,7 @@ class DataSourceService:
                     configured=self._configured(provider),
                     stale=True,
                     limitations=[unavailable_reason],
-                    source_confidence="official" if provider in {"worldbank", "fred"} else "public",
+                    source_confidence="official" if provider in {"worldbank", "fred", "hkma"} else "public",
                 ).model_dump(mode="json"),
             },
         }
@@ -197,6 +207,8 @@ class DataSourceService:
             return bool(self.settings.fred_api_key)
         if provider == "coingecko":
             return bool(self.settings.coingecko_demo_api_key or self.settings.coingecko_pro_api_key)
+        if provider == "tushare":
+            return bool(self.settings.tushare_token or self.settings.china_connector_fixture_mode)
         return provider in PUBLIC_DATA_SOURCE_PROVIDERS
 
     def credential_summary(self, provider: str) -> str | None:
@@ -207,6 +219,10 @@ class DataSourceService:
             demo = self._masked_key_summary("CoinGecko demo", self.settings.coingecko_demo_api_key)
             pro = self._masked_key_summary("CoinGecko pro", self.settings.coingecko_pro_api_key)
             return " / ".join(item for item in [demo, pro] if item) or None
+        if normalized == "tushare":
+            if self.settings.china_connector_fixture_mode and not self.settings.tushare_token:
+                return "Tushare fixture token configured"
+            return self._masked_key_summary("Tushare token", self.settings.tushare_token)
         return None
 
     def _masked_key_summary(self, label: str, value: str | None) -> str | None:
@@ -225,10 +241,14 @@ class DataSourceService:
             self.settings.fred_api_key,
             self.settings.coingecko_demo_api_key,
             self.settings.coingecko_pro_api_key,
+            self.settings.tushare_token,
         ]:
             if secret:
                 message = message.replace(secret, "***")
         return message
+
+    def list_manifests(self) -> ConnectorManifestResponse:
+        return self.capability_service.get_connector_manifests()
 
     def list_status(self) -> DataSourceStatusResponse:
         return DataSourceStatusResponse(
@@ -254,6 +274,8 @@ class DataSourceService:
             message = "Save a FRED API key in the desktop Data Sources panel or set PENGBO_FRED_API_KEY/FRED_API_KEY."
         if normalized == "coingecko" and not configured:
             message = "Save a CoinGecko demo or pro API key in the desktop Data Sources panel or set PENGBO_COINGECKO_DEMO_API_KEY/PENGBO_COINGECKO_PRO_API_KEY."
+        if normalized == "tushare" and not configured:
+            message = "Save a Tushare token in the desktop Data Sources panel or set PENGBO_TUSHARE_TOKEN/TUSHARE_TOKEN."
         freshness_state = self._freshness_state(
             normalized,
             configured=configured,
@@ -281,7 +303,7 @@ class DataSourceService:
                 requires_credentials=normalized in KEYED_DATA_SOURCE_PROVIDERS,
                 stale=freshness_state in {"cached", "stale", "refresh_failed"},
                 limitations=[message] if health in {"missing_credentials", "unavailable"} else [],
-                source_confidence="official" if normalized in {"worldbank", "fred"} else "public",
+                source_confidence="official" if normalized in {"worldbank", "fred", "hkma"} else "public",
             ),
             registration_url=self.registration_url(normalized),
             paid_setup_url="https://www.coingecko.com/en/api/pricing" if normalized == "coingecko" else None,
@@ -292,6 +314,8 @@ class DataSourceService:
             return "https://fred.stlouisfed.org/docs/api/api_key.html"
         if provider == "coingecko":
             return "https://docs.coingecko.com/docs/setting-up-your-api-key"
+        if provider == "tushare":
+            return "https://tushare.pro/document/2?doc_id=130"
         return None
 
     def test_provider(self, provider: str) -> ConnectionCheckResponse:
@@ -314,12 +338,16 @@ class DataSourceService:
                 self.get_macro_series(provider="worldbank", series_id="NY.GDP.MKTP.CD", country="CN", limit=3)
             elif normalized == "dbnomics":
                 self.get_macro_series(provider="dbnomics", series_id="WB/WDI/A-NY.GDP.MKTP.CD-CHN", limit=3)
+            elif normalized == "hkma":
+                self.get_macro_series(provider="hkma", series_id="monetary_base_total", country="HK", limit=3)
             elif normalized == "rss_events":
                 self.get_news_events(query="market", limit=3)
             elif normalized == "fred":
                 self.get_macro_series(provider="fred", series_id="GDP", limit=3)
             elif normalized == "coingecko":
                 self.get_crypto_markets(ids="bitcoin,ethereum", limit=2)
+            elif normalized == "tushare":
+                self.search_equities(provider="tushare", query="600519", region="CN", limit=1)
             return ConnectionCheckResponse(
                 provider=normalized,
                 status="ok",
@@ -358,6 +386,8 @@ class DataSourceService:
                 payload = self._fetch_worldbank_series(series_id=series_id, country=country, limit=limit)
             elif normalized == "dbnomics":
                 payload = self._fetch_dbnomics_series(series_id=series_id, country=country, limit=limit)
+            elif normalized == "hkma":
+                payload = self._fetch_hkma_series(series_id=series_id, limit=limit)
             elif normalized == "fred":
                 if not self.settings.fred_api_key:
                     raise ValueError("FRED API key is not configured.")
@@ -440,6 +470,40 @@ class DataSourceService:
             "provenance": self._provenance("dbnomics", source_url=response.url, fetched_at=fetched_at).model_dump(),
         }
 
+    def _fetch_hkma_series(self, *, series_id: str, limit: int) -> dict[str, Any]:
+        url = "https://api.hkma.gov.hk/public/market-data-and-statistics/monthly-statistical-bulletin/financial/monetary-statistics"
+        if self.settings.china_connector_fixture_mode:
+            rows = self.fixture_harness.hkma_rows()
+            source_url = url + "?fixture=1"
+        else:
+            response = self.session.get(url, params={"offset": 0, "pagesize": max(limit, 10)}, timeout=20)
+            response.raise_for_status()
+            payload = response.json()
+            rows = (payload.get("result") or {}).get("records") or (payload.get("result") or {}).get("datas") or []
+            source_url = response.url
+        observations = []
+        for row in list(rows)[-limit:]:
+            date = row.get("end_of_month") or row.get("end_of_day") or row.get("date")
+            raw_value = row.get(series_id)
+            try:
+                value = None if raw_value in {None, ""} else float(raw_value)
+            except (TypeError, ValueError):
+                value = None
+            if date is not None:
+                observations.append({"date": str(date), "value": value})
+        observations.sort(key=lambda item: item["date"])
+        fetched_at = self._now_iso()
+        return {
+            "provider": "hkma",
+            "series_id": series_id,
+            "title": f"HKMA {series_id.replace('_', ' ').title()}",
+            "geography": "Hong Kong",
+            "frequency": "monthly",
+            "unit": "HK$ million or percent, depending on series",
+            "observations": observations,
+            "provenance": self._provenance("hkma", source_url=source_url, fetched_at=fetched_at).model_dump(),
+        }
+
     def _fetch_fred_series(self, *, series_id: str, limit: int) -> dict[str, Any]:
         url = "https://api.stlouisfed.org/fred/series/observations"
         response = self.session.get(
@@ -475,6 +539,237 @@ class DataSourceService:
             "observations": observations,
             "provenance": self._provenance("fred", source_url=response.url.split("api_key=")[0] + "api_key=***", fetched_at=fetched_at).model_dump(),
         }
+
+    def _blocked_provenance(self, provider: str, reason: str, *, source_url: str | None = None) -> DataSourceProvenance:
+        definition = self.capability_service.get_source_definition(provider)
+        return DataSourceProvenance(
+            provider=provider,
+            label=self._definition_label(provider),
+            source_url=source_url or (definition.provenance_source_url if definition else provider),
+            fetched_at=None,
+            freshness=self._freshness(provider),
+            freshness_state="unsupported",
+            stale=False,
+            unavailable_reason=reason,
+            data_quality=quality_from_provider_state(
+                provider=provider,
+                health="unsupported",
+                freshness_state="unsupported",
+                configured=self._configured(provider),
+                limitations=[reason, "license_blocked"],
+                source_confidence="unsupported",
+            ),
+        )
+
+    def _tushare_payload(self, api_name: str, *, params: dict[str, Any], fields: str) -> dict[str, Any]:
+        if not self.settings.tushare_token and not self.settings.china_connector_fixture_mode:
+            raise ValueError("Tushare token is not configured.")
+        response = self.session.post(
+            "http://api.tushare.pro",
+            json={
+                "api_name": api_name,
+                "token": self.settings.tushare_token,
+                "params": params,
+                "fields": fields,
+            },
+            timeout=20,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        code = payload.get("code")
+        if code not in {0, None}:
+            message = str(payload.get("msg") or f"Tushare returned code {code}")
+            if code in {2002, 2010, 2011}:
+                raise PermissionError(f"Tushare permission or points blocked: {message}")
+            raise RuntimeError(message)
+        data = payload.get("data") or {}
+        names = data.get("fields") or []
+        rows = []
+        for item in data.get("items") or []:
+            rows.append({str(field): value for field, value in zip(names, item, strict=False)})
+        return {"rows": rows, "source_url": "http://api.tushare.pro"}
+
+    def _fetch_tushare_stock_basic(self, *, query: str = "", symbol: str | None = None, scenario: str | None = None) -> dict[str, Any]:
+        self.fixture_harness.maybe_raise(scenario)
+        if self.settings.china_connector_fixture_mode or scenario == "configured_key":
+            rows = self.fixture_harness.stock_basic_rows(query=query, symbol=symbol)
+            return {"rows": rows, "source_url": "http://api.tushare.pro?fixture=1"}
+        params: dict[str, Any] = {"list_status": "L"}
+        if symbol:
+            params["ts_code"] = symbol.upper()
+        payload = self._tushare_payload(
+            "stock_basic",
+            params=params,
+            fields="ts_code,name,area,industry,market,list_date",
+        )
+        rows = payload["rows"]
+        normalized_query = query.strip().upper()
+        if normalized_query:
+            rows = [
+                row
+                for row in rows
+                if normalized_query in str(row.get("ts_code", "")).upper()
+                or normalized_query in str(row.get("name", "")).upper()
+            ]
+        return {"rows": rows, "source_url": payload["source_url"]}
+
+    def _fetch_tushare_daily(self, *, symbol: str, scenario: str | None = None) -> dict[str, Any]:
+        self.fixture_harness.maybe_raise(scenario)
+        if self.settings.china_connector_fixture_mode or scenario == "configured_key":
+            return {"row": self.fixture_harness.daily_row(symbol), "source_url": "http://api.tushare.pro?fixture=1"}
+        payload = self._tushare_payload(
+            "daily",
+            params={"ts_code": symbol.upper()},
+            fields="ts_code,trade_date,open,high,low,close,pre_close,change,pct_chg,vol,amount",
+        )
+        rows = sorted(payload["rows"], key=lambda item: str(item.get("trade_date") or ""), reverse=True)
+        if not rows:
+            raise RuntimeError(f"Tushare returned no daily quote rows for {symbol}.")
+        return {"row": rows[0], "source_url": payload["source_url"]}
+
+    def search_equities(
+        self,
+        *,
+        provider: str = "tushare",
+        query: str = "",
+        region: str = "CN",
+        limit: int = 20,
+        scenario: str | None = None,
+    ) -> EquitySearchResponse:
+        normalized = provider.lower()
+        if normalized != "tushare":
+            raise ValueError(f"Unsupported equity provider: {provider}")
+        if self.fixture_harness.license_blocked(scenario):
+            reason = "license_blocked: fixture prevents any live A-share request."
+            return EquitySearchResponse(
+                provider=normalized,
+                query=query,
+                region=region,
+                results=[],
+                provenance=self._blocked_provenance(normalized, reason),
+            )
+        cache_key = self._cache_key({"kind": "equity-search", "provider": normalized, "query": query, "region": region, "limit": limit})
+        try:
+            fetched = self._fetch_tushare_stock_basic(query=query, scenario=scenario)
+            rows = fetched["rows"][:limit]
+            fetched_at = self._now_iso()
+            payload = {
+                "provider": normalized,
+                "query": query,
+                "region": region,
+                "results": [
+                    {
+                        "symbol": str(row.get("ts_code")),
+                        "name": str(row.get("name") or row.get("ts_code")),
+                        "exchange": str(row.get("ts_code", "")).split(".")[-1] if row.get("ts_code") else None,
+                        "market": row.get("market"),
+                        "area": row.get("area"),
+                        "industry": row.get("industry"),
+                        "currency": "CNY",
+                        "asset_class": "equity",
+                    }
+                    for row in rows
+                ],
+                "provenance": self._provenance(normalized, source_url=fetched["source_url"], fetched_at=fetched_at).model_dump(),
+                "read_only": True,
+                "live_trading": False,
+                "write_status": "read_only",
+            }
+            self.duck_store.put_data_source_snapshot(normalized, cache_key, payload)
+            return EquitySearchResponse.model_validate(payload)
+        except Exception as error:
+            safe_error = self.safe_error_message(error)
+            cached = self.duck_store.get_data_source_snapshot(normalized, cache_key)
+            if cached is not None:
+                return EquitySearchResponse.model_validate(
+                    self._cached_payload_after_refresh_failure(normalized, cached, safe_error)
+                )
+            raise RuntimeError(safe_error) from error
+
+    def get_equity_quote(self, *, provider: str = "tushare", symbol: str = "600519.SH", scenario: str | None = None) -> EquityQuoteResponse:
+        normalized = provider.lower()
+        if normalized != "tushare":
+            raise ValueError(f"Unsupported equity provider: {provider}")
+        symbol = symbol.strip().upper()
+        if self.fixture_harness.license_blocked(scenario):
+            reason = "license_blocked: fixture prevents any live A-share request."
+            return EquityQuoteResponse(provider=normalized, symbol=symbol, provenance=self._blocked_provenance(normalized, reason))
+        cache_key = self._cache_key({"kind": "equity-quote", "provider": normalized, "symbol": symbol})
+        try:
+            fetched = self._fetch_tushare_daily(symbol=symbol, scenario=scenario)
+            profile_rows = self._fetch_tushare_stock_basic(symbol=symbol, scenario=scenario)["rows"]
+            profile = profile_rows[0] if profile_rows else {}
+            row = fetched["row"]
+            fetched_at = self._now_iso()
+            payload = {
+                "provider": normalized,
+                "symbol": symbol,
+                "name": profile.get("name"),
+                "price": row.get("close"),
+                "open": row.get("open"),
+                "high": row.get("high"),
+                "low": row.get("low"),
+                "previous_close": row.get("pre_close"),
+                "change": row.get("change"),
+                "change_pct": row.get("pct_chg"),
+                "volume": row.get("vol"),
+                "amount": row.get("amount"),
+                "currency": "CNY",
+                "as_of": str(row.get("trade_date")) if row.get("trade_date") else fetched_at,
+                "provenance": self._provenance(normalized, source_url=fetched["source_url"], fetched_at=fetched_at).model_dump(),
+                "read_only": True,
+                "live_trading": False,
+                "write_status": "read_only",
+            }
+            self.duck_store.put_data_source_snapshot(normalized, cache_key, payload)
+            return EquityQuoteResponse.model_validate(payload)
+        except Exception as error:
+            safe_error = self.safe_error_message(error)
+            cached = self.duck_store.get_data_source_snapshot(normalized, cache_key)
+            if cached is not None:
+                return EquityQuoteResponse.model_validate(
+                    self._cached_payload_after_refresh_failure(normalized, cached, safe_error)
+                )
+            raise RuntimeError(safe_error) from error
+
+    def get_equity_profile(self, *, provider: str = "tushare", symbol: str = "600519.SH", scenario: str | None = None) -> EquityProfileResponse:
+        normalized = provider.lower()
+        if normalized != "tushare":
+            raise ValueError(f"Unsupported equity provider: {provider}")
+        symbol = symbol.strip().upper()
+        if self.fixture_harness.license_blocked(scenario):
+            reason = "license_blocked: fixture prevents any live A-share request."
+            return EquityProfileResponse(provider=normalized, symbol=symbol, provenance=self._blocked_provenance(normalized, reason))
+        cache_key = self._cache_key({"kind": "equity-profile", "provider": normalized, "symbol": symbol})
+        try:
+            fetched = self._fetch_tushare_stock_basic(symbol=symbol, scenario=scenario)
+            row = fetched["rows"][0] if fetched["rows"] else {"ts_code": symbol}
+            fetched_at = self._now_iso()
+            payload = {
+                "provider": normalized,
+                "symbol": symbol,
+                "name": row.get("name"),
+                "exchange": symbol.split(".")[-1] if "." in symbol else None,
+                "market": row.get("market"),
+                "area": row.get("area"),
+                "industry": row.get("industry"),
+                "list_date": row.get("list_date"),
+                "currency": "CNY",
+                "provenance": self._provenance(normalized, source_url=fetched["source_url"], fetched_at=fetched_at).model_dump(),
+                "read_only": True,
+                "live_trading": False,
+                "write_status": "read_only",
+            }
+            self.duck_store.put_data_source_snapshot(normalized, cache_key, payload)
+            return EquityProfileResponse.model_validate(payload)
+        except Exception as error:
+            safe_error = self.safe_error_message(error)
+            cached = self.duck_store.get_data_source_snapshot(normalized, cache_key)
+            if cached is not None:
+                return EquityProfileResponse.model_validate(
+                    self._cached_payload_after_refresh_failure(normalized, cached, safe_error)
+                )
+            raise RuntimeError(safe_error) from error
 
     def get_crypto_markets(self, *, ids: str = "bitcoin,ethereum", limit: int = 10) -> CryptoMarketsResponse:
         provider = "coingecko"
@@ -602,6 +897,7 @@ class DataSourceService:
             "- Evidence pack: `data_sources`",
             "- Provider status: `catalog health, credential readiness, cache state, and read-only boundary`",
             "- Data quality: `completeness, timeliness, source confidence, and limitation notes are included where available`",
+            "- China-market pack: `A-share quote/profile, HK/China macro, manifest license summary, and no-live-trading boundary when available`",
             "- Private-state boundary: `no API keys, Stronghold vaults, unlock secrets, session tokens, runtime databases, or diagnostics bundles are included`",
             "- Audit references: `provider health and provenance only; security audit records are not exported from this report`",
             "",
@@ -616,6 +912,20 @@ class DataSourceService:
             )
             sections.append(
                 f"| {item.provider} | {item.read_only} | {item.live_trading} | {item.write_status} | {item.test_mode or 'not testable'} | {len(item.capabilities)} | {credential_gated or 'none'} | {item.provenance.source_url if item.provenance else 'catalog'} |"
+            )
+        manifests = self.list_manifests().manifests
+        sections.extend(
+            [
+                "",
+                "## Connector Manifest Summary",
+                "",
+                "| Provider | Family | Credential model | License status | Redistribution risk | Read-only | Live trading |",
+                "| --- | --- | --- | --- | --- | --- | --- |",
+            ]
+        )
+        for manifest in manifests:
+            sections.append(
+                f"| {manifest.provider_key} | {manifest.family} | {manifest.credential_model} | {manifest.license_status} | {manifest.redistribution_risk} | {manifest.read_only} | {manifest.live_trading} |"
             )
         sections.extend(
             [
@@ -704,6 +1014,7 @@ class DataSourceService:
                 "",
                 "- All listed data sources are read-only in this catalog.",
                 "- Non-Binance sources do not expose live trading or order submission paths.",
+                "- China-market connectors are research-only; A-share/HK macro outputs are provenance-bearing evidence, not broker instructions.",
                 "- This export excludes credentials, Stronghold state, session tokens, runtime databases, and private local diagnostics.",
             ]
         )
@@ -744,6 +1055,21 @@ class DataSourceService:
                 samples.append(self._summary_from_status("coingecko", health="unavailable", reason=str(error)))
         else:
             samples.append(self._summary_from_status("coingecko", health="missing_credentials", reason=self.get_provider_status("coingecko").message))
+
+        if self._configured(payload.equity_provider):
+            try:
+                equity = self.get_equity_quote(provider=payload.equity_provider, symbol=payload.equity_symbol)
+                samples.append(self._summary_from_provenance(equity.provenance, health="cached" if equity.provenance.stale else "ok"))
+            except Exception as error:
+                samples.append(self._summary_from_status(payload.equity_provider, health="unavailable", reason=str(error)))
+        elif payload.equity_provider in DATA_SOURCE_PROVIDERS:
+            samples.append(
+                self._summary_from_status(
+                    payload.equity_provider,
+                    health="missing_credentials",
+                    reason=self.get_provider_status(payload.equity_provider).message,
+                )
+            )
 
         return samples
 
@@ -797,7 +1123,7 @@ class DataSourceService:
                 requires_credentials=status.requires_credentials,
                 stale=freshness_state in {"cached", "stale", "refresh_failed"},
                 limitations=[reason],
-                source_confidence="official" if status.provider in {"worldbank", "fred"} else "public",
+                source_confidence="official" if status.provider in {"worldbank", "fred", "hkma"} else "public",
             ),
             source_url=None if definition is None else definition.provenance_source_url,
             unavailable_reason=reason,
