@@ -1946,6 +1946,7 @@ Implementation Log:
 - Added controlled A-share catalog seeds (`600519.SH`, `000001.SZ`, `300750.SZ`) and fixture quote/profile support in packaged smoke mode.
 - Tauri Stronghold/env plumbing now supports `tushare.token`, `PENGBO_TUSHARE_TOKEN`, and `TUSHARE_TOKEN`; API responses and exports keep the token redacted.
 - Data Sources UI surfaces Tushare credential state and A-share preview with read-only/no-live-trading markers.
+- Live token validation on 2026-05-31 confirmed new Tushare accounts can be configured but still blocked from `stock_basic`/`daily` with upstream code `40203`; the connector now reports this as `permission_blocked` provenance without exposing the token.
 
 ### T89 - HK/China Macro Connector V1
 
@@ -2015,6 +2016,7 @@ Implementation Log:
 - Added `scripts/packaged_china_connectors_smoke.ps1` and `npm run smoke:china-connectors:packaged`.
 - The smoke uses the real release EXE, backs up/restores the packaged runtime, validates no-key Tushare/HKMA status, manifest contracts, Tushare search/quote/profile, HKMA macro, cached timeout fallback, license-blocked/no-live-trading boundaries, Workflow Studio to Research, Research export, and Data Sources export.
 - Evidence target: `logs/china-connectors-packaged-smoke-latest.json`.
+- Live configured-token evidence target: `logs/tushare-live-api-validation-latest.json`; current account evidence records upstream `40203` permission blocks for `stock_basic` and `daily`, plus Pengbo `permission_blocked` responses for search, quote, and profile.
 
 ### T92 - Credential Audit Trail Hardening
 

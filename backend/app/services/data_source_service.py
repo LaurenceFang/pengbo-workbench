@@ -540,7 +540,14 @@ class DataSourceService:
             "provenance": self._provenance("fred", source_url=response.url.split("api_key=")[0] + "api_key=***", fetched_at=fetched_at).model_dump(),
         }
 
-    def _blocked_provenance(self, provider: str, reason: str, *, source_url: str | None = None) -> DataSourceProvenance:
+    def _blocked_provenance(
+        self,
+        provider: str,
+        reason: str,
+        *,
+        source_url: str | None = None,
+        blocked_marker: str = "license_blocked",
+    ) -> DataSourceProvenance:
         definition = self.capability_service.get_source_definition(provider)
         return DataSourceProvenance(
             provider=provider,
@@ -556,9 +563,17 @@ class DataSourceService:
                 health="unsupported",
                 freshness_state="unsupported",
                 configured=self._configured(provider),
-                limitations=[reason, "license_blocked"],
+                limitations=[reason, blocked_marker],
                 source_confidence="unsupported",
             ),
+        )
+
+    def _tushare_permission_blocked_provenance(self, reason: str) -> DataSourceProvenance:
+        return self._blocked_provenance(
+            "tushare",
+            f"permission_blocked: {reason}",
+            source_url="http://api.tushare.pro",
+            blocked_marker="permission_blocked",
         )
 
     def _tushare_payload(self, api_name: str, *, params: dict[str, Any], fields: str) -> dict[str, Any]:
@@ -579,7 +594,7 @@ class DataSourceService:
         code = payload.get("code")
         if code not in {0, None}:
             message = str(payload.get("msg") or f"Tushare returned code {code}")
-            if code in {2002, 2010, 2011}:
+            if code in {2002, 2010, 2011, 40203}:
                 raise PermissionError(f"Tushare permission or points blocked: {message}")
             raise RuntimeError(message)
         data = payload.get("data") or {}
@@ -677,6 +692,15 @@ class DataSourceService:
             }
             self.duck_store.put_data_source_snapshot(normalized, cache_key, payload)
             return EquitySearchResponse.model_validate(payload)
+        except PermissionError as error:
+            safe_error = self.safe_error_message(error)
+            return EquitySearchResponse(
+                provider=normalized,
+                query=query,
+                region=region,
+                results=[],
+                provenance=self._tushare_permission_blocked_provenance(safe_error),
+            )
         except Exception as error:
             safe_error = self.safe_error_message(error)
             cached = self.duck_store.get_data_source_snapshot(normalized, cache_key)
@@ -723,6 +747,13 @@ class DataSourceService:
             }
             self.duck_store.put_data_source_snapshot(normalized, cache_key, payload)
             return EquityQuoteResponse.model_validate(payload)
+        except PermissionError as error:
+            safe_error = self.safe_error_message(error)
+            return EquityQuoteResponse(
+                provider=normalized,
+                symbol=symbol,
+                provenance=self._tushare_permission_blocked_provenance(safe_error),
+            )
         except Exception as error:
             safe_error = self.safe_error_message(error)
             cached = self.duck_store.get_data_source_snapshot(normalized, cache_key)
@@ -762,6 +793,13 @@ class DataSourceService:
             }
             self.duck_store.put_data_source_snapshot(normalized, cache_key, payload)
             return EquityProfileResponse.model_validate(payload)
+        except PermissionError as error:
+            safe_error = self.safe_error_message(error)
+            return EquityProfileResponse(
+                provider=normalized,
+                symbol=symbol,
+                provenance=self._tushare_permission_blocked_provenance(safe_error),
+            )
         except Exception as error:
             safe_error = self.safe_error_message(error)
             cached = self.duck_store.get_data_source_snapshot(normalized, cache_key)

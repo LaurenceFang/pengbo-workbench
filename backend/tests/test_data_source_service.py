@@ -391,6 +391,34 @@ class DataSourceServiceTests(unittest.TestCase):
                 self.assertNotIn("unit-tushare-secret", str(payload))
                 self.assertEqual(service.session.requests[0][1]["json"]["token"], "unit-tushare-secret")
 
+    def test_tushare_permission_error_returns_blocked_provenance(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            app = create_app(make_settings(Path(temp_dir), tushare_token="unit-tushare-secret"))
+            with TestClient(app) as client:
+                service = app.state.container.data_source_service
+                service.session = QueueSession(
+                    [
+                        FakeResponse(
+                            {
+                                "code": 40203,
+                                "msg": "抱歉，您没有接口(stock_basic)访问权限。",
+                                "data": {"fields": [], "items": []},
+                            },
+                            url="http://api.tushare.pro",
+                        )
+                    ]
+                )
+
+                response = client.get("/api/v1/data-sources/equities/search?provider=tushare&query=600519&limit=1")
+                self.assertEqual(response.status_code, 200)
+                payload = response.json()
+                self.assertEqual(payload["results"], [])
+                self.assertEqual(payload["provenance"]["freshness_state"], "unsupported")
+                self.assertEqual(payload["provenance"]["data_quality"]["overall"], "blocked")
+                self.assertIn("permission_blocked", payload["provenance"]["unavailable_reason"])
+                self.assertIn("permission_blocked", payload["provenance"]["data_quality"]["limitations"])
+                self.assertNotIn("unit-tushare-secret", str(payload))
+
     def test_tushare_fixture_quote_cache_and_license_blocked_do_not_use_network(self) -> None:
         with TemporaryDirectory() as temp_dir:
             app = create_app(make_settings(Path(temp_dir), china_fixture=True))

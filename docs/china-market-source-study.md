@@ -31,6 +31,9 @@ Sources checked:
 - Tushare requires a user-provided token through local environment or the
   desktop Stronghold secret bridge. Tokens are not committed, exported, logged,
   or returned by API responses.
+- A valid Tushare token can still be blocked by account points or endpoint
+  permissions. Upstream code `40203` from `stock_basic` or `daily` is treated
+  as configured-but-`permission_blocked` provenance, not as a missing credential.
 - HKMA is no-key and can be used without local unlock.
 - Fixture scenarios are available only in test mode or packaged smoke mode:
   configured-key, timeout, malformed response, stale/cache fallback, and
