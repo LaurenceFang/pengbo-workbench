@@ -1876,6 +1876,7 @@ Implementation Log:
 - Added the cautious source plan in `docs/china-market-source-study.md`.
 - Selected Tushare Pro HTTP API as the first user-token A-share source and HKMA Open API as the first no-key HK/China macro source; AKShare remains candidate-only pending upstream-by-upstream provenance and redistribution review.
 - Boundary: no automated account/API-key acquisition is required for tests or packaged signoff; fixtures and local user-provided tokens keep secrets out of repo and smoke output.
+- Expanded the source study with the user's requested next Tushare `api_name` queue (`daily_basic`, `fina_indicator`, `income`, `balancesheet`, `cashflow`, `adj_factor`, `trade_cal`, and `moneyflow`) plus additional cautious candidates: BaoStock, AKShare, CNINFO, exchange-direct feeds, HKMA/DATA.GOV.HK, World Bank/FRED/DB.NOMICS, GDELT, SEC EDGAR, CoinGecko, and Binance market data.
 
 ### T86 - Connector Manifest Contract
 
@@ -1946,7 +1947,8 @@ Implementation Log:
 - Added controlled A-share catalog seeds (`600519.SH`, `000001.SZ`, `300750.SZ`) and fixture quote/profile support in packaged smoke mode.
 - Tauri Stronghold/env plumbing now supports `tushare.token`, `PENGBO_TUSHARE_TOKEN`, and `TUSHARE_TOKEN`; API responses and exports keep the token redacted.
 - Data Sources UI surfaces Tushare credential state and A-share preview with read-only/no-live-trading markers.
-- Live token validation on 2026-05-31 confirmed new Tushare accounts can be configured but still blocked from `stock_basic`/`daily` with upstream code `40203`; the connector now reports this as `permission_blocked` provenance without exposing the token.
+- Live token validation on 2026-05-31 confirmed valid Tushare tokens can still hit endpoint-level upstream code `40203`; the connector now reports this as `permission_blocked` provenance without exposing the token.
+- Follow-up live validation on 2026-05-31 confirmed `daily` can return a `600519.SH` read-only quote while `stock_basic` may be frequency-limited; quote/status now keeps the fresh `daily` price and marks the missing profile lookup as `profile_lookup_unavailable` / `partial_profile` instead of discarding the quote.
 
 ### T89 - HK/China Macro Connector V1
 
@@ -2016,7 +2018,8 @@ Implementation Log:
 - Added `scripts/packaged_china_connectors_smoke.ps1` and `npm run smoke:china-connectors:packaged`.
 - The smoke uses the real release EXE, backs up/restores the packaged runtime, validates no-key Tushare/HKMA status, manifest contracts, Tushare search/quote/profile, HKMA macro, cached timeout fallback, license-blocked/no-live-trading boundaries, Workflow Studio to Research, Research export, and Data Sources export.
 - Evidence target: `logs/china-connectors-packaged-smoke-latest.json`.
-- Live configured-token evidence target: `logs/tushare-live-api-validation-latest.json`; current account evidence records upstream `40203` permission blocks for `stock_basic` and `daily`, plus Pengbo `permission_blocked` responses for search, quote, and profile.
+- Live configured-token evidence target: `logs/tushare-live-api-validation-latest.json`; current account evidence records upstream `40203` frequency blocks for `stock_basic`, a successful `daily` quote for `600519.SH`, Pengbo `permission_blocked` responses for search/profile, and a fresh quote response with partial-profile limitations.
+- Expanded Tushare permission evidence target: `logs/tushare-expanded-api-validation-latest.json`; current evidence is redacted and records endpoint-level response codes, field lists, row counts, and read-only/no-live-trading flags without storing the token or request body.
 
 ### T92 - Credential Audit Trail Hardening
 

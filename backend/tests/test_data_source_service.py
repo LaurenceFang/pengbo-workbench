@@ -419,6 +419,58 @@ class DataSourceServiceTests(unittest.TestCase):
                 self.assertIn("permission_blocked", payload["provenance"]["data_quality"]["limitations"])
                 self.assertNotIn("unit-tushare-secret", str(payload))
 
+    def test_tushare_quote_survives_profile_lookup_limit(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            app = create_app(make_settings(Path(temp_dir), tushare_token="unit-tushare-secret"))
+            with TestClient(app) as client:
+                service = app.state.container.data_source_service
+                service.session = QueueSession(
+                    [
+                        FakeResponse(
+                            {
+                                "code": 0,
+                                "data": {
+                                    "fields": [
+                                        "ts_code",
+                                        "trade_date",
+                                        "open",
+                                        "high",
+                                        "low",
+                                        "close",
+                                        "pre_close",
+                                        "change",
+                                        "pct_chg",
+                                        "vol",
+                                        "amount",
+                                    ],
+                                    "items": [["600519.SH", "20260529", 1270.6, 1329.0, 1270.0, 1326.0, 1275.98, 50.02, 3.9201, 76478.05, 10037388.211]],
+                                },
+                            },
+                            url="http://api.tushare.pro",
+                        ),
+                        FakeResponse(
+                            {
+                                "code": 40203,
+                                "msg": "stock_basic frequency limit (1/hour).",
+                                "data": {"fields": [], "items": []},
+                            },
+                            url="http://api.tushare.pro",
+                        ),
+                    ]
+                )
+
+                response = client.get("/api/v1/data-sources/equities/quote?provider=tushare&symbol=600519.SH")
+                self.assertEqual(response.status_code, 200)
+                payload = response.json()
+                self.assertEqual(payload["price"], 1326.0)
+                self.assertEqual(payload["name"], None)
+                self.assertEqual(payload["provenance"]["freshness_state"], "fresh")
+                self.assertIn("profile_lookup_unavailable", payload["provenance"]["unavailable_reason"])
+                self.assertIn("partial_profile", payload["provenance"]["data_quality"]["limitations"])
+                self.assertTrue(payload["read_only"])
+                self.assertFalse(payload["live_trading"])
+                self.assertNotIn("unit-tushare-secret", str(payload))
+
     def test_tushare_fixture_quote_cache_and_license_blocked_do_not_use_network(self) -> None:
         with TemporaryDirectory() as temp_dir:
             app = create_app(make_settings(Path(temp_dir), china_fixture=True))

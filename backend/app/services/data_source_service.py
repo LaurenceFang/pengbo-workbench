@@ -721,10 +721,27 @@ class DataSourceService:
         cache_key = self._cache_key({"kind": "equity-quote", "provider": normalized, "symbol": symbol})
         try:
             fetched = self._fetch_tushare_daily(symbol=symbol, scenario=scenario)
-            profile_rows = self._fetch_tushare_stock_basic(symbol=symbol, scenario=scenario)["rows"]
-            profile = profile_rows[0] if profile_rows else {}
+            profile: dict[str, Any] = {}
+            profile_error: str | None = None
+            try:
+                profile_rows = self._fetch_tushare_stock_basic(symbol=symbol, scenario=scenario)["rows"]
+                profile = profile_rows[0] if profile_rows else {}
+            except Exception as error:
+                profile_error = self.safe_error_message(error)
             row = fetched["row"]
             fetched_at = self._now_iso()
+            provenance = self._provenance(normalized, source_url=fetched["source_url"], fetched_at=fetched_at).model_dump()
+            if profile_error:
+                reason = f"profile_lookup_unavailable: {profile_error}"
+                provenance["unavailable_reason"] = reason
+                provenance["data_quality"] = quality_from_provider_state(
+                    provider=normalized,
+                    health="ok",
+                    freshness_state=provenance.get("freshness_state", "fresh"),
+                    configured=self._configured(normalized),
+                    limitations=[reason, "partial_profile"],
+                    source_confidence="public",
+                ).model_dump()
             payload = {
                 "provider": normalized,
                 "symbol": symbol,
@@ -740,7 +757,7 @@ class DataSourceService:
                 "amount": row.get("amount"),
                 "currency": "CNY",
                 "as_of": str(row.get("trade_date")) if row.get("trade_date") else fetched_at,
-                "provenance": self._provenance(normalized, source_url=fetched["source_url"], fetched_at=fetched_at).model_dump(),
+                "provenance": provenance,
                 "read_only": True,
                 "live_trading": False,
                 "write_status": "read_only",
