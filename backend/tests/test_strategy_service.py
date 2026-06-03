@@ -196,6 +196,8 @@ class StrategyApiTests(unittest.TestCase):
         with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
             app = create_app(make_settings(Path(temp_dir)))
             with TestClient(app) as client:
+                unlock_response = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock_response.status_code, 200)
                 container = app.state.container
                 fake_assets = FakeAssetService()
                 container.asset_service.get_asset_workspace = fake_assets.get_asset_workspace

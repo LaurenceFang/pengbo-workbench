@@ -43,6 +43,9 @@ class SecurityAuditServiceTests(unittest.TestCase):
                             "safe_value": "visible",
                         },
                         "auth_items": [{"refresh_token": "unit-refresh"}],
+                        "message": "Authorization: Bearer unit-secret-token api_key=unit-key-in-text",
+                        "url": "https://example.test/path?token=unit-query-token&symbol=AAPL",
+                        "encoded_url": "https://example.test/rss?q=api_key%3Dunit-encoded-key&hl=en-US",
                     },
                 )
 
@@ -59,6 +62,66 @@ class SecurityAuditServiceTests(unittest.TestCase):
                 self.assertEqual(event["payload"]["nested"]["identity"], "***")
                 self.assertEqual(event["payload"]["nested"]["safe_value"], "visible")
                 self.assertEqual(event["payload"]["auth_items"][0]["refresh_token"], "***")
+                self.assertNotIn("unit-secret-token", str(event["payload"]))
+                self.assertNotIn("unit-key-in-text", str(event["payload"]))
+                self.assertNotIn("unit-query-token", str(event["payload"]))
+                self.assertNotIn("unit-encoded-key", str(event["payload"]))
+
+    def test_sensitive_workspaces_require_unlock_and_report_exports_are_audited(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
+            app = create_app(make_settings(Path(temp_dir)))
+            with TestClient(app) as client:
+                locked_research = client.get("/api/v1/research/briefs/recent")
+                self.assertEqual(locked_research.status_code, 423)
+                locked_portfolio = client.get("/api/v1/portfolio/transactions")
+                self.assertEqual(locked_portfolio.status_code, 423)
+                locked_runtime = client.get("/api/v1/settings/runtime")
+                self.assertEqual(locked_runtime.status_code, 423)
+
+                init_response = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(init_response.status_code, 200)
+
+                session = client.post("/api/v1/security/session", json={}).json()
+                created = client.post(
+                    "/api/v1/research/briefs",
+                    json={"symbol": "AAPL"},
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                )
+                self.assertEqual(created.status_code, 200)
+                brief_id = created.json()["brief_id"]
+                updated = client.put(
+                    f"/api/v1/research/briefs/{brief_id}/notes",
+                    json={
+                        "markdown": (
+                            "Do not leak api_key=unit-export-secret "
+                            "or Authorization: Bearer unit-export-token in exports."
+                        )
+                    },
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                )
+                self.assertEqual(updated.status_code, 200)
+                self.assertNotIn("unit-export-secret", str(updated.json()))
+                self.assertNotIn("unit-export-token", str(updated.json()))
+                exported = client.post(
+                    f"/api/v1/research/briefs/{brief_id}/export",
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                )
+                self.assertEqual(exported.status_code, 200)
+                contents = Path(exported.json()["export_path"]).read_text(encoding="utf-8")
+                self.assertNotIn("unit-export-secret", contents)
+                self.assertNotIn("unit-export-token", contents)
+
+                stored_briefs = str(app.state.container.sqlite_store.get_research_brief(brief_id))
+                self.assertNotIn("unit-export-secret", stored_briefs)
+                self.assertNotIn("unit-export-token", stored_briefs)
+
+                audit = client.get(
+                    "/api/v1/security/audit?category=report_export",
+                    headers={"X-Pengbo-Session": session["session_id"]},
+                )
+                self.assertEqual(audit.status_code, 200)
+                event_types = {event["event_type"] for event in audit.json()}
+                self.assertIn("report_exported", event_types)
 
     def test_local_unlock_gates_sensitive_audit_and_records_events(self) -> None:
         with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:

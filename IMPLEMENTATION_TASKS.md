@@ -1,6 +1,6 @@
 # Pengbo Workbench Task Board
 
-Updated: 2026-05-21
+Updated: 2026-06-03
 
 ## Current Assessment
 
@@ -50,6 +50,9 @@ Updated: 2026-05-21
 - `T54 - Account-Scoped Provider Credential Model` is now implemented and package-smoke validated. Provider credential readiness metadata is scoped to explicit local profiles, the existing `/api/v1/...` compatibility routes still work, Stronghold secret material remains outside SQLite, and packaged evidence is recorded in `logs/account-scoped-credentials-smoke-latest.json`.
 - `T55 - Future Public Auth And Session Layer` is now implemented as a local-only session boundary: the backend persists redacted session metadata, the desktop API client attaches `X-Pengbo-Session`, sensitive credential/execution/export/audit routes require session-bound permissions, and `/api/v1/security/route-classification` gives T56 a route-level exposure map.
 - `T56 - Public Exposure Gateway And Sidecar Hardening` is now implemented and package-smoke validated. The sidecar refuses non-loopback bind addresses, CORS origins are centralized, unsafe origins and invalid methods are rejected before route handling, sensitive gateway failures are audited with redaction, rate-limit hooks are present, and the public-exposure posture is documented in `docs/public-exposure-gateway-t56.md`.
+- `T92 - Credential Audit Trail Hardening` is now implemented. Security audit redaction now covers sensitive keys, bearer headers, query params, URL-encoded key/value strings, local notes, exported Research/Data Sources/Strategy reports, and portfolio transaction notes without storing raw markers in SQLite.
+- `T93 - Sensitive Workspace Lock Rules` is now implemented. Local unlock now gates Research, Factor Lab, Workflow Studio, Strategy/Data Sources report exports, Portfolio records, runtime settings, AI-control writes, assistant contexts, and the matching frontend workspaces.
+- `T94 - Security Packaged Signoff` is now package-smoke validated. `npm run smoke:security:packaged` records local unlock/session/gateway/export/audit/route-classification/redaction evidence in `logs/security-signoff-packaged-smoke-latest.json` with `failures=[]`.
 - `T57 - License And Open Source Boundary` is now implemented as the first product-trust task after T56. The repository now has an Apache-2.0 source license, README and security/upload docs describe the public source boundary, package and Tauri metadata agree on `Apache-2.0`, generated runtime/log/secret/build artifacts remain outside the public source set, and no API/runtime/trading behavior changed.
 - `T58 - Version Governance Cleanup` is now implemented. Version metadata is aligned across package, package-lock, Tauri, Cargo, backend sidecar constants, `/health`, `/settings/runtime`, Settings UI, README, CHANGELOG, and the cleaned public `PLAN.md`; `npm run check:version` now enforces the source/runtime version story, and the prior transitive `postcss` audit advisory is resolved.
 - `T59 - GitHub Actions CI Baseline` is now implemented as a no-secret source-level CI workflow. The workflow covers version consistency, public-boundary scanning, npm audit, frontend typecheck/build, and backend unit tests without provider credentials, packaged EXE smoke, Tauri release builds, signing, or live-trading permissions.
@@ -946,35 +949,30 @@ Updated: 2026-05-21
 
 ## Recommended Next Task
 
-### T77 - Data Sources Packaged Signoff V2
+### T95 - Next Release-Cycle Scope Selection
 
 Priority: P1
-Status: Completed
+Status: Proposed
 
 Why this is next:
 
-- `T76` now aligns provider registry/runtime contracts and keeps all catalog providers read-only with no live-trading capability.
-- The next product gap is proving those Data Sources provider contracts inside the packaged desktop EXE.
+- `T92` through `T94` completed the current security packaged-signoff lane.
+- The next task should be selected from concrete release-cycle gaps rather than expanding the security model into hosted accounts, public APIs, remote sync, or new live-trading scope by default.
 
 Scope:
 
-- Validate provider catalog, credential states, freshness labels, cache behavior, provenance, and exports in the packaged EXE.
-- Capture source-safe packaged evidence for reviewer/release signoff.
-- Add packaged smoke assertions where practical.
+- Review remaining release blockers and choose one bounded T95 item.
+- Keep the local-first desktop boundary intact unless a future roadmap task explicitly changes it.
+- Prefer a task with repeatable source-level and packaged validation.
 
 Acceptance:
 
-- Packaged Data Sources behavior matches source-level provider contract evidence.
-- Completed on 2026-05-22 with `npm run smoke:data-sources:packaged` writing source-safe evidence to `logs/data-sources-packaged-smoke-latest.json`.
+- T95 has a named scope, acceptance criteria, and validation plan.
+- No public service, hosted account, remote sync, or new live-trading path is implied by the selection step.
 
 Implementation notes:
 
-- `T76` corrected Public Market Data/Yahoo plus Binance public provenance, Google News RSS provenance, CoinGecko demo/pro credential copy, and unsupported CoinGecko history status.
-- Validation passed on 2026-05-22: `py -m unittest backend.tests.test_capability_service backend.tests.test_data_source_service`, `py -m unittest backend.tests.test_research_service backend.tests.test_portfolio_service`, `npm run typecheck`, `npm run build`, and `npm run smoke:page-polish`.
-- `T77` adds a visible packaged catalog summary on Data Sources, expands the data-source report export with the full provider contract table, and upgrades the packaged smoke to assert 9 catalog providers, 5 runtime source providers, read-only/no-live-trading/write-status boundaries, credential-state evidence, freshness/cache/provenance metadata, configured-key summaries, unsupported capability boundaries, and source-safe export paths.
-- Validation passed on 2026-05-22: `py -m unittest backend.tests.test_capability_service backend.tests.test_data_source_service`, `py -m unittest backend.tests.test_research_service backend.tests.test_portfolio_service`, `npm run typecheck`, `npm run build`, `npm run check:public-boundary`, `npm run check:version`, `npm run tauri:build`, and `npm run smoke:data-sources:packaged`.
-
-- Keep packaged evidence source-safe. Do not commit secrets, logs, runtime databases, or generated desktop artifacts.
+- Keep packaged evidence source-safe. Do not commit secrets, logs, runtime databases, diagnostics bundles, Stronghold vaults, or generated desktop artifacts.
 
 ## Priority Order
 
@@ -2024,7 +2022,7 @@ Implementation Log:
 ### T92 - Credential Audit Trail Hardening
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2027-01-31 to 2027-02-05
 Depends on: T91, T54
 
@@ -2038,10 +2036,17 @@ Done when:
 
 - Credential and sensitive-workflow history is accountable without exposing the secrets themselves.
 
+Implementation Log:
+
+- Added shared sensitive-text redaction for bearer headers, key/token/password/passphrase/unlock/session assignments, query params, URL-encoded `api_key%3D...` style strings, and common token shapes.
+- Applied redaction before persisting Research notes, rendering Research/Data Sources/Strategy report exports, and saving Portfolio transaction notes.
+- Expanded security audit redaction key coverage for unlock secrets, passphrases, PIN-like values, API-key variants, and nested payload/list structures.
+- Added regression coverage for audit payload redaction, URL-encoded secret markers, report export redaction, and SQLite plaintext checks.
+
 ### T93 - Sensitive Workspace Lock Rules
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2027-02-06 to 2027-02-11
 Depends on: T92, T53
 
@@ -2055,10 +2060,17 @@ Done when:
 
 - Lock behavior covers the actual places where sensitive work accumulates, not only credential screens.
 
+Implementation Log:
+
+- Extended backend local-unlock gates to Research briefs/notes/evidence/export, Factor Lab runs, Workflow Studio runs, Strategy/Data Sources report exports, Portfolio summary/holdings/transactions, runtime settings, AI-control writes, and assistant context previews.
+- Expanded sensitive-surface routing and gateway classification for Research, Factor Lab, Workflow Studio, Portfolio, settings/runtime, AI control, and report export routes.
+- Updated the desktop shell so Research, Factor Lab, Strategy Lab, Workflow Studio, Data Sources, Portfolio, Connections, and Settings show the local unlock gate while locked.
+- Preserved the local-first boundary: no hosted account, remote sync, public API, or non-roadmap live trading route was added.
+
 ### T94 - Security Packaged Signoff
 
 Priority: P1
-Status: Planned
+Status: Completed
 Target Window: 2027-02-12 to 2027-02-18
 Depends on: T92, T93
 
@@ -2071,6 +2083,13 @@ Task:
 Done when:
 
 - Pengbo has a documented security-accountability baseline that supports the next real release cycle.
+
+Implementation Log:
+
+- Added `scripts/packaged_security_signoff_smoke.ps1` plus `npm run smoke:security:packaged`.
+- The smoke runs the packaged sidecar bundle, initializes local unlock, creates a local session, creates and redacts a Research brief, exports Research and Data Sources reports, locks sensitive routes, verifies 423 responses, unlocks, checks audit events, checks route classification, verifies gateway rejection behavior, and scans SQLite for the secret marker.
+- Latest evidence target: `logs/security-signoff-packaged-smoke-latest.json`.
+- Latest packaged signoff passed with `health_ready=true`, Research/Data Sources exports created and redacted, locked sensitive routes returning 423, `report_exported` and `sensitive_surface_blocked` audit evidence, gateway unsafe-origin and invalid-method rejection, route-classification coverage, `sqlite_plaintext_secret_found=false`, and `failures=[]`.
 
 ### T52 - Git Upload Readiness And Repository Normalization
 

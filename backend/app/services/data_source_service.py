@@ -35,6 +35,7 @@ from ..storage.duckdb_store import DuckDbStore
 from .capability_service import CapabilityService
 from .connector_harness import ConnectorFixtureHarness, ConnectorScenarioError
 from .data_quality_service import quality_from_provider_state
+from .security_audit_service import redact_sensitive_text
 
 
 PUBLIC_DATA_SOURCE_PROVIDERS = {"worldbank", "dbnomics", "rss_events", "hkma"}
@@ -1074,7 +1075,7 @@ class DataSourceService:
             ]
         )
 
-        report_path.write_text("\n".join(sections) + "\n", encoding="utf-8")
+        report_path.write_text(redact_sensitive_text("\n".join(sections) + "\n"), encoding="utf-8")
         return DataSourceReportExportResponse(
             export_path=str(report_path),
             generated_at=generated_at,

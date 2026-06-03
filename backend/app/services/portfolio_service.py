@@ -27,6 +27,7 @@ from ..providers.catalog import get_asset
 from ..storage.sqlite_store import SqliteStore
 from .asset_service import AssetService
 from .data_quality_service import quality_from_missing_and_stale
+from .security_audit_service import redact_sensitive_text
 
 
 @dataclass
@@ -230,15 +231,24 @@ class PortfolioService:
 
     def create_transaction(self, payload: PortfolioTransactionCreate) -> PortfolioTransaction:
         self._validate_symbol(payload.symbol)
-        row = self.sqlite_store.create_portfolio_transaction(payload.model_dump())
+        row = self.sqlite_store.create_portfolio_transaction(self._redacted_transaction_payload(payload))
         return self._decorate_transaction(row)
 
     def update_transaction(self, transaction_id: int, payload: PortfolioTransactionUpdate) -> PortfolioTransaction:
         self._validate_symbol(payload.symbol)
-        row = self.sqlite_store.update_portfolio_transaction(transaction_id, payload.model_dump())
+        row = self.sqlite_store.update_portfolio_transaction(transaction_id, self._redacted_transaction_payload(payload))
         if row is None:
             raise ValueError(f"Portfolio transaction not found: {transaction_id}")
         return self._decorate_transaction(row)
+
+    def _redacted_transaction_payload(
+        self,
+        payload: PortfolioTransactionCreate | PortfolioTransactionUpdate,
+    ) -> dict[str, Any]:
+        data = payload.model_dump()
+        if isinstance(data.get("notes"), str):
+            data["notes"] = redact_sensitive_text(data["notes"])
+        return data
 
     def delete_transaction(self, transaction_id: int) -> None:
         deleted = self.sqlite_store.delete_portfolio_transaction(transaction_id)

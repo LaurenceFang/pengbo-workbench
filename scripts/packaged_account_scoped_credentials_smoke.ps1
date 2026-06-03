@@ -37,16 +37,17 @@ function Invoke-ApiJson {
         [string]$Method,
         [string]$Path,
         [object]$Body = $null,
+        [hashtable]$Headers = @{},
         [int]$TimeoutSeconds = 15
     )
 
     $uri = "$baseUrl$Path"
     if ($null -eq $Body) {
-        return Invoke-RestMethod -Method $Method -Uri $uri -TimeoutSec $TimeoutSeconds
+        return Invoke-RestMethod -Method $Method -Uri $uri -Headers $Headers -TimeoutSec $TimeoutSeconds
     }
 
     $json = $Body | ConvertTo-Json -Depth 8
-    return Invoke-RestMethod -Method $Method -Uri $uri -Body $json -ContentType "application/json" -TimeoutSec $TimeoutSeconds
+    return Invoke-RestMethod -Method $Method -Uri $uri -Headers $Headers -Body $json -ContentType "application/json" -TimeoutSec $TimeoutSeconds
 }
 
 function Wait-ForHealth {
@@ -93,13 +94,13 @@ try {
     $result.health_ready = $true
 
     $status = Invoke-ApiJson -Method Get -Path "/security/local/status"
-    if (-not $status.initialized) {
-        $status = Invoke-ApiJson -Method Post -Path "/security/local/initialize" -Body @{ unlock_secret = $UnlockSecret }
+    if ($status.initialized) {
+        Invoke-ApiJson -Method Post -Path "/security/local/reset" -Body @{ confirmation = "RESET LOCAL UNLOCK" } | Out-Null
     }
-    elseif ($status.locked) {
-        $status = Invoke-ApiJson -Method Post -Path "/security/local/unlock" -Body @{ unlock_secret = $UnlockSecret }
-    }
+    $status = Invoke-ApiJson -Method Post -Path "/security/local/initialize" -Body @{ unlock_secret = $UnlockSecret }
     $result.initialized = [bool]$status.initialized
+    $session = Invoke-ApiJson -Method Post -Path "/security/session" -Body @{}
+    $sessionHeaders = @{ "X-Pengbo-Session" = $session.session_id }
 
     $baseline = Invoke-ApiJson -Method Get -Path "/connections/status"
     $result.default_profile_seen = [bool]($baseline.active_profile.profile_id -and @($baseline.profiles).Count -ge 1)
@@ -114,7 +115,7 @@ try {
     $edgar = Invoke-ApiJson -Method Post -Path "/connections/test" -Body @{ provider = "edgar" }
     $result.readiness_profile_context_ok = [bool]($edgar.profile_id -eq $profile.profile_id -and $edgar.profile_label -eq $label)
 
-    $audit = @(Invoke-ApiJson -Method Get -Path "/security/audit?category=credential&limit=80")
+    $audit = @(Invoke-ApiJson -Method Get -Path "/security/audit?category=credential&limit=80" -Headers $sessionHeaders)
     $result.audit_events = @($audit | ForEach-Object { $_.event_type } | Where-Object { $_ } | Select-Object -Unique)
     $auditText = ($audit | ConvertTo-Json -Depth 12)
     $result.redacted_audit_ok = [bool]($auditText.Contains($profile.profile_id) -and -not $auditText.Contains($UnlockSecret))

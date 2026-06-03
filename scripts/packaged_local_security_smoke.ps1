@@ -37,16 +37,17 @@ function Invoke-ApiJson {
         [string]$Method,
         [string]$Path,
         [object]$Body = $null,
+        [hashtable]$Headers = @{},
         [int]$TimeoutSeconds = 15
     )
 
     $uri = "$baseUrl$Path"
     if ($null -eq $Body) {
-        return Invoke-RestMethod -Method $Method -Uri $uri -TimeoutSec $TimeoutSeconds
+        return Invoke-RestMethod -Method $Method -Uri $uri -Headers $Headers -TimeoutSec $TimeoutSeconds
     }
 
     $json = $Body | ConvertTo-Json -Depth 8
-    return Invoke-RestMethod -Method $Method -Uri $uri -Body $json -ContentType "application/json" -TimeoutSec $TimeoutSeconds
+    return Invoke-RestMethod -Method $Method -Uri $uri -Headers $Headers -Body $json -ContentType "application/json" -TimeoutSec $TimeoutSeconds
 }
 
 function Wait-ForHealth {
@@ -96,17 +97,11 @@ try {
     $result.health_ready = $true
 
     $status = Invoke-ApiJson -Method Get -Path "/security/local/status"
-    if (-not $status.initialized) {
-        $status = Invoke-ApiJson -Method Post -Path "/security/local/initialize" -Body @{ unlock_secret = $UnlockSecret }
-        $result.initialized = [bool]$status.initialized
+    if ($status.initialized) {
+        Invoke-ApiJson -Method Post -Path "/security/local/reset" -Body @{ confirmation = "RESET LOCAL UNLOCK" } | Out-Null
     }
-    elseif (-not $status.locked) {
-        $result.initialized = $true
-    }
-    else {
-        $unlock = Invoke-ApiJson -Method Post -Path "/security/local/unlock" -Body @{ unlock_secret = $UnlockSecret }
-        $result.initialized = [bool]$unlock.initialized
-    }
+    $status = Invoke-ApiJson -Method Post -Path "/security/local/initialize" -Body @{ unlock_secret = $UnlockSecret }
+    $result.initialized = [bool]$status.initialized
 
     Invoke-ApiJson -Method Post -Path "/security/local/lock" | Out-Null
     try {
@@ -132,6 +127,8 @@ try {
     }
 
     Invoke-ApiJson -Method Post -Path "/security/local/unlock" -Body @{ unlock_secret = $UnlockSecret } | Out-Null
+    $session = Invoke-ApiJson -Method Post -Path "/security/session" -Body @{}
+    $sessionHeaders = @{ "X-Pengbo-Session" = $session.session_id }
     Invoke-ApiJson -Method Post -Path "/security/local/idle-timeout" | Out-Null
     $idleStatus = Invoke-ApiJson -Method Get -Path "/security/local/status"
     $result.idle_relock_ok = [bool]$idleStatus.locked
@@ -145,7 +142,9 @@ try {
     $result.restart_restore_ok = [bool]($restartStatus.initialized -and $restartStatus.locked)
 
     Invoke-ApiJson -Method Post -Path "/security/local/unlock" -Body @{ unlock_secret = $UnlockSecret } | Out-Null
-    $rawAudit = Invoke-ApiJson -Method Get -Path "/security/audit?category=local_security&limit=80"
+    $session = Invoke-ApiJson -Method Post -Path "/security/session" -Body @{}
+    $sessionHeaders = @{ "X-Pengbo-Session" = $session.session_id }
+    $rawAudit = Invoke-ApiJson -Method Get -Path "/security/audit?category=local_security&limit=80" -Headers $sessionHeaders
     if ($rawAudit.PSObject.Properties.Name -contains "value") {
         $audit = @($rawAudit.value)
     }

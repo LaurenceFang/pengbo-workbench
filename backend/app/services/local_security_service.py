@@ -30,6 +30,10 @@ SENSITIVE_SURFACES = [
     "workflow_sensitive",
     "settings_runtime",
     "ai_assistant",
+    "research_workspace",
+    "data_sources",
+    "portfolio",
+    "factor_lab",
 ]
 
 

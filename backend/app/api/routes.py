@@ -142,6 +142,29 @@ def _require_permission(request: Request, permission: str, *, surface: str) -> N
         raise HTTPException(status_code=error.status_code, detail=str(error)) from error
 
 
+def _record_report_export(
+    request: Request,
+    *,
+    surface: str,
+    artifact_type: str,
+    artifact_id: str,
+    export_path: str,
+) -> None:
+    _container(request).security_audit_service.record(
+        category="report_export",
+        event_type="report_exported",
+        subject=artifact_id,
+        summary=f"Exported local {artifact_type} report.",
+        surface=surface,
+        payload={
+            "artifact_type": artifact_type,
+            "artifact_id": artifact_id,
+            "export_path_recorded": bool(export_path),
+            "private_state_excluded": True,
+        },
+    )
+
+
 def register_routes(app: FastAPI) -> None:
     @app.get("/api/v1/health", response_model=HealthResponse)
     def health(request: Request) -> HealthResponse:
@@ -309,10 +332,12 @@ def register_routes(app: FastAPI) -> None:
 
     @app.get("/api/v1/research/briefs/recent", response_model=list[ResearchBriefListItem])
     def get_recent_research_briefs(request: Request, limit: int = Query(20, ge=1, le=100)) -> list[ResearchBriefListItem]:
+        _require_unlocked(request, "research_workspace")
         return _container(request).research_service.list_recent_briefs(limit)
 
     @app.post("/api/v1/research/briefs", response_model=ResearchBrief)
     def create_research_brief(request: Request, payload: CreateResearchBriefRequest) -> ResearchBrief:
+        _require_unlocked(request, "research_workspace")
         try:
             return _container(request).research_service.create_brief(payload)
         except ValueError as error:
@@ -327,6 +352,7 @@ def register_routes(app: FastAPI) -> None:
         paperSessionId: str | None = None,
         intentId: str | None = None,
     ) -> ResearchEvidenceContext:
+        _require_unlocked(request, "research_workspace")
         try:
             return _container(request).research_service.get_evidence(
                 symbol,
@@ -340,6 +366,7 @@ def register_routes(app: FastAPI) -> None:
 
     @app.get("/api/v1/research/briefs/{brief_id}", response_model=ResearchBrief)
     def get_research_brief(request: Request, brief_id: str) -> ResearchBrief:
+        _require_unlocked(request, "research_workspace")
         try:
             return _container(request).research_service.get_brief(brief_id)
         except ValueError as error:
@@ -372,6 +399,7 @@ def register_routes(app: FastAPI) -> None:
 
     @app.post("/api/v1/research/briefs/{brief_id}/refresh", response_model=ResearchBrief)
     def refresh_research_brief(request: Request, brief_id: str) -> ResearchBrief:
+        _require_unlocked(request, "research_workspace")
         try:
             return _container(request).research_service.refresh_brief(brief_id)
         except ValueError as error:
@@ -383,6 +411,7 @@ def register_routes(app: FastAPI) -> None:
         brief_id: str,
         payload: UpdateResearchBriefNotesRequest,
     ) -> ResearchBrief:
+        _require_unlocked(request, "research_workspace")
         try:
             return _container(request).research_service.update_notes(brief_id, payload)
         except ValueError as error:
@@ -390,8 +419,18 @@ def register_routes(app: FastAPI) -> None:
 
     @app.post("/api/v1/research/briefs/{brief_id}/export", response_model=ResearchBriefExportResponse)
     def export_research_brief(request: Request, brief_id: str) -> ResearchBriefExportResponse:
+        _require_unlocked(request, "research_workspace")
+        _require_permission(request, "reports:export", surface="research")
         try:
-            return _container(request).research_service.export_brief(brief_id)
+            result = _container(request).research_service.export_brief(brief_id)
+            _record_report_export(
+                request,
+                surface="research",
+                artifact_type="research_brief",
+                artifact_id=brief_id,
+                export_path=result.export_path,
+            )
+            return result
         except ValueError as error:
             raise _value_error_to_http(error) from error
 
@@ -401,10 +440,12 @@ def register_routes(app: FastAPI) -> None:
 
     @app.get("/api/v1/factors/runs/recent", response_model=list[FactorRunListItem])
     def get_recent_factor_runs(request: Request, limit: int = Query(20, ge=1, le=100)) -> list[FactorRunListItem]:
+        _require_unlocked(request, "factor_lab")
         return _container(request).factor_service.list_recent_runs(limit)
 
     @app.post("/api/v1/factors/runs", response_model=FactorRunResponse)
     def create_factor_run(request: Request, payload: FactorRunRequest) -> FactorRunResponse:
+        _require_unlocked(request, "factor_lab")
         try:
             return _container(request).factor_service.run(payload)
         except ValueError as error:
@@ -412,6 +453,7 @@ def register_routes(app: FastAPI) -> None:
 
     @app.get("/api/v1/factors/runs/{run_id}", response_model=FactorRunResponse)
     def get_factor_run(request: Request, run_id: str) -> FactorRunResponse:
+        _require_unlocked(request, "factor_lab")
         try:
             return _container(request).factor_service.get_run(run_id)
         except ValueError as error:
@@ -468,9 +510,18 @@ def register_routes(app: FastAPI) -> None:
 
     @app.post("/api/v1/strategies/reports/{artifact_id}/export", response_model=StrategyReportExportResponse)
     def export_strategy_report(request: Request, artifact_id: str) -> StrategyReportExportResponse:
+        _require_unlocked(request, "execution_risk")
         _require_permission(request, "reports:export", surface="strategy_lab")
         try:
-            return _container(request).strategy_service.export_report(artifact_id)
+            result = _container(request).strategy_service.export_report(artifact_id)
+            _record_report_export(
+                request,
+                surface="strategy_lab",
+                artifact_type=result.artifact_type,
+                artifact_id=artifact_id,
+                export_path=result.export_path,
+            )
+            return result
         except ValueError as error:
             raise _value_error_to_http(error) from error
 
@@ -624,10 +675,12 @@ def register_routes(app: FastAPI) -> None:
         request: Request,
         limit: int = Query(20, ge=1, le=100),
     ) -> list[WorkflowRunResponse]:
+        _require_unlocked(request, "workflow_sensitive")
         return _container(request).workflow_service.list_recent_runs(limit)
 
     @app.post("/api/v1/workflows/runs", response_model=WorkflowRunResponse)
     def create_workflow_run(request: Request, payload: WorkflowRunRequest) -> WorkflowRunResponse:
+        _require_unlocked(request, "workflow_sensitive")
         try:
             return _container(request).workflow_service.run(payload)
         except ValueError as error:
@@ -635,6 +688,7 @@ def register_routes(app: FastAPI) -> None:
 
     @app.get("/api/v1/workflows/runs/{run_id}", response_model=WorkflowRunResponse)
     def get_workflow_run(request: Request, run_id: str) -> WorkflowRunResponse:
+        _require_unlocked(request, "workflow_sensitive")
         try:
             return _container(request).workflow_service.get_run(run_id)
         except ValueError as error:
@@ -642,6 +696,7 @@ def register_routes(app: FastAPI) -> None:
 
     @app.get("/api/v1/settings/runtime", response_model=SettingsRuntimeResponse)
     def get_settings_runtime(request: Request) -> SettingsRuntimeResponse:
+        _require_unlocked(request, "settings_runtime")
         return _container(request).settings_service.get_runtime()
 
     @app.get("/api/v1/settings/preferences", response_model=AppPreferences)
@@ -662,6 +717,7 @@ def register_routes(app: FastAPI) -> None:
         request: Request,
         payload: UpdateAIControlPreferencesRequest,
     ) -> AIControlPreferences:
+        _require_unlocked(request, "ai_assistant")
         _require_permission(request, "ai:generate", surface="ai_assistant")
         return _container(request).settings_service.update_ai_control(payload)
 
@@ -834,8 +890,17 @@ def register_routes(app: FastAPI) -> None:
         request: Request,
         payload: DataSourceReportExportRequest,
     ) -> DataSourceReportExportResponse:
+        _require_unlocked(request, "data_sources")
         _require_permission(request, "reports:export", surface="data_sources")
-        return _container(request).data_source_service.export_report(payload)
+        result = _container(request).data_source_service.export_report(payload)
+        _record_report_export(
+            request,
+            surface="data_sources",
+            artifact_type="data_source_report",
+            artifact_id="data-sources",
+            export_path=result.export_path,
+        )
+        return result
 
     @app.delete("/api/v1/connections/{provider}/profile")
     def clear_connection_profile(request: Request, provider: str):
@@ -863,18 +928,22 @@ def register_routes(app: FastAPI) -> None:
 
     @app.get("/api/v1/portfolio/summary", response_model=PortfolioSummaryResponse)
     def get_portfolio_summary(request: Request) -> PortfolioSummaryResponse:
+        _require_unlocked(request, "portfolio")
         return _container(request).portfolio_service.get_summary()
 
     @app.get("/api/v1/portfolio/holdings", response_model=list[PortfolioHolding])
     def get_portfolio_holdings(request: Request) -> list[PortfolioHolding]:
+        _require_unlocked(request, "portfolio")
         return _container(request).portfolio_service.get_holdings()
 
     @app.get("/api/v1/portfolio/transactions", response_model=list[PortfolioTransaction])
     def get_portfolio_transactions(request: Request) -> list[PortfolioTransaction]:
+        _require_unlocked(request, "portfolio")
         return _container(request).portfolio_service.get_transactions()
 
     @app.post("/api/v1/portfolio/transactions", response_model=PortfolioTransaction)
     def add_portfolio_transaction(request: Request, payload: PortfolioTransactionCreate) -> PortfolioTransaction:
+        _require_unlocked(request, "portfolio")
         try:
             return _container(request).portfolio_service.create_transaction(payload)
         except ValueError as error:
@@ -886,6 +955,7 @@ def register_routes(app: FastAPI) -> None:
         transaction_id: int,
         payload: PortfolioTransactionUpdate,
     ) -> PortfolioTransaction:
+        _require_unlocked(request, "portfolio")
         try:
             return _container(request).portfolio_service.update_transaction(transaction_id, payload)
         except ValueError as error:
@@ -893,6 +963,7 @@ def register_routes(app: FastAPI) -> None:
 
     @app.delete("/api/v1/portfolio/transactions/{transaction_id}")
     def delete_portfolio_transaction(request: Request, transaction_id: int):
+        _require_unlocked(request, "portfolio")
         try:
             _container(request).portfolio_service.delete_transaction(transaction_id)
         except ValueError as error:

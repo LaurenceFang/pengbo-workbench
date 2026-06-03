@@ -110,6 +110,8 @@ class ResearchAssistantBoundaryTests(unittest.TestCase):
             with TestClient(app) as client:
                 install_offline_research_fixtures(app)
                 session = client.post("/api/v1/security/session", json={}).json()
+                init = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "1234"})
+                self.assertEqual(init.status_code, 200)
                 brief = client.post("/api/v1/research/briefs", json={"symbol": "AAPL"}).json()
                 note = "User note with api_key=unit-secret and sk-testsecret123456789."
                 note_response = client.put(
@@ -117,6 +119,7 @@ class ResearchAssistantBoundaryTests(unittest.TestCase):
                     json={"markdown": note},
                 )
                 self.assertEqual(note_response.status_code, 200)
+                client.post("/api/v1/security/local/lock")
 
                 locked = client.get(
                     f"/api/v1/research/assistant/briefs/{brief['brief_id']}/context-preview",
@@ -124,8 +127,8 @@ class ResearchAssistantBoundaryTests(unittest.TestCase):
                 )
                 self.assertEqual(locked.status_code, 423)
 
-                init = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "1234"})
-                self.assertEqual(init.status_code, 200)
+                unlock = client.post("/api/v1/security/local/unlock", json={"unlock_secret": "1234"})
+                self.assertEqual(unlock.status_code, 200)
                 preview = client.get(
                     f"/api/v1/research/assistant/briefs/{brief['brief_id']}/context-preview",
                     headers={"X-Pengbo-Session": session["session_id"]},
@@ -138,7 +141,7 @@ class ResearchAssistantBoundaryTests(unittest.TestCase):
                 self.assertTrue(payload["audited_event_id"].startswith("security-"))
                 self.assertNotIn("unit-secret", payload["prompt_context_preview"])
                 self.assertNotIn("sk-testsecret", payload["prompt_context_preview"])
-                self.assertIn("[redacted]", payload["prompt_context_preview"])
+                self.assertIn("***", payload["prompt_context_preview"])
 
                 audit = client.get(
                     "/api/v1/security/audit?category=ai_assistant",

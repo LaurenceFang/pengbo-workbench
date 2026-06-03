@@ -1,6 +1,6 @@
 # Pengbo Security Architecture
 
-Updated: 2026-05-19
+Updated: 2026-06-03
 
 ## Scope
 
@@ -11,7 +11,7 @@ Pengbo Workbench is currently a local-first desktop terminal. The expected runti
 - Local SQLite and DuckDB stores under the user runtime directory.
 - Local secret handling through the desktop credential bridge and process environment injection.
 
-This document treats public network exposure, multi-account access, and hosted operation as future work. T53 through T56 established local unlock, local credential scoping, local session permissions, and sidecar gateway hardening, but those layers do not turn Pengbo into a hosted service or public API.
+This document treats public network exposure, multi-account access, and hosted operation as future work. T53 through T56 established local unlock, local credential scoping, local session permissions, and sidecar gateway hardening. T92 through T94 extended the same local accountability model across sensitive workspaces, notes, exports, audit payloads, route classification, and packaged signoff evidence. These layers do not turn Pengbo into a hosted service or public API.
 
 ## Security Goals
 
@@ -131,10 +131,13 @@ Current categories:
 - `local_security`: local unlock, lockout, idle relock, and sensitive-surface checks.
 - `session`: local desktop session creation, expiry, revocation, and permission failures.
 - `gateway`: sidecar gateway rejections and failed sensitive-route attempts.
+- `report_export`: local Research, Strategy, and Data Sources report export events.
 
 Redaction:
 
-- Audit payloads redact keys containing terms such as `api_key`, `secret`, `password`, `token`, `private_key`, and `identity`.
+- Audit payloads redact keys containing terms such as `api_key`, `secret`, `password`, `token`, `private_key`, `identity`, `unlock_secret`, `passphrase`, and API-key variants.
+- Text redaction covers bearer headers, key/token/password/passphrase/unlock/session assignments, query parameters, URL-encoded key/value strings such as `api_key%3D...`, and common token shapes.
+- Research notes, Portfolio transaction notes, and generated Research/Data Sources/Strategy reports pass through the same redaction boundary before persistence or export.
 
 This does not replace domain-specific audit tables. For example, Binance execution still keeps its specialized execution audit trail, while the global table provides one place to inspect security posture across modules.
 
@@ -158,6 +161,9 @@ The following local-only layers are now implemented and validated through the ta
 - T54 account-scoped provider credential metadata while keeping raw secret material outside SQLite.
 - T55 local desktop auth sessions and route-level permission checks.
 - T56 sidecar gateway hardening with loopback-only binding, trusted local origins, method checks, rate-limit hooks, and redacted gateway audit events.
+- T92 credential and sensitive-workflow audit hardening with redacted notes, URLs, audit payloads, and report exports.
+- T93 expanded local-unlock rules for Research, Factor Lab, Strategy Lab, Workflow Studio, Data Sources, Portfolio, Connections, Settings/runtime metadata, AI-control writes, and assistant contexts.
+- T94 packaged security signoff with evidence in `logs/security-signoff-packaged-smoke-latest.json`.
 
 These layers are local accountability controls. They are not OAuth, hosted identity, remote sync, team permissions, or internet-facing access control.
 

@@ -387,6 +387,10 @@ class ResearchApiTests(unittest.TestCase):
             )
 
             with TestClient(app) as client:
+                unlock_response = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock_response.status_code, 200)
+                session = client.post("/api/v1/security/session", json={}).json()
+                session_headers = {"X-Pengbo-Session": session["session_id"]}
                 container = app.state.container
                 container.asset_service.get_asset_workspace = lambda symbol: make_asset_workspace(symbol=symbol)
                 container.research_service.asset_service = container.asset_service
@@ -426,7 +430,7 @@ class ResearchApiTests(unittest.TestCase):
                 self.assertEqual(notes_response.status_code, 200)
                 self.assertEqual(notes_response.json()["notes"]["markdown"], "Saved from API")
 
-                export_response = client.post(f"/api/v1/research/briefs/{brief_id}/export")
+                export_response = client.post(f"/api/v1/research/briefs/{brief_id}/export", headers=session_headers)
                 self.assertEqual(export_response.status_code, 200)
                 export_path = Path(export_response.json()["export_path"])
                 self.assertTrue(export_path.exists())
@@ -450,6 +454,10 @@ class ResearchApiTests(unittest.TestCase):
             )
 
             with TestClient(app) as client:
+                unlock_response = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock_response.status_code, 200)
+                session = client.post("/api/v1/security/session", json={}).json()
+                session_headers = {"X-Pengbo-Session": session["session_id"]}
                 container = app.state.container
                 container.asset_service.get_asset_workspace = lambda symbol: make_factor_workspace("AAPL")
                 container.screener_service.asset_service = container.asset_service
@@ -494,11 +502,6 @@ class ResearchApiTests(unittest.TestCase):
                 )
                 self.assertEqual(paper_response.status_code, 200)
                 paper_session_id = paper_response.json()["session_id"]
-                session = client.post("/api/v1/security/session", json={}).json()
-                session_headers = {"X-Pengbo-Session": session["session_id"]}
-
-                unlock_response = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
-                self.assertEqual(unlock_response.status_code, 200)
                 intent_response = client.post(
                     "/api/v1/execution/binance/intents",
                     headers=session_headers,
@@ -562,7 +565,7 @@ class ResearchApiTests(unittest.TestCase):
                 self.assertIn("simulated", [item["status"] for item in brief["decision_review"]["supporting_evidence"]])
                 self.assertIn("Portfolio provenance", [item["label"] for item in brief["decision_review"]["provenance"]])
 
-                export_response = client.post(f"/api/v1/research/briefs/{brief['brief_id']}/export")
+                export_response = client.post(f"/api/v1/research/briefs/{brief['brief_id']}/export", headers=session_headers)
                 self.assertEqual(export_response.status_code, 200)
                 contents = Path(export_response.json()["export_path"]).read_text(encoding="utf-8")
                 self.assertIn("## Decision Review", contents)

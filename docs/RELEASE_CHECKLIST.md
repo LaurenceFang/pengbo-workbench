@@ -1,6 +1,6 @@
 # Pengbo Workbench Release Checklist
 
-Updated: 2026-05-20
+Updated: 2026-06-03
 
 This checklist records the local first-reviewer packaging path for Pengbo Workbench `0.1.0`.
 
@@ -53,6 +53,7 @@ npm run smoke:packaged-startup
 npm run smoke:installed-startup
 npm run smoke:installed-startup:nsis
 npm run smoke:gateway-hardening:packaged
+npm run smoke:security:packaged
 npm run smoke:evidence-report
 npm run smoke:data-sources:packaged
 npm run check:release-artifacts
@@ -99,3 +100,14 @@ Before uploading the first GitHub Release:
 - Packaged evidence report smoke passed with full factor/backtest/paper/execution evidence links, `evidence_audit_count=2`, export creation, and restart restore.
 - Packaged Data Sources smoke passed with five read-only providers and report export creation.
 - MSI and NSIS installed startup smokes passed with root sidecar absent, single-instance behavior, and adopt-existing behavior.
+
+## T94 Security Signoff Gate
+
+Before the next real release cycle, confirm the packaged security signoff smoke passes after the sidecar bundle is rebuilt:
+
+```powershell
+npm run sidecar:build
+npm run smoke:security:packaged
+```
+
+The smoke evidence is written to `logs/security-signoff-packaged-smoke-latest.json` and must remain source-safe. It verifies local unlock/session flow, sensitive route locking, Research and Data Sources export redaction, security audit events, route classification, gateway rejection behavior, and SQLite plaintext-secret absence without adding hosted accounts, remote sync, public API exposure, or non-roadmap live trading scope.

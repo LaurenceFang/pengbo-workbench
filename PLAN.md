@@ -90,7 +90,10 @@ The active product-trust sequence is:
 - T89: HK/China macro connector v1. Completed.
 - T90: China-market research template. Completed.
 - T91: connector packaged signoff. Completed.
-- T92+: credential audit trail hardening and broader public-trust work.
+- T92: credential audit trail hardening. Completed.
+- T93: sensitive workspace lock rules. Completed.
+- T94: security packaged signoff. Completed.
+- T95+: next release-cycle hardening and product-trust work to be selected.
 
 The current research-flow map is tracked in
 [docs/research-flow-definition.md](docs/research-flow-definition.md).

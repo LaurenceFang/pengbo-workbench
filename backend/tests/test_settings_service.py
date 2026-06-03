@@ -35,6 +35,10 @@ class SettingsPreferencesTests(unittest.TestCase):
                 self.assertEqual(health.json()["app_version"], "0.1.0")
                 self.assertEqual(health.json()["sidecar_version"], "0.1.0")
 
+                locked_runtime = client.get("/api/v1/settings/runtime")
+                self.assertEqual(locked_runtime.status_code, 423)
+                unlock = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock.status_code, 200)
                 runtime = client.get("/api/v1/settings/runtime")
                 self.assertEqual(runtime.status_code, 200)
                 self.assertEqual(runtime.json()["app_version"], "0.1.0")
@@ -89,6 +93,8 @@ class SettingsPreferencesTests(unittest.TestCase):
                 self.assertEqual(providers["deepseek"]["default_model"], "deepseek-chat")
                 self.assertNotIn("sk-", str(providers).lower())
 
+                unlock = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock.status_code, 200)
                 updated = client.put(
                     "/api/v1/settings/ai-control",
                     headers=headers,

@@ -32,6 +32,7 @@ from .asset_service import AssetService
 from .data_quality_service import quality_from_missing_and_stale
 from .portfolio_service import PortfolioService
 from .screener_service import ScreenerService
+from .security_audit_service import redact_sensitive_text
 from .watchlist_service import WatchlistService
 
 if TYPE_CHECKING:
@@ -756,7 +757,7 @@ class ResearchService:
         return refreshed
 
     def update_notes(self, brief_id: str, payload: UpdateResearchBriefNotesRequest) -> ResearchBrief:
-        row = self.sqlite_store.update_research_brief_notes(brief_id, payload.markdown)
+        row = self.sqlite_store.update_research_brief_notes(brief_id, redact_sensitive_text(payload.markdown))
         if row is None:
             raise ValueError(f"Research brief not found: {brief_id}")
         return self._to_brief(row)
@@ -971,7 +972,7 @@ class ResearchService:
         else:
             lines.append("_No notes yet._")
         lines.append("")
-        return "\n".join(lines)
+        return redact_sensitive_text("\n".join(lines))
 
     def export_brief(self, brief_id: str) -> ResearchBriefExportResponse:
         brief = self.get_brief(brief_id)

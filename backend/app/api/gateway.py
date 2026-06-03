@@ -35,6 +35,13 @@ SENSITIVE_PREFIXES = (
     "/api/v1/security",
     "/api/v1/connections",
     "/api/v1/execution",
+    "/api/v1/research/briefs",
+    "/api/v1/research/evidence",
+    "/api/v1/factors/runs",
+    "/api/v1/workflows/runs",
+    "/api/v1/portfolio",
+    "/api/v1/settings/runtime",
+    "/api/v1/settings/ai-control",
     "/api/v1/strategies/reports",
     "/api/v1/data-sources/reports",
 )
@@ -85,6 +92,16 @@ def _classify_surface(path: str) -> str:
         return "security_gateway"
     if path.startswith("/api/v1/connections"):
         return "connections"
+    if path.startswith("/api/v1/research"):
+        return "research"
+    if path.startswith("/api/v1/factors"):
+        return "factor_lab"
+    if path.startswith("/api/v1/workflows"):
+        return "workflow_studio"
+    if path.startswith("/api/v1/portfolio"):
+        return "portfolio"
+    if path.startswith("/api/v1/settings"):
+        return "settings"
     if path.startswith("/api/v1/execution"):
         return "strategy_lab"
     if path.startswith("/api/v1/strategies/reports"):

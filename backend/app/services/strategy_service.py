@@ -31,6 +31,7 @@ from ..storage.duckdb_store import DuckDbStore
 from ..storage.sqlite_store import SqliteStore
 from .asset_service import AssetService
 from .factor_service import FAMILY_DEFINITIONS
+from .security_audit_service import redact_sensitive_text
 
 
 def _utc_now_iso() -> str:
@@ -598,7 +599,7 @@ class StrategyService:
         else:
             lines.append("- No Binance execution intent is linked to this backtest.")
         lines.append("")
-        return "\n".join(lines)
+        return redact_sensitive_text("\n".join(lines))
 
     def _render_paper_markdown(self, session: StrategyPaperSessionResponse) -> str:
         execution_refs = self._execution_refs_for_backtest(session.backtest_run_id, paper_session_id=session.session_id)
@@ -646,7 +647,7 @@ class StrategyService:
         else:
             lines.append("- No Binance execution intent is linked to this paper session.")
         lines.append("")
-        return "\n".join(lines)
+        return redact_sensitive_text("\n".join(lines))
 
     def _execution_refs_for_backtest(self, backtest_run_id: str, paper_session_id: str | None = None) -> list[dict[str, Any]]:
         refs: list[dict[str, Any]] = []

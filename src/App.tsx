@@ -78,11 +78,24 @@ const navigation = [
   icon: typeof LayoutDashboard;
 }>;
 
-const sensitiveViews = new Set<ViewKey>(["strategyLab", "workflowStudio", "connections", "settings"]);
+const sensitiveViews = new Set<ViewKey>([
+  "research",
+  "factorLab",
+  "strategyLab",
+  "workflowStudio",
+  "dataSources",
+  "portfolio",
+  "connections",
+  "settings",
+]);
 
 const securitySurfaceByView: Partial<Record<ViewKey, string>> = {
+  research: "research_workspace",
+  factorLab: "factor_lab",
   strategyLab: "execution_risk",
   workflowStudio: "workflow_sensitive",
+  dataSources: "data_sources",
+  portfolio: "portfolio",
   connections: "provider_credentials",
   settings: "settings_runtime",
 };

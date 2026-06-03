@@ -119,10 +119,16 @@ release channel yet.
   profile, no-key HKMA macro context, `china_market` Research briefs, export
   integration, Stronghold/env token plumbing, and a packaged release smoke via
   `npm run smoke:china-connectors:packaged`.
+- T92-T94 harden the security-accountability baseline: broader redaction for
+  text, URLs, audit payloads, local notes, and report exports; local-unlock
+  gates for Research, Factor Lab, Workflow Studio, Data Sources, Portfolio, and
+  runtime settings; route-classification coverage for sensitive report/runtime
+  routes; and packaged signoff evidence via `npm run smoke:security:packaged`.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T92 will harden credential audit trails and redaction evidence.
+- T95+ will be selected from the next release-cycle hardening and
+  product-trust backlog.

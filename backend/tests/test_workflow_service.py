@@ -329,6 +329,8 @@ class WorkflowServiceTest(unittest.TestCase):
 
                 container = client.app.state.container
                 container.workflow_service, _ = make_workflow_service(container.sqlite_store)
+                unlock = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock.status_code, 200)
                 create_response = client.post(
                     "/api/v1/workflows/runs",
                     json={"templateKey": "paper_to_binance_intent", "input": {}},

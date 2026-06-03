@@ -659,6 +659,8 @@ class DataSourceServiceTests(unittest.TestCase):
                     ]
                 )
 
+                unlock_response = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock_response.status_code, 200)
                 session = client.post("/api/v1/security/session", json={}).json()
                 response = client.post(
                     "/api/v1/data-sources/reports/export",

@@ -214,6 +214,10 @@ class FactorApiTests(unittest.TestCase):
             )
 
             with TestClient(app) as client:
+                unlock_response = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock_response.status_code, 200)
+                session = client.post("/api/v1/security/session", json={}).json()
+                session_headers = {"X-Pengbo-Session": session["session_id"]}
                 container = app.state.container
                 fake_assets = FakeAssetService()
                 container.asset_service.get_asset_workspace = fake_assets.get_asset_workspace
@@ -249,7 +253,7 @@ class FactorApiTests(unittest.TestCase):
                 brief = brief_response.json()
                 self.assertEqual(brief["factor_context"]["run_id"], run["run_id"])
 
-                export_response = client.post(f"/api/v1/research/briefs/{brief['brief_id']}/export")
+                export_response = client.post(f"/api/v1/research/briefs/{brief['brief_id']}/export", headers=session_headers)
                 self.assertEqual(export_response.status_code, 200)
                 contents = Path(export_response.json()["export_path"]).read_text(encoding="utf-8")
                 self.assertIn("## Factor Context", contents)
