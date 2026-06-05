@@ -130,7 +130,7 @@ release channel yet.
 
 ## Upcoming
 
-- T95+ has been selected as a next-stage master task pool covering UI
-  redesign, first useful research loop, multi-model AI, data depth,
-  professional workflows, Quant Factor Lab, release hardening, safety, and
-  commercialization.
+- T95+ has been selected as a next-stage master task pool. Follow-up work is
+  now numbered T96-T195 across UI redesign, first useful research loop,
+  multi-model AI, data depth, professional workflows, Quant Factor Lab, release
+  hardening, safety, and commercialization.

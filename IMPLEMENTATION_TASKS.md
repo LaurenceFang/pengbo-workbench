@@ -980,144 +980,144 @@ Implementation notes:
 
 ## Next Stage Master Task Pool
 
-This pool is the selected T95+ backlog for the v0.1.0 to v1.0 product arc. It
+This pool is the selected T96-T195 backlog for the v0.1.0 to v1.0 product arc. It
 should be promoted into executable implementation tasks in order, keeping each
 slice locally verifiable and source-safe.
 
-### M1 - UI Foundation: full redesign base
+### M1 - UI Foundation: full redesign base (`T96-T106`)
 
-- `P001 - Figma Master Roadmap`: Create a v0.1-to-v1.0 master roadmap page with product, UI, AI, data, quant, release, safety, and commercial lanes.
-- `P002 - Figma UI System`: Create the Apple/macOS-style UI system board for shell, screens, components, states, and React mapping.
-- `P003 - Design Tokens v1`: Define colors, typography, spacing, radius, shadow, status colors, gain/loss colors, and table density tokens.
-- `P004 - Navigation IA Collapse`: Collapse navigation to Home, Research, Markets, Portfolio, Factor Lab, Automation, and Settings.
-- `P005 - AppShell Redesign`: Implement the desktop shell with sidebar, toolbar, main workspace, and right inspector.
-- `P006 - Light Mode First`: Make a clean light theme the default while preserving dark mode as a supported mode.
-- `P007 - Component Library Base`: Extract Button, IconButton, Input, SearchField, SegmentedControl, Sheet, Popover, Tooltip, and Badge components.
-- `P008 - DataTable Component`: Build the financial data table with fixed columns, sorting, filtering, stable widths, and virtual scrolling.
-- `P009 - Inspector Panel`: Standardize the right-side panel for evidence, AI context, data status, exports, and parameters.
-- `P010 - Chinese Empty States`: Add polished Chinese empty states, next-step copy, and clear calls to action across major surfaces.
-- `P011 - Screenshot Baseline`: Add screenshot regression baselines for the redesigned shell and core pages.
+- `T96 - Figma Master Roadmap`: Create a v0.1-to-v1.0 master roadmap page with product, UI, AI, data, quant, release, safety, and commercial lanes.
+- `T97 - Figma UI System`: Create the Apple/macOS-style UI system board for shell, screens, components, states, and React mapping.
+- `T98 - Design Tokens v1`: Define colors, typography, spacing, radius, shadow, status colors, gain/loss colors, and table density tokens.
+- `T99 - Navigation IA Collapse`: Collapse navigation to Home, Research, Markets, Portfolio, Factor Lab, Automation, and Settings.
+- `T100 - AppShell Redesign`: Implement the desktop shell with sidebar, toolbar, main workspace, and right inspector.
+- `T101 - Light Mode First`: Make a clean light theme the default while preserving dark mode as a supported mode.
+- `T102 - Component Library Base`: Extract Button, IconButton, Input, SearchField, SegmentedControl, Sheet, Popover, Tooltip, and Badge components.
+- `T103 - DataTable Component`: Build the financial data table with fixed columns, sorting, filtering, stable widths, and virtual scrolling.
+- `T104 - Inspector Panel`: Standardize the right-side panel for evidence, AI context, data status, exports, and parameters.
+- `T105 - Chinese Empty States`: Add polished Chinese empty states, next-step copy, and clear calls to action across major surfaces.
+- `T106 - Screenshot Baseline`: Add screenshot regression baselines for the redesigned shell and core pages.
 
-### M2 - First Useful Loop: first research success path
+### M2 - First Useful Loop: first research success path (`T107-T115`)
 
-- `P012 - First Run Demo Flow`: Let a no-key user complete a sample research flow on first launch.
-- `P013 - Home Dashboard Simplification`: Reframe Dashboard as the daily research entry point instead of an engineering status board.
-- `P014 - Global Command Center`: Add command search for symbols, pinyin, page jumps, workflow starts, and AI actions.
-- `P015 - Asset Cockpit v1`: Add an asset cockpit with data status, key facts, related research, and one-click brief creation.
-- `P016 - Research Canvas v1`: Redesign Research into brief list, document canvas, evidence chain, and AI inspector.
-- `P017 - Evidence Timeline`: Show provider, cache, freshness, audit, and workflow artifacts as a readable evidence timeline.
-- `P018 - One Click Research Brief`: Create a research brief directly from Asset, Command Center, or Data Sources with context preview.
-- `P019 - Export Report Polish`: Ensure reports include provenance, limitations, evidence boundaries, and AI-generation notes.
-- `P020 - 10 Minute Success Test`: Validate that a new user can search, research, and export within ten minutes.
+- `T107 - First Run Demo Flow`: Let a no-key user complete a sample research flow on first launch.
+- `T108 - Home Dashboard Simplification`: Reframe Dashboard as the daily research entry point instead of an engineering status board.
+- `T109 - Global Command Center`: Add command search for symbols, pinyin, page jumps, workflow starts, and AI actions.
+- `T110 - Asset Cockpit v1`: Add an asset cockpit with data status, key facts, related research, and one-click brief creation.
+- `T111 - Research Canvas v1`: Redesign Research into brief list, document canvas, evidence chain, and AI inspector.
+- `T112 - Evidence Timeline`: Show provider, cache, freshness, audit, and workflow artifacts as a readable evidence timeline.
+- `T113 - One Click Research Brief`: Create a research brief directly from Asset, Command Center, or Data Sources with context preview.
+- `T114 - Export Report Polish`: Ensure reports include provenance, limitations, evidence boundaries, and AI-generation notes.
+- `T115 - 10 Minute Success Test`: Validate that a new user can search, research, and export within ten minutes.
 
-### M3 - AI Router: multi-model assistant system
+### M3 - AI Router: multi-model assistant system (`T116-T125`)
 
-- `P021 - AI Provider Router Spec`: Define local, cloud, custom, budget, fallback, and model-use routing rules.
-- `P022 - AI Control Redesign`: Redesign Dashboard AI Control as a visible provider-state and mode panel without in-app secret entry.
-- `P023 - Local Model Runtime Probe v2`: Improve Ollama, MiMO, Hermes, and OpenAI-compatible endpoint probing.
-- `P024 - Cloud Opt-in Sheet`: Show provider, model, context preview, estimated size, and risk confirmation before cloud submission.
-- `P025 - AI Evidence Contract`: Require assistant output to cite allowed evidence or enter a blocked/limited state.
-- `P026 - Multi-model Advisor Mode`: Let multiple configured models produce risk, counterargument, and missing-data reviews.
-- `P027 - AI Cost Budget Guard`: Add budget, token estimate, request failure, and fallback UI for cloud providers.
-- `P028 - Prompt Template Library`: Add templates for equity research, banking one-pagers, factor explanation, risk review, and provider limitations.
-- `P029 - AI Eval Fixtures`: Test assistant behavior against fixed evidence packs for fabrication, citation, and boundary adherence.
-- `P030 - AI Audit Trail`: Record provider, model, context hash, confirmation state, and output artifact without recording secrets.
+- `T116 - AI Provider Router Spec`: Define local, cloud, custom, budget, fallback, and model-use routing rules.
+- `T117 - AI Control Redesign`: Redesign Dashboard AI Control as a visible provider-state and mode panel without in-app secret entry.
+- `T118 - Local Model Runtime Probe v2`: Improve Ollama, MiMO, Hermes, and OpenAI-compatible endpoint probing.
+- `T119 - Cloud Opt-in Sheet`: Show provider, model, context preview, estimated size, and risk confirmation before cloud submission.
+- `T120 - AI Evidence Contract`: Require assistant output to cite allowed evidence or enter a blocked/limited state.
+- `T121 - Multi-model Advisor Mode`: Let multiple configured models produce risk, counterargument, and missing-data reviews.
+- `T122 - AI Cost Budget Guard`: Add budget, token estimate, request failure, and fallback UI for cloud providers.
+- `T123 - Prompt Template Library`: Add templates for equity research, banking one-pagers, factor explanation, risk review, and provider limitations.
+- `T124 - AI Eval Fixtures`: Test assistant behavior against fixed evidence packs for fabrication, citation, and boundary adherence.
+- `T125 - AI Audit Trail`: Record provider, model, context hash, confirmation state, and output artifact without recording secrets.
 
-### M4 - Data Depth: provider and market-data capability
+### M4 - Data Depth: provider and market-data capability (`T126-T135`)
 
-- `P031 - Data Sources Center Redesign`: Turn Data Sources into a provider health cockpit with status, freshness, samples, and limitations.
-- `P032 - China Equity Provider v2`: Expand A-share quote, profile, daily basics, financial indicators, and classification coverage.
-- `P033 - HK Market Data Expansion`: Improve Hong Kong equity and macro data coverage, cache behavior, and error states.
-- `P034 - Macro Data Explorer`: Add a unified browser for FRED, World Bank, DBnomics, HKMA, and other macro series.
-- `P035 - News And Events Lane`: Add read-only news, RSS, and event context with source and timestamp boundaries.
-- `P036 - Provider Freshness UI`: Make live, cached, stale, credential-gated, unsupported, and unavailable states easy to understand.
-- `P037 - DuckDB Performance Pass`: Optimize historical and factor-oriented local analytical queries.
-- `P038 - Local File Import v1`: Import CSV and Excel files as local evidence-backed data sources.
-- `P039 - Data Quality Score`: Score completeness, timeliness, source confidence, limitations, and sample coverage.
-- `P040 - Data Source Report Export`: Export data-source status, freshness, quality, and limitations for audit and debugging.
+- `T126 - Data Sources Center Redesign`: Turn Data Sources into a provider health cockpit with status, freshness, samples, and limitations.
+- `T127 - China Equity Provider v2`: Expand A-share quote, profile, daily basics, financial indicators, and classification coverage.
+- `T128 - HK Market Data Expansion`: Improve Hong Kong equity and macro data coverage, cache behavior, and error states.
+- `T129 - Macro Data Explorer`: Add a unified browser for FRED, World Bank, DBnomics, HKMA, and other macro series.
+- `T130 - News And Events Lane`: Add read-only news, RSS, and event context with source and timestamp boundaries.
+- `T131 - Provider Freshness UI`: Make live, cached, stale, credential-gated, unsupported, and unavailable states easy to understand.
+- `T132 - DuckDB Performance Pass`: Optimize historical and factor-oriented local analytical queries.
+- `T133 - Local File Import v1`: Import CSV and Excel files as local evidence-backed data sources.
+- `T134 - Data Quality Score`: Score completeness, timeliness, source confidence, limitations, and sample coverage.
+- `T135 - Data Source Report Export`: Export data-source status, freshness, quality, and limitations for audit and debugging.
 
-### M5 - Research, Banking, and Equity Workflows
+### M5 - Research, Banking, and Equity Workflows (`T136-T145`)
 
-- `P041 - Workflow Recipe Gallery`: Reframe Workflow Studio as a user-facing recipe gallery instead of a technical template list.
-- `P042 - Screener To Research v2`: Convert screener results into research candidates and batch brief creation.
-- `P043 - Data Sources To Research v2`: Route provider samples and source-health context into research briefs.
-- `P044 - Public Equity Memo Template`: Add a public-equity memo covering business, financials, valuation, catalysts, risks, and evidence.
-- `P045 - Investment Banking One-pager`: Add a company one-pager with business summary, transaction highlights, peers, and diligence prompts.
-- `P046 - Peer Comparison Workflow`: Add peer set selection, comparison tables, and exportable analysis.
-- `P047 - Due Diligence Checklist`: Generate diligence question lists from company, industry, data, and evidence context.
-- `P048 - Batch Research Queue`: Queue multiple assets for research while keeping each output evidence-bound.
-- `P049 - Research Review Mode`: Add AI-assisted counterargument, risk, and evidence-gap review for finished briefs.
-- `P050 - Report Template Manager`: Manage reusable research, banking, macro, and risk report templates.
+- `T136 - Workflow Recipe Gallery`: Reframe Workflow Studio as a user-facing recipe gallery instead of a technical template list.
+- `T137 - Screener To Research v2`: Convert screener results into research candidates and batch brief creation.
+- `T138 - Data Sources To Research v2`: Route provider samples and source-health context into research briefs.
+- `T139 - Public Equity Memo Template`: Add a public-equity memo covering business, financials, valuation, catalysts, risks, and evidence.
+- `T140 - Investment Banking One-pager`: Add a company one-pager with business summary, transaction highlights, peers, and diligence prompts.
+- `T141 - Peer Comparison Workflow`: Add peer set selection, comparison tables, and exportable analysis.
+- `T142 - Due Diligence Checklist`: Generate diligence question lists from company, industry, data, and evidence context.
+- `T143 - Batch Research Queue`: Queue multiple assets for research while keeping each output evidence-bound.
+- `T144 - Research Review Mode`: Add AI-assisted counterargument, risk, and evidence-gap review for finished briefs.
+- `T145 - Report Template Manager`: Manage reusable research, banking, macro, and risk report templates.
 
-### M6 - Quant Factor Lab: factor discovery and backtesting
+### M6 - Quant Factor Lab: factor discovery and backtesting (`T146-T165`)
 
-- `Q001 - Factor Lab IA And UI`: Add Factor Lab as a first-class module with project list, formula/workspace, charts, and inspector.
-- `Q002 - Factor Project Model`: Store factor projects with universe, date range, rebalance frequency, parameters, and artifacts.
-- `Q003 - Factor Definition Schema`: Define factor metadata, expression, inputs, transformations, provenance, and validation status.
-- `Q004 - Built-in Factor Library`: Add valuation, quality, growth, momentum, volatility, liquidity, and macro-sensitivity factors.
-- `Q005 - Factor Formula Parser`: Support safe custom formulas over approved local data columns and transformations.
-- `Q006 - Equity Universe Selector`: Add universe selection by market, industry, watchlist, imported file, and liquidity filters.
-- `Q007 - Factor Data Pipeline`: Compute, cache, version, and validate factor values with missing-value handling.
-- `Q008 - IC And Rank IC Engine`: Compute IC, Rank IC, ICIR, rolling IC, and sample coverage.
-- `Q009 - Quantile Return Analysis`: Compute quantile returns, long-short spreads, hit rate, turnover, and drawdown by bucket.
-- `Q010 - Single Factor Backtest`: Run single-factor portfolio backtests with configurable rebalance and weighting.
-- `Q011 - Multi-factor Score Model`: Combine factors through equal weight, z-score, rank score, and user-defined weights.
-- `Q012 - Transaction Cost Model`: Add fees, slippage, turnover cost, and cost sensitivity analysis.
-- `Q013 - Exposure Diagnostics`: Diagnose industry, size, style, liquidity, and market exposures.
-- `Q014 - Overfitting Checks`: Flag lookahead risk, survivorship risk, sample leakage, too-small samples, and unstable periods.
-- `Q015 - Factor Report Export`: Export factor definition, economics, data sources, diagnostics, backtest results, and limitations.
-- `Q016 - AI Factor Hypothesis Assistant`: Let AI propose explainable factor hypotheses and convert them into testable expressions.
-- `Q017 - Research To Factor Handoff`: Convert a research hypothesis into a candidate factor idea.
-- `Q018 - Factor To Backtest Handoff`: Send validated factor results into the backtest workflow.
-- `Q019 - Backtest To Paper Intent`: Convert backtest results to paper trade intent only, without automatic execution.
-- `Q020 - Factor Lab Screenshot Tests`: Add screenshot and numeric regression tests for Factor Lab outputs.
+- `T146 - Factor Lab IA And UI`: Add Factor Lab as a first-class module with project list, formula/workspace, charts, and inspector.
+- `T147 - Factor Project Model`: Store factor projects with universe, date range, rebalance frequency, parameters, and artifacts.
+- `T148 - Factor Definition Schema`: Define factor metadata, expression, inputs, transformations, provenance, and validation status.
+- `T149 - Built-in Factor Library`: Add valuation, quality, growth, momentum, volatility, liquidity, and macro-sensitivity factors.
+- `T150 - Factor Formula Parser`: Support safe custom formulas over approved local data columns and transformations.
+- `T151 - Equity Universe Selector`: Add universe selection by market, industry, watchlist, imported file, and liquidity filters.
+- `T152 - Factor Data Pipeline`: Compute, cache, version, and validate factor values with missing-value handling.
+- `T153 - IC And Rank IC Engine`: Compute IC, Rank IC, ICIR, rolling IC, and sample coverage.
+- `T154 - Quantile Return Analysis`: Compute quantile returns, long-short spreads, hit rate, turnover, and drawdown by bucket.
+- `T155 - Single Factor Backtest`: Run single-factor portfolio backtests with configurable rebalance and weighting.
+- `T156 - Multi-factor Score Model`: Combine factors through equal weight, z-score, rank score, and user-defined weights.
+- `T157 - Transaction Cost Model`: Add fees, slippage, turnover cost, and cost sensitivity analysis.
+- `T158 - Exposure Diagnostics`: Diagnose industry, size, style, liquidity, and market exposures.
+- `T159 - Overfitting Checks`: Flag lookahead risk, survivorship risk, sample leakage, too-small samples, and unstable periods.
+- `T160 - Factor Report Export`: Export factor definition, economics, data sources, diagnostics, backtest results, and limitations.
+- `T161 - AI Factor Hypothesis Assistant`: Let AI propose explainable factor hypotheses and convert them into testable expressions.
+- `T162 - Research To Factor Handoff`: Convert a research hypothesis into a candidate factor idea.
+- `T163 - Factor To Backtest Handoff`: Send validated factor results into the backtest workflow.
+- `T164 - Backtest To Paper Intent`: Convert backtest results to paper trade intent only, without automatic execution.
+- `T165 - Factor Lab Screenshot Tests`: Add screenshot and numeric regression tests for Factor Lab outputs.
 
-### M7 - Release Hardening: shipping and engineering stability
+### M7 - Release Hardening: shipping and engineering stability (`T166-T175`)
 
-- `P051 - Tauri Packaging Audit`: Audit EXE, MSI, NSIS, sidecar payload, generated resources, and version consistency.
-- `P052 - Code Signing Plan`: Define Windows signing, artifact verification, and release trust steps.
-- `P053 - Auto-update Channel Design`: Design stable and beta update channels without enabling remote sync by default.
-- `P054 - Performance Budget`: Set budgets for startup, navigation, tables, AI preview, data refresh, and export.
-- `P055 - Error Boundary And Recovery`: Standardize frontend, sidecar, provider, AI, and export error recovery states.
-- `P056 - Local Runtime Diagnostics`: Generate local diagnostics that are redacted and exclude secrets and runtime databases by default.
-- `P057 - CI Expansion`: Expand typecheck, backend tests, provider-contract tests, AI eval fixtures, and screenshot tests.
-- `P058 - Release Checklist v2`: Update release checks for UI, AI, data, quant, security, packaging, and smoke evidence.
-- `P059 - Documentation Sync`: Keep README, CHANGELOG, manual, security docs, and task board aligned with each shipped slice.
-- `P060 - Packaged Smoke Test v2`: Add packaged smoke coverage for the redesigned shell, first-use loop, data, AI, and Factor Lab.
+- `T166 - Tauri Packaging Audit`: Audit EXE, MSI, NSIS, sidecar payload, generated resources, and version consistency.
+- `T167 - Code Signing Plan`: Define Windows signing, artifact verification, and release trust steps.
+- `T168 - Auto-update Channel Design`: Design stable and beta update channels without enabling remote sync by default.
+- `T169 - Performance Budget`: Set budgets for startup, navigation, tables, AI preview, data refresh, and export.
+- `T170 - Error Boundary And Recovery`: Standardize frontend, sidecar, provider, AI, and export error recovery states.
+- `T171 - Local Runtime Diagnostics`: Generate local diagnostics that are redacted and exclude secrets and runtime databases by default.
+- `T172 - CI Expansion`: Expand typecheck, backend tests, provider-contract tests, AI eval fixtures, and screenshot tests.
+- `T173 - Release Checklist v2`: Update release checks for UI, AI, data, quant, security, packaging, and smoke evidence.
+- `T174 - Documentation Sync`: Keep README, CHANGELOG, manual, security docs, and task board aligned with each shipped slice.
+- `T175 - Packaged Smoke Test v2`: Add packaged smoke coverage for the redesigned shell, first-use loop, data, AI, and Factor Lab.
 
-### M8 - Security And Compliance
+### M8 - Security And Compliance (`T176-T185`)
 
-- `P061 - Secret Storage Review`: Reconfirm raw secrets stay out of SQLite, DuckDB, logs, screenshots, diagnostics, and exports.
-- `P062 - Cloud Context Redaction`: Redact cloud-bound AI context and show the user exactly what is being sent.
-- `P063 - Audit Event Viewer`: Add a UI for local audit events covering AI, exports, providers, Binance intent, and security actions.
-- `P064 - Public Exposure Guard`: Keep the sidecar bound to loopback and block hosted/LAN/public API assumptions.
-- `P065 - License And Redistribution Matrix`: Track provider licensing, redistribution risk, commercial risk, and read-only status.
-- `P066 - Financial Advice Boundary Copy`: Add clear research-assistance and non-advice copy across UI and exports.
-- `P067 - Screenshot Secret Scan`: Scan screenshot and visual artifacts for obvious secret, token, and private-path leakage.
-- `P068 - Binance Safety UI`: Preserve read-only defaults, kill switch, risk gate, audit, and explicit user confirmation for Binance.
-- `P069 - Security Smoke Evidence`: Produce repeatable packaged evidence for redaction, route locking, audit, and secret absence.
-- `P070 - Private Deployment Boundary`: Define what must be true before any private deployment or team mode is considered.
+- `T176 - Secret Storage Review`: Reconfirm raw secrets stay out of SQLite, DuckDB, logs, screenshots, diagnostics, and exports.
+- `T177 - Cloud Context Redaction`: Redact cloud-bound AI context and show the user exactly what is being sent.
+- `T178 - Audit Event Viewer`: Add a UI for local audit events covering AI, exports, providers, Binance intent, and security actions.
+- `T179 - Public Exposure Guard`: Keep the sidecar bound to loopback and block hosted/LAN/public API assumptions.
+- `T180 - License And Redistribution Matrix`: Track provider licensing, redistribution risk, commercial risk, and read-only status.
+- `T181 - Financial Advice Boundary Copy`: Add clear research-assistance and non-advice copy across UI and exports.
+- `T182 - Screenshot Secret Scan`: Scan screenshot and visual artifacts for obvious secret, token, and private-path leakage.
+- `T183 - Binance Safety UI`: Preserve read-only defaults, kill switch, risk gate, audit, and explicit user confirmation for Binance.
+- `T184 - Security Smoke Evidence`: Produce repeatable packaged evidence for redaction, route locking, audit, and secret absence.
+- `T185 - Private Deployment Boundary`: Define what must be true before any private deployment or team mode is considered.
 
-### M9 - Commercialization and external proof
+### M9 - Commercialization and external proof (`T186-T195`)
 
-- `P071 - User Segment Definition`: Define personal investor, advanced analyst, banking/research professional, and small-team segments.
-- `P072 - Pricing Hypothesis`: Draft Pro Desktop, template pack, paid connector, and private-deployment pricing hypotheses.
-- `P073 - Template Marketplace Seed`: Seed internal templates before building any external marketplace.
-- `P074 - Private Deployment Playbook`: Draft local/private deployment instructions, update policy, and safety boundaries.
-- `P075 - Demo Video Script`: Script a three-minute demo from no-key launch to evidence-backed report export.
-- `P076 - README Product Proof`: Upgrade README with product screenshots, first-use flow, safety boundaries, and release links.
-- `P077 - Landing Page Later`: Defer a public landing page while collecting the assets and copy needed for one.
-- `P078 - Feedback Capture Loop`: Add issue templates and feedback categories for UI, data, AI, quant, install, and security feedback.
-- `P079 - Early User Trial Plan`: Define who tests the product first, what they do, and what evidence is collected.
-- `P080 - Commercial Risk Review`: Review data licensing, AI cost, support load, update risk, and maintenance burden.
+- `T186 - User Segment Definition`: Define personal investor, advanced analyst, banking/research professional, and small-team segments.
+- `T187 - Pricing Hypothesis`: Draft Pro Desktop, template pack, paid connector, and private-deployment pricing hypotheses.
+- `T188 - Template Marketplace Seed`: Seed internal templates before building any external marketplace.
+- `T189 - Private Deployment Playbook`: Draft local/private deployment instructions, update policy, and safety boundaries.
+- `T190 - Demo Video Script`: Script a three-minute demo from no-key launch to evidence-backed report export.
+- `T191 - README Product Proof`: Upgrade README with product screenshots, first-use flow, safety boundaries, and release links.
+- `T192 - Landing Page Later`: Defer a public landing page while collecting the assets and copy needed for one.
+- `T193 - Feedback Capture Loop`: Add issue templates and feedback categories for UI, data, AI, quant, install, and security feedback.
+- `T194 - Early User Trial Plan`: Define who tests the product first, what they do, and what evidence is collected.
+- `T195 - Commercial Risk Review`: Review data licensing, AI cost, support load, update risk, and maintenance burden.
 
 ### Execution order
 
-1. First batch: `P001-P020` to land the redesign foundation and first useful research loop.
-2. Second batch: `P021-P040` to deepen AI and data.
-3. Third batch: `Q001-Q020` to make Factor Lab the second core product engine.
-4. Fourth batch: `P041-P060` to complete professional workflows and release hardening.
-5. Fifth batch: `P061-P080` to prepare safety, compliance, commercialization, and external proof.
+1. First batch: `T96-T115` to land the redesign foundation and first useful research loop.
+2. Second batch: `T116-T135` to deepen AI and data.
+3. Third batch: `T146-T165` to make Factor Lab the second core product engine.
+4. Fourth batch: `T136-T145` plus `T166-T175` to complete professional workflows and release hardening.
+5. Fifth batch: `T176-T195` to prepare safety, compliance, commercialization, and external proof.
 
 ## Priority Order
 

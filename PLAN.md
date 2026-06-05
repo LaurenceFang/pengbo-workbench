@@ -93,9 +93,10 @@ The active product-trust sequence is:
 - T92: credential audit trail hardening. Completed.
 - T93: sensitive workspace lock rules. Completed.
 - T94: security packaged signoff. Completed.
-- T95+: next-stage master task pool selected for UI redesign, first useful
-  research loop, multi-model AI, data depth, professional workflows, Quant
-  Factor Lab, release hardening, safety, and commercialization.
+- T95+: next-stage master task pool selected; follow-up tasks are numbered
+  T96-T195 across UI redesign, first useful research loop, multi-model AI,
+  data depth, professional workflows, Quant Factor Lab, release hardening,
+  safety, and commercialization.
 
 The current research-flow map is tracked in
 [docs/research-flow-definition.md](docs/research-flow-definition.md).
