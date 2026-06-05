@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="7800" height="1040" viewBox="0 0 7800 1040">
+  <defs>
+    <style>
+      .bg{fill:#eef3f6}
+      .frame{fill:#ffffff;stroke:#cbd5e1;stroke-width:2}
+      .muted{font-family:Inter,Arial,sans-serif;fill:#64748b}
+      .text{font-family:Inter,Arial,sans-serif;fill:#111827}
+      .strong{font-family:Inter,Arial,sans-serif;font-weight:800;fill:#111827}
+      .eyebrow{font-family:Inter,Arial,sans-serif;font-weight:800;font-size:28px;fill:#0e6f78}
+      .title{font-family:Inter,Arial,sans-serif;font-weight:850;font-size:70px;fill:#111827}
+      .h1{font-family:Inter,Arial,sans-serif;font-weight:850;font-size:54px;fill:#111827}
+      .h2{font-family:Inter,Arial,sans-serif;font-weight:800;font-size:34px;fill:#111827}
+      .body{font-family:Inter,Arial,sans-serif;font-size:30px;fill:#334155}
+      .small{font-family:Inter,Arial,sans-serif;font-size:25px;fill:#475569}
+      .tiny{font-family:Inter,Arial,sans-serif;font-size:22px;fill:#475569}
+      .red{fill:#b91c1c}
+      .line{stroke:#d7e0e8;stroke-width:2}
+      .pill{fill:#f8fafc;stroke:#cbd5e1;stroke-width:2}
+      .card{fill:#f8fafc;stroke:#d7e0e8;stroke-width:2}
+    </style>
+  </defs>
+  <rect class="bg" width="7800" height="1040"/>
+
+  <g id="cover" transform="translate(80 70)">
+    <rect class="frame" width="1440" height="900" rx="18"/>
+    <text class="eyebrow" x="70" y="100">T96 · FIGMA MASTER ROADMAP</text>
+    <text class="title" x="70" y="215">Pengbo Workbench</text>
+    <text class="title" x="70" y="300">v0.1 → v1.0</text>
+    <text class="body" x="70" y="390">Local-first financial research desktop roadmap.</text>
+    <text class="body" x="70" y="438">Covers product, UI, AI, data, quant, workflows, release, safety, and commercial proof.</text>
+    <rect x="70" y="525" width="1160" height="120" rx="14" fill="#fff5f5" stroke="#fecaca" stroke-width="2"/>
+    <text class="h2 red" x="105" y="575">Boundary</text>
+    <text class="small red" x="105" y="620">T96 does not add hosted accounts, public APIs, remote sync,</text>
+    <text class="small red" x="105" y="655">or new live-trading scope.</text>
+    <text class="small" x="70" y="770">Source-safe handoff asset for T97-T100 and T107-T115.</text>
+    <text class="tiny" x="70" y="820">Source: IMPLEMENTATION_TASKS.md · Completed: 2026-06-05</text>
+  </g>
+
+  <g id="roadmap" transform="translate(1620 70)">
+    <rect class="frame" width="1440" height="900" rx="18"/>
+    <text class="eyebrow" x="70" y="90">01 ROADMAP OVERVIEW</text>
+    <text class="h1" x="70" y="160">Milestones by Lane</text>
+    <text class="small" x="70" y="210">Each block maps a task range into one product lane and one delivery phase.</text>
+    <g transform="translate(70 275)">
+      <text class="h2" x="0" y="0">Lane</text>
+      <text class="h2" x="260" y="0">Milestone</text>
+      <text class="h2" x="585" y="0">Task Range</text>
+      <text class="h2" x="850" y="0">Intent</text>
+      <line class="line" x1="0" y1="32" x2="1260" y2="32"/>
+      <g class="body">
+        <text x="0" y="90">UI</text><text x="260" y="90">M1</text><text x="585" y="90">T96-T106</text><text x="850" y="90">Design foundation</text>
+        <text x="0" y="165">Product</text><text x="260" y="165">M2</text><text x="585" y="165">T107-T115</text><text x="850" y="165">First useful loop</text>
+        <text x="0" y="240">AI</text><text x="260" y="240">M3</text><text x="585" y="240">T116-T125</text><text x="850" y="240">Router and evidence</text>
+        <text x="0" y="315">Data</text><text x="260" y="315">M4</text><text x="585" y="315">T126-T135</text><text x="850" y="315">Market data depth</text>
+        <text x="0" y="390">Workflow</text><text x="260" y="390">M5</text><text x="585" y="390">T136-T145</text><text x="850" y="390">Research workflow</text>
+        <text x="0" y="465">Quant</text><text x="260" y="465">M6</text><text x="585" y="465">T146-T165</text><text x="850" y="465">Factor Lab</text>
+        <text x="0" y="540">Release</text><text x="260" y="540">M7</text><text x="585" y="540">T166-T175</text><text x="850" y="540">Hardening</text>
+        <text x="0" y="615">Safety</text><text x="260" y="615">M8/M9</text><text x="585" y="615">T176-T195</text><text x="850" y="615">Compliance and proof</text>
+      </g>
+    </g>
+  </g>
+
+  <g id="batch1" transform="translate(3160 70)">
+    <rect class="frame" width="1440" height="900" rx="18"/>
+    <text class="eyebrow" x="70" y="90">02 FIRST BATCH DETAIL</text>
+    <text class="h1" x="70" y="160">T96-T115</text>
+    <text class="small" x="70" y="210">Design system first, then first-use research proof. This is the immediate handoff batch.</text>
+    <g transform="translate(70 280)">
+      <rect class="card" width="610" height="540" rx="14"/>
+      <text class="h2" x="35" y="58" fill="#254386">M1 · UI Foundation</text>
+      <text class="small" x="35" y="115">T96 Figma Master Roadmap</text>
+      <text class="small" x="35" y="158">T97 Figma UI System</text>
+      <text class="small" x="35" y="201">T98 Design Tokens v1</text>
+      <text class="small" x="35" y="244">T99 Navigation IA Collapse</text>
+      <text class="small" x="35" y="287">T100 AppShell Redesign</text>
+      <text class="small" x="35" y="330">T101 Light Mode First</text>
+      <text class="small" x="35" y="373">T102 Component Library Base</text>
+      <text class="small" x="35" y="416">T103 DataTable Component</text>
+      <text class="small" x="35" y="459">T104 Inspector Panel</text>
+      <text class="small" x="35" y="502">T105-T106 Empty states and screenshot baseline</text>
+      <rect class="card" x="680" width="610" height="540" rx="14"/>
+      <text class="h2" x="715" y="58" fill="#0e6f78">M2 · First Useful Loop</text>
+      <text class="small" x="715" y="115">T107 First Run Demo Flow</text>
+      <text class="small" x="715" y="158">T108 Home Dashboard Simplification</text>
+      <text class="small" x="715" y="201">T109 Global Command Center</text>
+      <text class="small" x="715" y="244">T110 Asset Cockpit v1</text>
+      <text class="small" x="715" y="287">T111 Research Canvas v1</text>
+      <text class="small" x="715" y="330">T112 Evidence Timeline</text>
+      <text class="small" x="715" y="373">T113 One Click Research Brief</text>
+      <text class="small" x="715" y="416">T114 Export Report Polish</text>
+      <text class="small" x="715" y="459">T115 10 Minute Success Test</text>
+    </g>
+  </g>
+
+  <g id="later" transform="translate(4700 70)">
+    <rect class="frame" width="1440" height="900" rx="18"/>
+    <text class="eyebrow" x="70" y="90">03 EXECUTION ORDER</text>
+    <text class="h1" x="70" y="160">T116-T195</text>
+    <text class="small" x="70" y="210">Promote work in batches after the UI and first-use loop are understandable.</text>
+    <g transform="translate(90 300)" class="body">
+      <rect class="pill" x="0" y="-45" width="1250" height="86" rx="16"/>
+      <text x="35" y="10" font-weight="800" fill="#6c3294">2</text><text x="105" y="10" font-weight="800">T116-T135</text><text x="360" y="10">AI router and market-data depth</text>
+      <rect class="pill" x="0" y="70" width="1250" height="86" rx="16"/>
+      <text x="35" y="125" font-weight="800" fill="#a86112">3</text><text x="105" y="125" font-weight="800">T146-T165</text><text x="360" y="125">Factor Lab as second product engine</text>
+      <rect class="pill" x="0" y="185" width="1250" height="86" rx="16"/>
+      <text x="35" y="240" font-weight="800" fill="#526475">4</text><text x="105" y="240" font-weight="800">T136-T145 + T166-T175</text><text x="580" y="240">Workflow and release hardening</text>
+      <rect class="pill" x="0" y="300" width="1250" height="86" rx="16"/>
+      <text x="35" y="355" font-weight="800" fill="#b91c1c">5</text><text x="105" y="355" font-weight="800">T176-T195</text><text x="360" y="355">Safety, compliance, commercialization, external proof</text>
+    </g>
+    <text class="small" x="90" y="760">Rule: no deeper AI/data/quant/commercial scope should outrun the T96-T115 foundation.</text>
+  </g>
+
+  <g id="principles" transform="translate(6240 70)">
+    <rect class="frame" width="1440" height="900" rx="18"/>
+    <text class="eyebrow" x="70" y="90">04 DESIGN PRINCIPLES</text>
+    <text class="h1" x="70" y="160">Guardrails</text>
+    <text class="small" x="70" y="210">These constraints must remain visible through T97, implementation, QA, and release work.</text>
+    <g transform="translate(90 300)" class="body">
+      <text x="0" y="0">1. Local-first desktop remains the product boundary.</text>
+      <text x="0" y="70">2. Research output must be evidence-backed.</text>
+      <text x="0" y="140">3. Chinese-first copy, with English support where useful.</text>
+      <text x="0" y="210">4. AI must cite evidence or enter limited / blocked states.</text>
+      <text x="0" y="280">5. No secrets, runtime DBs, diagnostics, or private paths in design artifacts.</text>
+      <text x="0" y="350">6. Binance execution remains default-off and risk-gated.</text>
+      <text x="0" y="420">7. Design must guide implementation, not become marketing decoration.</text>
+    </g>
+    <rect x="90" y="785" width="1180" height="62" rx="12" fill="#ecfeff" stroke="#99f6e4" stroke-width="2"/>
+    <text class="small" x="120" y="827" fill="#0f766e">Next task: T97 Figma UI System should turn this roadmap into reusable shell, navigation, component, state, and React mapping rules.</text>
+  </g>
+</svg>

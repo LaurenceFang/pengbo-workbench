@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1160" viewBox="0 0 1800 1160">
+  <rect width="1800" height="1160" fill="#f1f5f7"/>
+  <text x="64" y="72" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="600" fill="#0e6f78">T96 - Figma Master Roadmap</text>
+  <text x="64" y="126" font-family="Inter, Arial, sans-serif" font-size="52" font-weight="700" fill="#111827">Pengbo Workbench v0.1 -> v1.0</text>
+  <text x="64" y="170" font-family="Inter, Arial, sans-serif" font-size="22" fill="#4b5563">Local-first financial research desktop roadmap across product, UI, AI, data, quant, workflows, release, safety, and commercial proof.</text>
+  <text x="64" y="214" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="600" fill="#b91c1c">Boundary: T96 does not add hosted accounts, public APIs, remote sync, or new live-trading scope.</text>
+
+  <g font-family="Inter, Arial, sans-serif">
+    <text x="64" y="306" font-size="26" font-weight="700" fill="#111827">Roadmap Overview</text>
+    <text x="64" y="334" font-size="16" fill="#4b5563">Every task from T96 through T195 is mapped into milestone lanes. Batch 1 expands the UI foundation and first useful research loop.</text>
+  </g>
+
+  <g font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700" fill="#111827">
+    <text x="64" y="420">UI</text>
+    <text x="64" y="500">Product</text>
+    <text x="64" y="580">AI</text>
+    <text x="64" y="660">Data</text>
+    <text x="64" y="740">Workflows</text>
+    <text x="64" y="820">Quant</text>
+    <text x="64" y="900">Release</text>
+    <text x="64" y="980">Safety</text>
+    <text x="64" y="1060">Commercial</text>
+  </g>
+
+  <g stroke="#cbd5e1" stroke-width="1">
+    <line x1="190" y1="414" x2="1660" y2="414"/>
+    <line x1="190" y1="494" x2="1660" y2="494"/>
+    <line x1="190" y1="574" x2="1660" y2="574"/>
+    <line x1="190" y1="654" x2="1660" y2="654"/>
+    <line x1="190" y1="734" x2="1660" y2="734"/>
+    <line x1="190" y1="814" x2="1660" y2="814"/>
+    <line x1="190" y1="894" x2="1660" y2="894"/>
+    <line x1="190" y1="974" x2="1660" y2="974"/>
+    <line x1="190" y1="1054" x2="1660" y2="1054"/>
+  </g>
+
+  <g font-family="Inter, Arial, sans-serif">
+    <g transform="translate(220 360)">
+      <rect width="150" height="88" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+      <rect width="8" height="88" rx="4" fill="#254386"/>
+      <text x="20" y="28" font-size="18" font-weight="700" fill="#254386">M1</text>
+      <text x="20" y="52" font-size="13" font-weight="600" fill="#111827">UI Foundation</text>
+      <text x="20" y="73" font-size="12" fill="#4b5563">T96-T106</text>
+    </g>
+    <g transform="translate(395 440)">
+      <rect width="160" height="88" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+      <rect width="8" height="88" rx="4" fill="#0e6f78"/>
+      <text x="20" y="28" font-size="18" font-weight="700" fill="#0e6f78">M2</text>
+      <text x="20" y="52" font-size="13" font-weight="600" fill="#111827">First Useful Loop</text>
+      <text x="20" y="73" font-size="12" fill="#4b5563">T107-T115</text>
+    </g>
+    <g transform="translate(580 520)">
+      <rect width="150" height="88" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+      <rect width="8" height="88" rx="4" fill="#6c3294"/>
+      <text x="20" y="28" font-size="18" font-weight="700" fill="#6c3294">M3</text>
+      <text x="20" y="52" font-size="13" font-weight="600" fill="#111827">AI Router</text>
+      <text x="20" y="73" font-size="12" fill="#4b5563">T116-T125</text>
+    </g>
+    <g transform="translate(760 600)">
+      <rect width="150" height="88" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+      <rect width="8" height="88" rx="4" fill="#1a7c4e"/>
+      <text x="20" y="28" font-size="18" font-weight="700" fill="#1a7c4e">M4</text>
+      <text x="20" y="52" font-size="13" font-weight="600" fill="#111827">Data Depth</text>
+      <text x="20" y="73" font-size="12" fill="#4b5563">T126-T135</text>
+    </g>
+    <g transform="translate(940 680)">
+      <rect width="170" height="88" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+      <rect width="8" height="88" rx="4" fill="#8e4036"/>
+      <text x="20" y="28" font-size="18" font-weight="700" fill="#8e4036">M5</text>
+      <text x="20" y="52" font-size="13" font-weight="600" fill="#111827">Research Workflows</text>
+      <text x="20" y="73" font-size="12" fill="#4b5563">T136-T145</text>
+    </g>
+    <g transform="translate(1125 760)">
+      <rect width="165" height="88" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+      <rect width="8" height="88" rx="4" fill="#a86112"/>
+      <text x="20" y="28" font-size="18" font-weight="700" fill="#a86112">M6</text>
+      <text x="20" y="52" font-size="13" font-weight="600" fill="#111827">Quant Factor Lab</text>
+      <text x="20" y="73" font-size="12" fill="#4b5563">T146-T165</text>
+    </g>
+    <g transform="translate(1310 840)">
+      <rect width="160" height="88" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+      <rect width="8" height="88" rx="4" fill="#526475"/>
+      <text x="20" y="28" font-size="18" font-weight="700" fill="#526475">M7</text>
+      <text x="20" y="52" font-size="13" font-weight="600" fill="#111827">Release Hardening</text>
+      <text x="20" y="73" font-size="12" fill="#4b5563">T166-T175</text>
+    </g>
+    <g transform="translate(1490 920)">
+      <rect width="160" height="88" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+      <rect width="8" height="88" rx="4" fill="#b91c1c"/>
+      <text x="20" y="28" font-size="18" font-weight="700" fill="#b91c1c">M8</text>
+      <text x="20" y="52" font-size="13" font-weight="600" fill="#111827">Security</text>
+      <text x="20" y="73" font-size="12" fill="#4b5563">T176-T185</text>
+    </g>
+    <g transform="translate(1490 1000)">
+      <rect width="160" height="88" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+      <rect width="8" height="88" rx="4" fill="#30749e"/>
+      <text x="20" y="28" font-size="18" font-weight="700" fill="#30749e">M9</text>
+      <text x="20" y="52" font-size="13" font-weight="600" fill="#111827">Commercial Proof</text>
+      <text x="20" y="73" font-size="12" fill="#4b5563">T186-T195</text>
+    </g>
+  </g>
+
+  <g font-family="Inter, Arial, sans-serif">
+    <text x="64" y="1120" font-size="15" fill="#4b5563">Execution: Batch 1 T96-T115, Batch 2 T116-T135, Batch 3 T146-T165, Batch 4 T136-T145 + T166-T175, Batch 5 T176-T195.</text>
+  </g>
+</svg>

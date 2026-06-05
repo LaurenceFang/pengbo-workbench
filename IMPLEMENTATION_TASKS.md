@@ -11,6 +11,8 @@ Updated: 2026-06-05
 - `T12 - Offline-First Portfolio Hardening` is now implemented and package-smoke validated across online, offline-with-cache, and offline-cold-cache scenarios.
 - `T17 - Packaged Startup Regression Automation` is now implemented and smoke-validated, with a repeatable packaged startup script, log-backed single-instance coverage, and adopt-existing verification recorded in `logs/packaged-startup-smoke-latest.json`.
 - `T95 - Next Stage Master Task Pool Selection` is now completed with a staged backlog for UI redesign, first useful research loop, multi-model AI, data depth, professional workflows, Quant Factor Lab, release hardening, safety, and commercialization.
+- `T96 - Figma Master Roadmap` is now completed. The desktop Chrome Figma file at `https://www.figma.com/design/54nRRjH5vjNbrrP6pMZmyW/Untitled?node-id=12-178` contains a source-safe five-screen readable roadmap frame covering cover, overview, execution order, first-batch detail, and design principles for T96-T195; supporting specs and generation assets are in `docs/t96-figma-master-roadmap.md`, `docs/t96-master-roadmap-full.svg`, `docs/t96-master-roadmap.svg`, and `scripts/figma_t96_master_roadmap.js`.
+- `T97 - Figma UI System` is now completed. The desktop Chrome Figma file at `https://www.figma.com/design/54nRRjH5vjNbrrP6pMZmyW/Untitled?node-id=14-2` contains a source-safe eight-section UI system board defining shell, navigation, workspace templates, component primitives, data table and inspector rules, operational states, and React mapping for T98-T106; supporting specs and generation assets are in `docs/t97-figma-ui-system.md`, `docs/t97-ui-system-board.svg`, and `scripts/figma_t97_ui_system.js`.
 - `T19 - Portfolio Offline Regression Automation` is now implemented and smoke-validated, with a repeatable packaged portfolio script recording `live`, `cached`, and `unavailable` semantics in `logs/portfolio-offline-smoke-latest.json`.
 - `T21 - Installed Bundle Startup Automation` is now implemented and smoke-validated for the MSI-installed desktop lifecycle, with a repeatable installed-app startup result recorded in `logs/installed-bundle-startup-smoke-latest.json`.
 - `T23 - NSIS Installed Startup Automation` is now implemented and smoke-validated for the NSIS-installed desktop lifecycle, with a repeatable installed-app startup result recorded in `logs/installed-bundle-startup-smoke-nsis-latest.json`.
@@ -950,33 +952,52 @@ Updated: 2026-06-05
 
 ## Recommended Next Task
 
-### T95 - Next Stage Master Task Pool Selection
+### T98 - Design Tokens v1
 
 Priority: P1
-Status: Completed
+Status: Recommended
 
 Why this is next:
 
-- `T92` through `T94` completed the current security packaged-signoff lane.
-- The next stage should be planned as a full product, UI, AI, data, quant, workflow, release, security, and commercialization backlog rather than as one narrow follow-up task.
-- The selected direction keeps Pengbo as a local-first desktop research workbench and does not imply hosted accounts, public APIs, remote sync, or new live-trading scope by default.
+- `T97` completed the Figma UI system handoff for shell, navigation, screen templates, components, operational states, and React mapping.
+- The next executable design-foundation slice is to convert that system board into concrete implementation tokens before AppShell, navigation, and component extraction begin.
+- Tokens should keep Pengbo dense, professional, Chinese-first, light-mode-first, local-first, and source-safe.
 
 Scope:
 
-- Add the next-stage master task pool covering UI redesign, first useful research loop, multi-model AI, data depth, professional workflows, quant factor research, release hardening, safety, and commercialization.
-- Keep the local-first desktop boundary intact unless a future roadmap task explicitly changes it.
-- Keep each subtask small enough to gain acceptance criteria and repeatable source-level or packaged validation.
+- Define colors, typography, spacing, radius, shadow, status colors, gain/loss colors, table density, and focus tokens.
+- Map token names to `src/styles.css` custom properties and the existing density variables.
+- Keep light mode as the primary target while preserving dark mode as a supported theme.
+- Keep token output implementation-ready for T99 navigation IA, T100 AppShell redesign, T102 component library base, and T103 DataTable work.
 
 Acceptance:
 
-- T95 has a named next-stage task pool and milestone structure.
-- The task pool includes concrete subtasks that can be promoted into implementation tasks one by one.
-- No public service, hosted account, remote sync, or new live-trading path is implied by the selection step.
+- Token categories are named, documented, and mapped to current or future CSS custom properties.
+- Status and financial tones cover observed, cached, degraded, credential-required, blocked, audited, gain, loss, neutral, online, offline, and connecting states.
+- Density tokens explicitly cover standard and compact modes for shell, rows, toolbars, cards, and inspector panels.
+- No secrets, runtime databases, generated logs, diagnostics, Stronghold vaults, installers, packaged binaries, hosted account promise, public API, remote sync, or new live-trading path are introduced.
 
 Implementation notes:
 
+- Start from the T97 UI system board and current `src/styles.css` token/density surface.
 - Keep packaged evidence source-safe. Do not commit secrets, logs, runtime databases, diagnostics bundles, Stronghold vaults, or generated desktop artifacts.
-- Completed 2026-06-05 by adding the next-stage master task pool below.
+
+### T96 - Figma Master Roadmap Completion Evidence
+
+- Completed 2026-06-05 in the desktop Chrome Figma file at `https://www.figma.com/design/54nRRjH5vjNbrrP6pMZmyW/Untitled?node-id=12-178`.
+- Added a source-safe 7800x1040 five-screen selected Figma `Frame` containing `00 Cover`, `01 Roadmap Overview`, `02 First Batch Detail: T96-T115`, `03 Execution Order`, and `04 Design Principles`.
+- The roadmap frame maps T96-T195 across product, UI, AI, data, quant, workflows, release, safety, and commercial lanes, and preserves the explicit local-first/no-hosted-account/no-public-API/no-remote-sync/no-new-live-trading boundary.
+- Evidence screenshot: `logs/t96-readable-cover-zoom-confirm.png`.
+- Supporting source-safe artifacts: `docs/t96-figma-master-roadmap.md`, `docs/t96-master-roadmap-full.svg`, `docs/t96-master-roadmap.svg`, and `scripts/figma_t96_master_roadmap.js`.
+- Note: the MCP-created Laurence-team file `https://www.figma.com/design/CIunCxsqTaNPGKcQO6wr8y` still returns the Figma Starter plan MCP tool-call limit, so the final populated roadmap lives in the desktop Chrome Figma file above.
+
+### T97 - Figma UI System Completion Evidence
+
+- Completed 2026-06-05 in the desktop Chrome Figma file at `https://www.figma.com/design/54nRRjH5vjNbrrP6pMZmyW/Untitled?node-id=14-2`.
+- Added a source-safe 12380x1040 eight-section selected Figma `Frame` containing `00 T97 UI System`, `01 Product Shell`, `02 Navigation IA`, `03 Screen Templates`, `04 Component System`, `05 Table And Inspector`, `06 State System`, and `07 React Mapping`.
+- The UI system board defines shell, navigation, workspace templates, component primitives, density expectations, operational states, and React mapping for T98-T106 while preserving the local-first/no-hosted-account/no-public-API/no-remote-sync/no-new-live-trading boundary.
+- Evidence screenshot: `logs/t97-ui-system-readable-frame-confirm.png`.
+- Supporting source-safe artifacts: `docs/t97-figma-ui-system.md`, `docs/t97-ui-system-board.svg`, and `scripts/figma_t97_ui_system.js`.
 
 ## Next Stage Master Task Pool
 

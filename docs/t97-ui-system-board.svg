@@ -1,0 +1,182 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="12380" height="1040" viewBox="0 0 12380 1040">
+<defs>
+  <style>
+    .bg{fill:#edf3f7}.frame{fill:#fff;stroke:#cbd5e1;stroke-width:2}.line{stroke:#d7e0e8;stroke-width:2}
+    .eyebrow{font-family:Inter,Arial,sans-serif;font-weight:800;font-size:28px;fill:#0e6f78}
+    .h1{font-family:Inter,Arial,sans-serif;font-weight:850;font-size:54px;fill:#111827}
+    .h2{font-family:Inter,Arial,sans-serif;font-weight:800;font-size:30px;fill:#111827}
+    .body{font-family:Inter,Arial,sans-serif;font-size:28px;fill:#243447}.small{font-family:Inter,Arial,sans-serif;font-size:24px;fill:#475569}
+    .tiny{font-family:Inter,Arial,sans-serif;font-size:20px;fill:#f8fafc}.white{fill:#f8fafc}.red{fill:#b91c1c}
+    .pill{fill:#f8fafc;stroke:#cbd5e1;stroke-width:2}.pill.info{fill:#eff6ff}.pill.teal{fill:#ecfeff}.pill.green{fill:#f0fdf4}.pill.amber{fill:#fffbeb}.pill.purple{fill:#faf5ff}.pill.red{fill:#fff5f5}.pill.slate{fill:#f8fafc}
+    .card,.row,.mini-screen,.state-card{fill:#f8fafc;stroke:#d7e0e8;stroke-width:2}.warning{fill:#fff5f5;stroke:#fecaca;stroke-width:2}
+    .info-bar{fill:#2563eb}.teal-bar{fill:#0e6f78}.green-bar{fill:#16a34a}.amber-bar{fill:#b45309}.purple-bar{fill:#7e22ce}.red-bar{fill:#b91c1c}.slate-bar{fill:#475569}
+  </style>
+</defs>
+<rect class="bg" width="12380" height="1040"/>
+<g transform="translate(80 70)">
+    <rect class="frame" width="1440" height="900" rx="18"/>
+    <text x="70" y="90" class="eyebrow" >00 T97 UI SYSTEM</text>
+    <text x="70" y="160" class="h1" >Pengbo Workbench UI Foundation</text>
+    <text x="70" y="210" class="small" >Apple/macOS-style desktop system for shell, navigation, screens, components, states, and React mapping.</text>
+<text x="70" y="252" class="small" >Design-only artifact for T98-T106. No hosted accounts, public APIs, remote sync, or new live-trading scope.</text>
+    <rect x="70" y="340" width="360" height="46" rx="8" class="pill info"/><text x="88" y="371" class="small" >T98 Design Tokens</text>
+     <rect x="460" y="340" width="390" height="46" rx="8" class="pill teal"/><text x="478" y="371" class="small" >T99 Navigation IA</text>
+     <rect x="880" y="340" width="380" height="46" rx="8" class="pill green"/><text x="898" y="371" class="small" >T100 AppShell</text>
+     <rect x="70" y="420" width="390" height="46" rx="8" class="pill purple"/><text x="88" y="451" class="small" >T102 Components</text>
+     <rect x="490" y="420" width="360" height="46" rx="8" class="pill amber"/><text x="508" y="451" class="small" >T103 DataTable</text>
+     <rect x="880" y="420" width="360" height="46" rx="8" class="pill slate"/><text x="898" y="451" class="small" >T104 Inspector</text>
+     <rect x="70" y="570" width="1170" height="120" rx="10" class="warning"/>
+     <text x="105" y="620" class="h2 red" >Boundary</text>
+     <text x="105" y="665" class="small red" >Local-first desktop remains the product boundary; design assets stay source-safe.</text>
+  </g>
+<g transform="translate(1620 70)">
+    <rect class="frame" width="1440" height="900" rx="18"/>
+    <text x="70" y="90" class="eyebrow" >01 PRODUCT SHELL</text>
+    <text x="70" y="160" class="h1" >Stable Desktop Regions</text>
+    <text x="70" y="210" class="small" >The shell owns navigation, command entry, runtime status, workspace scroll, and cross-page context.</text>
+    <rect x="70" y="280" width="1240" height="520" rx="12" fill="#eef3f7" stroke="#cbd5e1" stroke-width="2"/>
+     <rect x="95" y="305" width="190" height="470" rx="8" fill="#111827"/>
+     <text x="125" y="355" class="small white" >Pengbo</text>
+     <rect x="120" y="395" width="130" height="32" rx="6" fill="#1f2937"/><text x="135" y="417" class="tiny white" >Home</text>
+<rect x="120" y="443" width="130" height="32" rx="6" fill="#0e6f78"/><text x="135" y="465" class="tiny white" >Research</text>
+<rect x="120" y="491" width="130" height="32" rx="6" fill="#1f2937"/><text x="135" y="513" class="tiny white" >Markets</text>
+<rect x="120" y="539" width="130" height="32" rx="6" fill="#1f2937"/><text x="135" y="561" class="tiny white" >Portfolio</text>
+<rect x="120" y="587" width="130" height="32" rx="6" fill="#1f2937"/><text x="135" y="609" class="tiny white" >Factor Lab</text>
+<rect x="120" y="635" width="130" height="32" rx="6" fill="#1f2937"/><text x="135" y="657" class="tiny white" >Automation</text>
+<rect x="120" y="683" width="130" height="32" rx="6" fill="#1f2937"/><text x="135" y="705" class="tiny white" >Settings</text>
+     <rect x="315" y="305" width="960" height="72" rx="8" fill="#ffffff" stroke="#d7e0e8" stroke-width="2"/>
+     <text x="345" y="350" class="small" >Global search / command</text>
+     <rect x="820" y="320" width="160" height="46" rx="8" class="pill green"/><text x="838" y="351" class="small" >Local online</text>
+     <rect x="1000" y="320" width="210" height="46" rx="8" class="pill amber"/><text x="1018" y="351" class="small" >Provider partial</text>
+     <rect x="315" y="405" width="630" height="370" rx="8" fill="#ffffff" stroke="#d7e0e8" stroke-width="2"/>
+     <text x="350" y="465" class="h2" >Main workspace</text>
+     <text x="350" y="515" class="small" >One primary workflow at a time</text>
+     <rect x="970" y="405" width="305" height="370" rx="8" fill="#ffffff" stroke="#d7e0e8" stroke-width="2"/>
+     <text x="1000" y="465" class="h2" >Inspector</text>
+     <text x="1000" y="515" class="small" >Evidence</text>
+     <text x="1000" y="560" class="small" >AI context</text>
+     <text x="1000" y="605" class="small" >Provider health</text>
+     <text x="1000" y="650" class="small" >Exports</text>
+  </g>
+<g transform="translate(3160 70)">
+    <rect class="frame" width="1440" height="900" rx="18"/>
+    <text x="70" y="90" class="eyebrow" >02 NAVIGATION IA</text>
+    <text x="70" y="160" class="h1" >Collapsed Workspace Model</text>
+    <text x="70" y="210" class="small" >T99 should collapse many current routes into seven user-facing groups while preserving internal views.</text>
+    <g transform="translate(90 300)">
+      <rect class="row" x="0" y="0" width="1220" height="52" rx="8"/><text class="body" x="24" y="36">Home = dashboard + command center</text>
+<rect class="row" x="0" y="70" width="1220" height="52" rx="8"/><text class="body" x="24" y="106">Research = research canvas + evidence</text>
+<rect class="row" x="0" y="140" width="1220" height="52" rx="8"/><text class="body" x="24" y="176">Markets = asset + watchlist + data sources</text>
+<rect class="row" x="0" y="210" width="1220" height="52" rx="8"/><text class="body" x="24" y="246">Portfolio = holdings + offline states</text>
+<rect class="row" x="0" y="280" width="1220" height="52" rx="8"/><text class="body" x="24" y="316">Factor Lab = factor projects + diagnostics</text>
+<rect class="row" x="0" y="350" width="1220" height="52" rx="8"/><text class="body" x="24" y="386">Automation = workflow studio + screeners</text>
+<rect class="row" x="0" y="420" width="1220" height="52" rx="8"/><text class="body" x="24" y="456">Settings = runtime + connections + manual</text>
+    </g>
+    <text x="90" y="820" class="small" >Rule: navigation is a global workspace switcher, not page-local tabs.</text>
+  </g>
+<g transform="translate(4700 70)">
+    <rect class="frame" width="1440" height="900" rx="18"/>
+    <text x="70" y="90" class="eyebrow" >03 SCREEN TEMPLATES</text>
+    <text x="70" y="160" class="h1" >Core Workspace Skeletons</text>
+    <text x="70" y="210" class="small" >Five templates define layout ownership before page-level polish starts.</text>
+    <g transform="translate(80 300)">
+      <g transform="translate(0 0)"><rect class="mini-screen" width="360" height="190" rx="10"/><rect x="18" y="20" width="92" height="18" rx="4" fill="#0e6f78"/><rect x="18" y="56" width="160" height="18" rx="4" fill="#cbd5e1"/><rect x="18" y="94" width="138" height="58" rx="6" fill="#ffffff" stroke="#d7e0e8"/><rect x="178" y="94" width="150" height="58" rx="6" fill="#ffffff" stroke="#d7e0e8"/><text class="h2" x="18" y="180">Dashboard</text></g>
+<g transform="translate(410 0)"><rect class="mini-screen" width="360" height="190" rx="10"/><rect x="18" y="20" width="92" height="18" rx="4" fill="#0e6f78"/><rect x="18" y="56" width="160" height="18" rx="4" fill="#cbd5e1"/><rect x="18" y="94" width="138" height="58" rx="6" fill="#ffffff" stroke="#d7e0e8"/><rect x="178" y="94" width="150" height="58" rx="6" fill="#ffffff" stroke="#d7e0e8"/><text class="h2" x="18" y="180">Asset Cockpit</text></g>
+<g transform="translate(820 0)"><rect class="mini-screen" width="360" height="190" rx="10"/><rect x="18" y="20" width="92" height="18" rx="4" fill="#0e6f78"/><rect x="18" y="56" width="160" height="18" rx="4" fill="#cbd5e1"/><rect x="18" y="94" width="138" height="58" rx="6" fill="#ffffff" stroke="#d7e0e8"/><rect x="178" y="94" width="150" height="58" rx="6" fill="#ffffff" stroke="#d7e0e8"/><text class="h2" x="18" y="180">Research Canvas</text></g>
+<g transform="translate(0 230)"><rect class="mini-screen" width="360" height="190" rx="10"/><rect x="18" y="20" width="92" height="18" rx="4" fill="#0e6f78"/><rect x="18" y="56" width="160" height="18" rx="4" fill="#cbd5e1"/><rect x="18" y="94" width="138" height="58" rx="6" fill="#ffffff" stroke="#d7e0e8"/><rect x="178" y="94" width="150" height="58" rx="6" fill="#ffffff" stroke="#d7e0e8"/><text class="h2" x="18" y="180">Data Sources</text></g>
+<g transform="translate(410 230)"><rect class="mini-screen" width="360" height="190" rx="10"/><rect x="18" y="20" width="92" height="18" rx="4" fill="#0e6f78"/><rect x="18" y="56" width="160" height="18" rx="4" fill="#cbd5e1"/><rect x="18" y="94" width="138" height="58" rx="6" fill="#ffffff" stroke="#d7e0e8"/><rect x="178" y="94" width="150" height="58" rx="6" fill="#ffffff" stroke="#d7e0e8"/><text class="h2" x="18" y="180">Settings</text></g>
+    </g>
+    <rect x="90" y="790" width="420" height="46" rx="8" class="pill info"/><text x="108" y="821" class="small" >Stable regions before visuals</text>
+    <rect x="540" y="790" width="390" height="46" rx="8" class="pill teal"/><text x="558" y="821" class="small" >Chinese-first copy budgets</text>
+    <rect x="960" y="790" width="330" height="46" rx="8" class="pill red"/><text x="978" y="821" class="small" >No behavior drift</text>
+  </g>
+<g transform="translate(6240 70)">
+    <rect class="frame" width="1440" height="900" rx="18"/>
+    <text x="70" y="90" class="eyebrow" >04 COMPONENT SYSTEM</text>
+    <text x="70" y="160" class="h1" >Reusable Primitives</text>
+    <text x="70" y="210" class="small" >T102 extracts the common controls. T97 defines what belongs in the first component library.</text>
+    <g transform="translate(90 295)">
+      <rect x="0" y="0" width="210" height="46" rx="8" class="pill green"/><text x="18" y="31" class="small" >Primary button</text>
+      <rect x="240" y="0" width="210" height="46" rx="8" class="pill slate"/><text x="258" y="31" class="small" >Ghost button</text>
+      <rect x="480" y="0" width="210" height="46" rx="8" class="pill info"/><text x="498" y="31" class="small" >Icon button</text>
+      <rect x="720" y="0" width="240" height="46" rx="8" class="pill teal"/><text x="738" y="31" class="small" >Search field</text>
+      <rect x="990" y="0" width="230" height="46" rx="8" class="pill purple"/><text x="1008" y="31" class="small" >Segmented</text>
+      <rect x="0" y="85" width="210" height="46" rx="8" class="pill slate"/><text x="18" y="116" class="small" >Tabs</text>
+      <rect x="240" y="85" width="210" height="46" rx="8" class="pill green"/><text x="258" y="116" class="small" >Badge</text>
+      <rect x="480" y="85" width="240" height="46" rx="8" class="pill teal"/><text x="498" y="116" class="small" >Evidence chip</text>
+      <rect x="750" y="85" width="250" height="46" rx="8" class="pill amber"/><text x="768" y="116" class="small" >Provider status</text>
+      <rect x="1030" y="85" width="190" height="46" rx="8" class="pill info"/><text x="1048" y="116" class="small" >Tooltip</text>
+      <rect class="card" x="0" y="205" width="370" height="210" rx="10"/>
+      <text x="30" y="260" class="h2" >Panel header</text>
+      <text x="30" y="310" class="small" >Eyebrow, title, actions</text>
+      <text x="30" y="355" class="small" >Body copy remains compact.</text>
+      <rect class="card" x="430" y="205" width="370" height="210" rx="10"/>
+      <text x="460" y="260" class="h2" >Sheet / popover</text>
+      <text x="460" y="310" class="small" >Use for focused setup.</text>
+      <text x="460" y="355" class="small" >Never hide safety state.</text>
+      <rect class="card" x="860" y="205" width="370" height="210" rx="10"/>
+      <text x="890" y="260" class="h2" >Metric card</text>
+      <text x="890" y="310" class="small" >Tone: up/down/neutral.</text>
+      <text x="890" y="355" class="small" >Stable size, no jumping.</text>
+    </g>
+  </g>
+<g transform="translate(7780 70)">
+    <rect class="frame" width="1440" height="900" rx="18"/>
+    <text x="70" y="90" class="eyebrow" >05 TABLE AND INSPECTOR</text>
+    <text x="70" y="160" class="h1" >Dense Financial Work Surface</text>
+    <text x="70" y="210" class="small" >T103 and T104 should share table, status, evidence, and inspector rules.</text>
+    <g transform="translate(80 295)">
+      <rect class="card" x="0" y="0" width="810" height="500" rx="10"/>
+      <text x="30" y="58" class="h2" >DataTable rules</text>
+      <text x="45" y="120" class="small" >Fixed symbol/name/status columns</text>
+<text x="45" y="175" class="small" >Sortable numeric columns</text>
+<text x="45" y="230" class="small" >Filter chips above table</text>
+<text x="45" y="285" class="small" >Row height: 44 standard / 36 compact</text>
+<text x="45" y="340" class="small" >Horizontal overflow for deep datasets</text>
+<text x="45" y="395" class="small" >Source and freshness always visible</text>
+      <line class="line" x1="35" y1="400" x2="760" y2="400"/>
+      <text x="45" y="455" class="small" >No column resize jump from hover, badges, or loading text.</text>
+      <rect class="card" x="860" y="0" width="430" height="500" rx="10"/>
+      <text x="895" y="58" class="h2" >Inspector slots</text>
+      <rect x="895" y="95" width="260" height="46" rx="8" class="pill teal"/><text x="913" y="126" class="small" >Evidence</text>
+<rect x="895" y="155" width="260" height="46" rx="8" class="pill purple"/><text x="913" y="186" class="small" >AI context</text>
+<rect x="895" y="215" width="260" height="46" rx="8" class="pill amber"/><text x="913" y="246" class="small" >Provider health</text>
+<rect x="895" y="275" width="260" height="46" rx="8" class="pill slate"/><text x="913" y="306" class="small" >Parameters</text>
+<rect x="895" y="335" width="260" height="46" rx="8" class="pill slate"/><text x="913" y="366" class="small" >Exports</text>
+<rect x="895" y="395" width="260" height="46" rx="8" class="pill slate"/><text x="913" y="426" class="small" >Audit trail</text>
+    </g>
+  </g>
+<g transform="translate(9320 70)">
+    <rect class="frame" width="1440" height="900" rx="18"/>
+    <text x="70" y="90" class="eyebrow" >06 STATE SYSTEM</text>
+    <text x="70" y="160" class="h1" >Operational States</text>
+    <text x="70" y="210" class="small" >Every blocked or partial state must explain what is known, what is unavailable, and what the next action is.</text>
+    <g transform="translate(90 300)">
+      <rect class="state-card" x="0" y="0" width="560" height="78" rx="10"/><text class="h2" x="28" y="36" fill="#111827">Loading</text><text class="small" x="220" y="36" fill="#475569">正在加载本地数据</text><rect x="28" y="52" width="130" height="8" rx="4" class="info-bar"/>
+<rect class="state-card" x="620" y="0" width="560" height="78" rx="10"/><text class="h2" x="648" y="36" fill="#111827">Empty</text><text class="small" x="840" y="36" fill="#475569">暂无研究简报，先选择标的</text><rect x="648" y="52" width="130" height="8" rx="4" class="slate-bar"/>
+<rect class="state-card" x="0" y="112" width="560" height="78" rx="10"/><text class="h2" x="28" y="148" fill="#111827">Offline</text><text class="small" x="220" y="148" fill="#475569">本地 sidecar 离线</text><rect x="28" y="164" width="130" height="8" rx="4" class="amber-bar"/>
+<rect class="state-card" x="620" y="112" width="560" height="78" rx="10"/><text class="h2" x="648" y="148" fill="#111827">Cached</text><text class="small" x="840" y="148" fill="#475569">显示缓存数据和时间戳</text><rect x="648" y="164" width="130" height="8" rx="4" class="teal-bar"/>
+<rect class="state-card" x="0" y="224" width="560" height="78" rx="10"/><text class="h2" x="28" y="260" fill="#111827">Limited</text><text class="small" x="220" y="260" fill="#475569">AI 仅能使用已脱敏证据</text><rect x="28" y="276" width="130" height="8" rx="4" class="purple-bar"/>
+<rect class="state-card" x="620" y="224" width="560" height="78" rx="10"/><text class="h2" x="648" y="260" fill="#111827">Blocked</text><text class="small" x="840" y="260" fill="#475569">需要本地解锁后继续</text><rect x="648" y="276" width="130" height="8" rx="4" class="red-bar"/>
+<rect class="state-card" x="0" y="336" width="560" height="78" rx="10"/><text class="h2" x="28" y="372" fill="#111827">Permission blocked</text><text class="small" x="220" y="372" fill="#475569">数据源权限不足</text><rect x="28" y="388" width="130" height="8" rx="4" class="red-bar"/>
+<rect class="state-card" x="620" y="336" width="560" height="78" rx="10"/><text class="h2" x="648" y="372" fill="#111827">Audited</text><text class="small" x="840" y="372" fill="#475569">操作已记录在本地审计</text><rect x="648" y="388" width="130" height="8" rx="4" class="green-bar"/>
+    </g>
+  </g>
+<g transform="translate(10860 70)">
+    <rect class="frame" width="1440" height="900" rx="18"/>
+    <text x="70" y="90" class="eyebrow" >07 REACT MAPPING</text>
+    <text x="70" y="160" class="h1" >From Figma To Code</text>
+    <text x="70" y="210" class="small" >This frame is the T97 handoff contract. It names where follow-up tasks should land.</text>
+    <g transform="translate(80 290)">
+      <rect class="row" x="0" y="0" width="1260" height="46" rx="8"/><text class="body" x="24" y="32">Design tokens -&gt; src/styles.css variables -&gt; T98</text>
+<rect class="row" x="0" y="62" width="1260" height="46" rx="8"/><text class="body" x="24" y="94">Navigation model -&gt; src/App.tsx navigation map -&gt; T99</text>
+<rect class="row" x="0" y="124" width="1260" height="46" rx="8"/><text class="body" x="24" y="156">Shell regions -&gt; AppShell extraction -&gt; T100</text>
+<rect class="row" x="0" y="186" width="1260" height="46" rx="8"/><text class="body" x="24" y="218">Controls -&gt; src/components/shared.tsx + new UI primitives -&gt; T102</text>
+<rect class="row" x="0" y="248" width="1260" height="46" rx="8"/><text class="body" x="24" y="280">Financial table -&gt; DataTable extraction -&gt; T103</text>
+<rect class="row" x="0" y="310" width="1260" height="46" rx="8"/><text class="body" x="24" y="342">Right context -&gt; InspectorPanel extraction -&gt; T104</text>
+<rect class="row" x="0" y="372" width="1260" height="46" rx="8"/><text class="body" x="24" y="404">Chinese states -&gt; i18n dictionaries + PanelState -&gt; T105</text>
+<rect class="row" x="0" y="434" width="1260" height="46" rx="8"/><text class="body" x="24" y="466">Screenshots -&gt; desktop visual baseline -&gt; T106</text>
+    </g>
+    <text x="90" y="820" class="small red" >Completion rule: design guides implementation but does not change runtime behavior in T97.</text>
+  </g>
+</svg>
