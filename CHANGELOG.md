@@ -130,5 +130,7 @@ release channel yet.
 
 ## Upcoming
 
-- T95+ will be selected from the next release-cycle hardening and
-  product-trust backlog.
+- T95+ has been selected as a next-stage master task pool covering UI
+  redesign, first useful research loop, multi-model AI, data depth,
+  professional workflows, Quant Factor Lab, release hardening, safety, and
+  commercialization.
