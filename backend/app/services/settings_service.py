@@ -29,6 +29,7 @@ DEFAULT_PREFERENCES = AppPreferences(
     diagnostics_export_enabled=True,
     language="zh-CN",
     density="standard",
+    theme="light",
 )
 
 AI_CLOUD_PROVIDERS: tuple[AICloudProviderDefinition, ...] = (
@@ -135,6 +136,7 @@ class SettingsService:
                 "diagnostics_export_enabled",
                 "language",
                 "density",
+                "theme",
             ]
         )
 

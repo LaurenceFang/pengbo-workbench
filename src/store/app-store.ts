@@ -25,6 +25,7 @@ export type ViewKey =
 
 export type LanguagePreference = "zh-CN" | "en-US";
 export type DensityPreference = "standard" | "compact";
+export type ThemePreference = "light" | "dark";
 
 export type ResearchSourceContext = {
   sourcePresetKey?: string;
@@ -73,6 +74,7 @@ type AppState = {
   latestCommandFeedback: CommandFeedback | null;
   language: LanguagePreference;
   density: DensityPreference;
+  theme: ThemePreference;
   setActiveView: (view: ViewKey) => void;
   setSelectedAssetId: (assetId: string) => void;
   setSelectedResearchBriefId: (briefId: string | null) => void;
@@ -93,6 +95,7 @@ type AppState = {
   setLatestCommandFeedback: (feedback: CommandFeedback | null) => void;
   setLanguage: (language: LanguagePreference) => void;
   setDensity: (density: DensityPreference) => void;
+  setTheme: (theme: ThemePreference) => void;
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -116,6 +119,7 @@ export const useAppStore = create<AppState>((set) => ({
   latestCommandFeedback: null,
   language: "zh-CN",
   density: "standard",
+  theme: "light",
   setActiveView: (activeView) => set({ activeView }),
   setSelectedAssetId: (selectedAssetId) => set({ selectedAssetId }),
   setSelectedResearchBriefId: (selectedResearchBriefId) => set({ selectedResearchBriefId }),
@@ -136,4 +140,5 @@ export const useAppStore = create<AppState>((set) => ({
   setLatestCommandFeedback: (latestCommandFeedback) => set({ latestCommandFeedback }),
   setLanguage: (language) => set({ language }),
   setDensity: (density) => set({ density }),
+  setTheme: (theme) => set({ theme }),
 }));

@@ -23,6 +23,7 @@ ViewKey = Literal[
 ]
 LanguagePreference = Literal["zh-CN", "en-US"]
 DensityPreference = Literal["standard", "compact"]
+ThemePreference = Literal["light", "dark"]
 OnboardingStepKey = Literal[
     "demo_mode",
     "provider_setup",
@@ -1141,6 +1142,7 @@ class AppPreferences(BaseModel):
     diagnostics_export_enabled: bool
     language: LanguagePreference = "zh-CN"
     density: DensityPreference = "standard"
+    theme: ThemePreference = "light"
 
 
 class UpdateAppPreferencesRequest(AppPreferences):

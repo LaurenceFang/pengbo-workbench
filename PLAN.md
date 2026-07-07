@@ -108,8 +108,11 @@ The active product-trust sequence is:
 - T100: AppShell redesign. Completed with explicit Sidebar, Toolbar, Workspace,
   and safe collapsible Context Rail regions that reuse the T99 navigation
   contract.
-- T101: light mode first. Next; its implementation plan is recalibrated from
-  the actual T100 shell and existing T98 token maps.
+- T101: light mode first. Completed with a backward-compatible persisted
+  light/dark preference, immediate Settings preview, AppShell root binding,
+  and restart restoration evidence.
+- T102: component library base. Next; inventory and extract shared primitives
+  from the actual T100 shell while preserving T101 theme and density behavior.
 
 The current research-flow map is tracked in
 [docs/research-flow-definition.md](docs/research-flow-definition.md).

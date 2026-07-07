@@ -14,7 +14,7 @@ import {
   type ViewKey,
 } from "../lib/api";
 import type { RuntimeConfig } from "../lib/runtime";
-import { useAppStore, type DensityPreference, type LanguagePreference } from "../store/app-store";
+import { useAppStore, type DensityPreference, type LanguagePreference, type ThemePreference } from "../store/app-store";
 
 const navigation: Array<{ key: ViewKey }> = [
   { key: "dashboard" },
@@ -54,6 +54,7 @@ export function SettingsView({
   const language = useAppStore((state) => state.language);
   const setLanguage = useAppStore((state) => state.setLanguage);
   const setDensity = useAppStore((state) => state.setDensity);
+  const setTheme = useAppStore((state) => state.setTheme);
   const runtimeInfo = useAsyncResource<SettingsRuntimeResponse>(async () => api.getSettingsRuntime(), []);
   const aiCloud = useAsyncResource<AICloudStatusResponse>(async () => api.getAICloudStatus(), []);
   const preferences = useAsyncResource<AppPreferences>(async () => api.getSettingsPreferences(), []);
@@ -89,6 +90,7 @@ export function SettingsView({
       setForm(updated);
       setLanguage(updated.language);
       setDensity(updated.density);
+      setTheme(updated.theme);
       preferences.reload();
       if (updated.default_view !== activeView) {
         onDefaultViewSaved(updated.default_view);
@@ -378,6 +380,21 @@ export function SettingsView({
                 >
                   <option value="standard">{i18n.t("settings.densityStandard")}</option>
                   <option value="compact">{i18n.t("settings.densityCompact")}</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>{i18n.t("settings.theme")}</span>
+                <select
+                  aria-label="settings-theme"
+                  value={form.theme}
+                  onChange={(event) => {
+                    const theme = event.target.value as ThemePreference;
+                    setForm((current) => (current ? { ...current, theme } : current));
+                    setTheme(theme);
+                  }}
+                >
+                  <option value="light">{i18n.t("settings.themeLight")}</option>
+                  <option value="dark">{i18n.t("settings.themeDark")}</option>
                 </select>
               </label>
             </div>

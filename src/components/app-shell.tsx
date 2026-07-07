@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 type AppShellProps = {
   density: "standard" | "compact";
+  theme: "light" | "dark";
   contextRailCollapsed: boolean;
   sidebar: ReactNode;
   toolbar: ReactNode;
@@ -9,9 +10,9 @@ type AppShellProps = {
   children: ReactNode;
 };
 
-export function AppShell({ density, contextRailCollapsed, sidebar, toolbar, contextRail, children }: AppShellProps) {
+export function AppShell({ density, theme, contextRailCollapsed, sidebar, toolbar, contextRail, children }: AppShellProps) {
   return (
-    <div className={`app-shell density-${density} ${contextRailCollapsed ? "context-collapsed" : ""}`}>
+    <div className={`app-shell density-${density} ${contextRailCollapsed ? "context-collapsed" : ""}`} data-theme={theme}>
       <div className="backdrop-orb orb-left" />
       <div className="backdrop-orb orb-right" />
       {sidebar}

@@ -16,6 +16,7 @@ Updated: 2026-07-07
 - `T98 - Design Tokens v1` is now implemented and validated. `src/styles.css` has a light-first semantic token system with a complete dark mapping, local/offline typography, 4px spacing rhythm, standard/compact density contracts, reduced-motion support, and foreground/background/border triplets for 12 operational and financial states. The contract is documented in `docs/design-tokens-v1.md`, checked by `npm run check:design-tokens`, and visually covered in `logs/design-tokens-screenshots/design-tokens-smoke-latest.json`.
 - `T99 - Navigation IA Collapse` is now implemented and validated. The sidebar exposes seven task-oriented groups backed by `src/navigation.ts`, all 14 existing `ViewKey` workspaces remain reachable through stable automation anchors, multi-workspace groups use an accessible single-open disclosure pattern, and sensitive workspace gates plus command destinations remain unchanged. The contract is documented in `docs/navigation-ia-t99.md` and verified by `npm run check:navigation-ia` plus `npm run smoke:navigation-ia`.
 - `T100 - AppShell Redesign` is now implemented and validated. The desktop frame has explicit `AppSidebar`, `AppToolbar`, central Workspace, and collapsible `ContextRail` regions; the Sidebar consumes the T99 contract, the Context Rail hides sensitive context while locked, and responsive evidence covers 1600x1000 standard plus 1280x820 compact layouts. The contract is documented in `docs/app-shell-t100.md` and verified by `npm run check:app-shell` plus `npm run smoke:app-shell`.
+- `T101 - Light Mode First` is now implemented and validated. New and legacy preferences resolve safely to light mode, Settings provides immediate light/dark preview and persistence, and the T100 AppShell restores a saved dark preference after backend restart without changing workspace state. The contract is documented in `docs/light-mode-first-t101.md` and verified by `npm run check:theme-preference` plus `npm run smoke:theme-preference`.
 - `T19 - Portfolio Offline Regression Automation` is now implemented and smoke-validated, with a repeatable packaged portfolio script recording `live`, `cached`, and `unavailable` semantics in `logs/portfolio-offline-smoke-latest.json`.
 - `T21 - Installed Bundle Startup Automation` is now implemented and smoke-validated for the MSI-installed desktop lifecycle, with a repeatable installed-app startup result recorded in `logs/installed-bundle-startup-smoke-latest.json`.
 - `T23 - NSIS Installed Startup Automation` is now implemented and smoke-validated for the NSIS-installed desktop lifecycle, with a repeatable installed-app startup result recorded in `logs/installed-bundle-startup-smoke-nsis-latest.json`.
@@ -955,34 +956,45 @@ Updated: 2026-07-07
 
 ## Recommended Next Task
 
-### T101 - Light Mode First
+### T102 - Component Library Base
 
 Priority: P1
 Status: Recommended
 
 Why this is next:
 
-- `T100` completed the four-region AppShell around the T99 navigation contract and current page renderer.
-- T98 already provides complete light and dark token maps; the remaining product slice is persisted theme selection, restart restoration, and hardcoded-theme cleanup against the real T100 shell.
-- Light mode remains the default while dark mode stays an explicit supported preference.
+- T98-T101 now provide stable tokens, navigation, shell regions, density modes, and persisted themes.
+- The actual T100 shell still composes repeated buttons, inputs, badges, popovers, and sheet-like surfaces directly across workspace views.
+- Extracting those primitives next reduces visual drift without changing business workflows.
 
 Scope:
 
-- Add a compatible `light | dark` preference to the existing settings model and frontend store.
-- Bind the preference to the T100 AppShell root and add an immediate Settings control with restart persistence.
-- Audit the T100 shell, T99 navigation, lock gate, global controls, charts, and shared surfaces for theme-specific hardcoded leftovers.
+- Inventory repeated controls in the completed T100 shell and current workspace views before extracting them.
+- Add typed Button, IconButton, Input, SearchField, SegmentedControl, Sheet, Popover, Tooltip, and Badge primitives.
+- Migrate shell-level controls first while preserving every stable automation anchor and T101 theme/density behavior.
 
 Acceptance:
 
-- New and legacy preferences default safely to light mode; a saved dark preference survives restart.
-- Switching theme does not change active view, selected asset, navigation disclosure, security state, or business data.
-- T99 navigation and all four T100 shell regions remain legible in both themes and both density modes.
+- Primitive variants use T98 semantic tokens and remain legible in both T101 themes and density modes.
+- T99 navigation, T100 shell behavior, keyboard focus, labels, and existing automation anchors remain unchanged.
+- Migration is incremental and does not alter workspace business logic or API contracts.
 - No secrets, runtime databases, generated logs, diagnostics, Stronghold vaults, installers, packaged binaries, hosted account promise, public API, remote sync, or new live-trading path are introduced.
 
 Implementation notes:
 
-- Recalibrate from the completed T100 components, current preference API/store, T98 token contract, and `docs/app-shell-t100.md` before editing.
+- Recalibrate from the completed T100 component boundaries and T101 theme screenshots before editing.
 - Keep packaged evidence source-safe. Do not commit secrets, logs, runtime databases, diagnostics bundles, Stronghold vaults, or generated desktop artifacts.
+
+### T101 - Light Mode First Completion Evidence
+
+- Completed 2026-07-07 after T100 CI passed.
+- Added a backward-compatible `light | dark` preference to backend models, settings persistence, frontend API types, and Zustand state; missing values default to light.
+- Bound theme selection to the T100 `AppShell` root through `data-theme` without remounting workspace content.
+- Added a bilingual Settings selector with immediate preview and persistence through the existing preferences save path.
+- Preserved T98 semantic theme maps and updated localization smoke ownership after T99/T100 moved density and navigation anchors into explicit components.
+- Added `docs/light-mode-first-t101.md`, `scripts/theme_preference_check.mjs`, and `scripts/theme_preference_smoke.mjs`.
+- Validation passed: 97 backend tests, zero-vulnerability audit, all static checks, typecheck, production build, localization/design-token/navigation/AppShell smokes, and the dedicated theme restart smoke.
+- Visual evidence is source-safe and ignored under `logs/theme-preference-screenshots/`.
 
 ### T100 - AppShell Redesign Completion Evidence
 

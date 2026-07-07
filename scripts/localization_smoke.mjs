@@ -34,9 +34,19 @@ const checks = [
     patterns: ['"zh-CN"', '"en-US"', "viewLabels", "useI18n"],
   },
   {
-    name: "shell applies persisted density and keeps automation anchors",
+    name: "AppShell applies persisted density",
+    file: "src/components/app-shell.tsx",
+    patterns: ['density-${density}'],
+  },
+  {
+    name: "App composition keeps toolbar automation anchors",
     file: "src/App.tsx",
-    patterns: ['density-${density}', 'aria-label={`nav-${key}`}', 'aria-label="search-asset"', 'aria-label="open-command-palette"'],
+    patterns: ['aria-label="search-asset"', 'aria-label="open-command-palette"'],
+  },
+  {
+    name: "grouped sidebar keeps view automation anchors",
+    file: "src/components/app-sidebar.tsx",
+    patterns: ['aria-label={`nav-${item.viewKey}`}'],
   },
   {
     name: "settings view exposes language and density controls",

@@ -518,6 +518,7 @@ export type AppPreferences = {
   diagnostics_export_enabled: boolean;
   language: "zh-CN" | "en-US";
   density: "standard" | "compact";
+  theme: "light" | "dark";
 };
 
 export type OnboardingStepKey =

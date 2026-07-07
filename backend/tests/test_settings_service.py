@@ -44,7 +44,7 @@ class SettingsPreferencesTests(unittest.TestCase):
                 self.assertEqual(runtime.json()["app_version"], "0.1.0")
                 self.assertEqual(runtime.json()["sidecar_version"], "0.1.0")
 
-    def test_preferences_default_and_persist_language_density(self) -> None:
+    def test_preferences_default_and_persist_language_density_theme(self) -> None:
         with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
             app = create_app(make_settings(Path(temp_dir)))
             with TestClient(app) as client:
@@ -52,24 +52,31 @@ class SettingsPreferencesTests(unittest.TestCase):
                 self.assertEqual(defaults.status_code, 200)
                 self.assertEqual(defaults.json()["language"], "zh-CN")
                 self.assertEqual(defaults.json()["density"], "standard")
+                self.assertEqual(defaults.json()["theme"], "light")
 
                 payload = {
                     **defaults.json(),
                     "default_view": "manual",
                     "language": "en-US",
                     "density": "compact",
+                    "theme": "dark",
                 }
                 updated = client.put("/api/v1/settings/preferences", json=payload)
                 self.assertEqual(updated.status_code, 200)
                 self.assertEqual(updated.json()["default_view"], "manual")
                 self.assertEqual(updated.json()["language"], "en-US")
                 self.assertEqual(updated.json()["density"], "compact")
+                self.assertEqual(updated.json()["theme"], "dark")
 
                 restored = client.get("/api/v1/settings/preferences")
                 self.assertEqual(restored.status_code, 200)
                 self.assertEqual(restored.json()["default_view"], "manual")
                 self.assertEqual(restored.json()["language"], "en-US")
                 self.assertEqual(restored.json()["density"], "compact")
+                self.assertEqual(restored.json()["theme"], "dark")
+
+                invalid = client.put("/api/v1/settings/preferences", json={**payload, "theme": "system"})
+                self.assertEqual(invalid.status_code, 422)
 
     def test_ai_control_defaults_and_provider_catalog_are_secret_safe(self) -> None:
         with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:

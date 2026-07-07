@@ -209,6 +209,9 @@ export type TranslationKey =
   | "settings.density"
   | "settings.densityStandard"
   | "settings.densityCompact"
+  | "settings.theme"
+  | "settings.themeLight"
+  | "settings.themeDark"
   | "settings.logCollection"
   | "settings.diagnosticsExport"
   | "settings.savePreferences"
@@ -471,6 +474,9 @@ const dictionary: Dictionary = {
     "settings.density": "界面密度",
     "settings.densityStandard": "标准",
     "settings.densityCompact": "紧凑",
+    "settings.theme": "界面主题",
+    "settings.themeLight": "浅色",
+    "settings.themeDark": "深色",
     "settings.logCollection": "保持运行日志采集开启",
     "settings.diagnosticsExport": "启用桌面诊断导出",
     "settings.savePreferences": "保存偏好",
@@ -730,6 +736,9 @@ const dictionary: Dictionary = {
     "settings.density": "Density",
     "settings.densityStandard": "Standard",
     "settings.densityCompact": "Compact",
+    "settings.theme": "Theme",
+    "settings.themeLight": "Light",
+    "settings.themeDark": "Dark",
     "settings.logCollection": "Keep runtime log collection enabled",
     "settings.diagnosticsExport": "Enable desktop diagnostics export",
     "settings.savePreferences": "Save preferences",

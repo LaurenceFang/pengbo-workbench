@@ -108,7 +108,8 @@
   color: var(--text-primary);
 }
 
-html[data-theme="dark"] {
+html[data-theme="dark"],
+.app-shell[data-theme="dark"] {
   color-scheme: dark;
   --surface-canvas: #0d1211;
   --surface-sidebar: #090e0d;

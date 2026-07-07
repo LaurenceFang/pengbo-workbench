@@ -94,8 +94,10 @@ function App() {
   const setSelectedAssetId = useAppStore((state) => state.setSelectedAssetId);
   const language = useAppStore((state) => state.language);
   const density = useAppStore((state) => state.density);
+  const theme = useAppStore((state) => state.theme);
   const setLanguage = useAppStore((state) => state.setLanguage);
   const setDensity = useAppStore((state) => state.setDensity);
+  const setTheme = useAppStore((state) => state.setTheme);
   const i18n = useI18n();
   const [searchTerm, setSearchTerm] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
@@ -175,8 +177,9 @@ function App() {
     setActiveView(preferences.data.default_view);
     setLanguage(preferences.data.language);
     setDensity(preferences.data.density);
+    setTheme(preferences.data.theme);
     setPreferencesHydrated(true);
-  }, [preferences.data, preferencesHydrated, setActiveView, setDensity, setLanguage]);
+  }, [preferences.data, preferencesHydrated, setActiveView, setDensity, setLanguage, setTheme]);
 
   useEffect(() => {
     if (!shouldRetryDesktopStartup) {
@@ -526,6 +529,7 @@ function App() {
       <AppShell
         contextRailCollapsed={contextRailCollapsed}
         density={density}
+        theme={theme}
         sidebar={(
           <AppSidebar
             activeGroup={activeNavigationGroup.key}
