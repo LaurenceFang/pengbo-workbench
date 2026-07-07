@@ -97,6 +97,12 @@ The active product-trust sequence is:
   T96-T195 across UI redesign, first useful research loop, multi-model AI,
   data depth, professional workflows, Quant Factor Lab, release hardening,
   safety, and commercialization.
+- T96: Figma master roadmap. Completed.
+- T97: Figma UI system. Completed.
+- T98: design tokens v1. Completed with a light-first semantic system, dark
+  mapping, two density modes, 12 operational/financial state contracts, local
+  typography, and repeatable static plus visual verification.
+- T99: navigation IA collapse. Next.
 
 The current research-flow map is tracked in
 [docs/research-flow-definition.md](docs/research-flow-definition.md).

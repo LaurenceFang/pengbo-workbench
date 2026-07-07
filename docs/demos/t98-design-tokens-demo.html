@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light" data-density="standard">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pengbo · T98 Design Tokens Demo</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --font-ui: "Aptos", "Microsoft YaHei UI", "Noto Sans SC", sans-serif;
+      --font-data: "Cascadia Mono", "IBM Plex Mono", Consolas, monospace;
+      --canvas: #eef0ec;
+      --surface: #f8f8f4;
+      --surface-raised: #ffffff;
+      --surface-muted: #e8ebe6;
+      --surface-selected: #dceee7;
+      --sidebar: #17201e;
+      --sidebar-soft: #22302d;
+      --text: #17201e;
+      --text-2: #53615d;
+      --text-3: #7b8783;
+      --text-inverse: #f3f6f3;
+      --line: #d4d9d4;
+      --line-strong: #b8c0bb;
+      --accent: #0b765b;
+      --accent-hover: #075e49;
+      --accent-soft: #d9eee7;
+      --observed: #176b9b;
+      --observed-soft: #deedf5;
+      --cached: #7a5c23;
+      --cached-soft: #f4ead2;
+      --blocked: #a83c36;
+      --blocked-soft: #f7dfdc;
+      --gain: #087a52;
+      --loss: #b23a32;
+      --neutral: #66736f;
+      --focus: #1689c9;
+      --shadow: 0 12px 32px rgba(30, 44, 39, .08);
+      --radius-panel: 8px;
+      --radius-control: 6px;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 24px;
+      --space-6: 32px;
+      --row: 46px;
+      --control: 38px;
+      --panel-pad: 20px;
+      --page-gap: 16px;
+    }
+
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --canvas: #0d1211;
+      --surface: #121918;
+      --surface-raised: #17201e;
+      --surface-muted: #202a28;
+      --surface-selected: #17392f;
+      --sidebar: #090e0d;
+      --sidebar-soft: #16211f;
+      --text: #edf2ef;
+      --text-2: #a9b5b1;
+      --text-3: #788682;
+      --text-inverse: #f3f6f3;
+      --line: #293431;
+      --line-strong: #3b4945;
+      --accent: #49c59d;
+      --accent-hover: #6bd6b3;
+      --accent-soft: #193d33;
+      --observed: #69bce9;
+      --observed-soft: #183545;
+      --cached: #e0b45c;
+      --cached-soft: #3e321b;
+      --blocked: #ef8179;
+      --blocked-soft: #452421;
+      --gain: #52d39d;
+      --loss: #f18279;
+      --neutral: #97a39f;
+      --focus: #63c7f5;
+      --shadow: 0 14px 36px rgba(0, 0, 0, .26);
+    }
+
+    html[data-density="compact"] {
+      --row: 36px;
+      --control: 32px;
+      --panel-pad: 14px;
+      --page-gap: 10px;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 1100px; min-height: 100vh; background: var(--canvas); color: var(--text); font-family: var(--font-ui); }
+    button, input { font: inherit; }
+    button:focus-visible, input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+    button { cursor: pointer; }
+
+    .app { display: grid; grid-template-columns: 232px minmax(620px, 1fr) 312px; min-height: 100vh; }
+    .sidebar { display: flex; flex-direction: column; padding: 18px 12px; background: var(--sidebar); color: var(--text-inverse); border-right: 1px solid rgba(255,255,255,.08); }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 2px 8px 20px; }
+    .brand-mark { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 7px; background: #58d2a9; color: #10241e; font: 700 15px var(--font-data); }
+    .brand strong { display: block; font-size: 15px; letter-spacing: .01em; }
+    .brand small { color: #8da09a; font: 10px var(--font-data); letter-spacing: .08em; text-transform: uppercase; }
+    .nav-label { padding: 12px 10px 6px; color: #71847e; font: 10px var(--font-data); letter-spacing: .12em; text-transform: uppercase; }
+    .nav { display: grid; gap: 3px; }
+    .nav button { display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: #aab8b3; text-align: left; }
+    .nav button:hover { background: var(--sidebar-soft); color: #fff; }
+    .nav button.active { background: #294039; color: #fff; box-shadow: inset 3px 0 #58d2a9; }
+    .nav svg { width: 16px; height: 16px; stroke-width: 1.8; }
+    .runtime { margin-top: auto; padding: 12px 10px; border-top: 1px solid rgba(255,255,255,.09); color: #9caaa5; font-size: 11px; }
+    .runtime div { display: flex; align-items: center; gap: 7px; margin-top: 7px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #58d2a9; box-shadow: 0 0 0 3px rgba(88,210,169,.12); }
+
+    main { min-width: 0; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; height: 64px; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--line); }
+    .crumb { color: var(--text-2); font-size: 13px; }
+    .crumb strong { color: var(--text); }
+    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .search { display: flex; align-items: center; gap: 8px; width: 260px; height: var(--control); padding: 0 11px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface-raised); color: var(--text-3); }
+    .search input { min-width: 0; width: 100%; border: 0; outline: 0; background: transparent; color: var(--text); }
+    .key { padding: 2px 5px; border: 1px solid var(--line); border-radius: 4px; font: 10px var(--font-data); }
+    .icon-btn { width: var(--control); height: var(--control); border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface-raised); color: var(--text-2); }
+
+    .workspace { padding: 22px; }
+    .title-row { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 18px; }
+    .title-row h1 { margin: 0; font-size: 25px; font-weight: 650; letter-spacing: -.02em; }
+    .title-row p { margin: 5px 0 0; color: var(--text-2); font-size: 13px; }
+    .primary { height: var(--control); padding: 0 14px; border: 1px solid var(--accent); border-radius: var(--radius-control); background: var(--accent); color: white; font-weight: 650; }
+    .primary:hover { background: var(--accent-hover); }
+
+    .evidence-track { display: grid; grid-template-columns: repeat(4, 1fr); margin-bottom: var(--page-gap); border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--surface); overflow: hidden; box-shadow: var(--shadow); }
+    .evidence-step { position: relative; padding: 13px 14px 12px; border-right: 1px solid var(--line); }
+    .evidence-step:last-child { border: 0; }
+    .evidence-step::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--neutral); }
+    .evidence-step.good::before { background: var(--gain); }
+    .evidence-step.cache::before { background: var(--cached); }
+    .evidence-step span { color: var(--text-3); font: 10px var(--font-data); letter-spacing: .06em; text-transform: uppercase; }
+    .evidence-step strong { display: block; margin-top: 5px; font-size: 12px; }
+
+    .metrics { display: grid; grid-template-columns: 1.35fr repeat(3, 1fr); gap: var(--page-gap); margin-bottom: var(--page-gap); }
+    .metric { min-height: 96px; padding: var(--panel-pad); border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--surface); box-shadow: var(--shadow); }
+    .metric label { color: var(--text-3); font: 10px var(--font-data); letter-spacing: .08em; text-transform: uppercase; }
+    .metric strong { display: block; margin-top: 8px; font: 600 21px var(--font-data); letter-spacing: -.03em; }
+    .metric small { display: block; margin-top: 7px; color: var(--text-2); font-size: 11px; }
+    .gain { color: var(--gain); }
+    .loss { color: var(--loss); }
+
+    .panel { border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 0 var(--panel-pad); border-bottom: 1px solid var(--line); }
+    .panel-head h2 { margin: 0; font-size: 14px; }
+    .tabs { display: flex; gap: 4px; }
+    .tabs button { height: 28px; padding: 0 9px; border: 0; border-radius: 5px; background: transparent; color: var(--text-2); font-size: 11px; }
+    .tabs button.active { background: var(--surface-selected); color: var(--accent); font-weight: 650; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th, td { height: var(--row); padding: 0 14px; border-bottom: 1px solid var(--line); text-align: right; font: 12px var(--font-data); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    th { height: 34px; background: var(--surface-muted); color: var(--text-3); font-size: 10px; font-weight: 600; letter-spacing: .05em; }
+    th:first-child, td:first-child { width: 24%; text-align: left; }
+    tbody tr:hover { background: var(--surface-selected); }
+    tbody tr:last-child td { border-bottom: 0; }
+    .symbol { font-weight: 700; color: var(--text); }
+    .symbol small { margin-left: 6px; color: var(--text-3); font: 10px var(--font-ui); }
+    .badge { display: inline-flex; align-items: center; height: 21px; padding: 0 7px; border: 1px solid; border-radius: 999px; font: 10px var(--font-ui); }
+    .badge.observed { color: var(--observed); background: var(--observed-soft); border-color: color-mix(in srgb, var(--observed) 35%, transparent); }
+    .badge.cached { color: var(--cached); background: var(--cached-soft); border-color: color-mix(in srgb, var(--cached) 35%, transparent); }
+    .badge.blocked { color: var(--blocked); background: var(--blocked-soft); border-color: color-mix(in srgb, var(--blocked) 35%, transparent); }
+
+    .inspector { padding: 16px; background: var(--surface); border-left: 1px solid var(--line); }
+    .inspector-head { display: flex; align-items: center; justify-content: space-between; height: 48px; border-bottom: 1px solid var(--line); }
+    .inspector-head strong { font-size: 13px; }
+    .section { padding: 18px 0; border-bottom: 1px solid var(--line); }
+    .section:last-child { border: 0; }
+    .section-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; color: var(--text-3); font: 10px var(--font-data); letter-spacing: .08em; text-transform: uppercase; }
+    .asset-name { display: flex; align-items: center; gap: 10px; }
+    .asset-logo { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #161b22; color: white; font: 700 12px var(--font-data); }
+    .asset-name strong { display: block; font-size: 14px; }
+    .asset-name small { color: var(--text-2); font-size: 11px; }
+    .source-row { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 11px; }
+    .source-row:last-child { border: 0; }
+    .source-row span { color: var(--text-2); }
+    .source-row time { grid-column: 1 / -1; color: var(--text-3); font: 10px var(--font-data); }
+    .thesis { margin: 0; color: var(--text-2); font-size: 12px; line-height: 1.7; }
+    .inspector-action { width: 100%; height: var(--control); border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--surface-raised); color: var(--text); font-weight: 650; }
+
+    .demo-switcher { position: fixed; right: 18px; bottom: 18px; z-index: 5; display: flex; gap: 6px; padding: 6px; border: 1px solid var(--line); border-radius: 9px; background: color-mix(in srgb, var(--surface-raised) 92%, transparent); box-shadow: 0 12px 34px rgba(0,0,0,.15); backdrop-filter: blur(14px); }
+    .demo-switcher button { height: 30px; padding: 0 10px; border: 0; border-radius: 5px; background: transparent; color: var(--text-2); font-size: 11px; }
+    .demo-switcher button.active { background: var(--accent); color: white; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">PB</div><div><strong>彭博工作台</strong><small>Local Research OS</small></div></div>
+      <div class="nav-label">工作空间</div>
+      <nav class="nav" aria-label="主导航">
+        <button class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 11 12 3l9 8v9a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>首页</button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5m0 14h16M7 15l4-4 3 2 5-7"/></svg>市场</button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></svg>研究</button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 8h18M5 8V5h14v3M5 8v11h14V8M9 12h6"/></svg>投资组合</button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="m9 9 6 6M17 7h.01M7 17h.01"/></svg>因子实验室</button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16M7 4v6M4 17h16M17 14v6"/></svg>自动化</button>
+      </nav>
+      <div class="nav-label">系统</div>
+      <nav class="nav"><button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1z"/></svg>设置</button></nav>
+      <div class="runtime">本地运行状态<div><span class="dot"></span>Sidecar 在线 · 18ms</div></div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div class="crumb">首页 / <strong>市场概览</strong></div>
+        <div class="top-actions"><label class="search">⌕<input aria-label="搜索" placeholder="搜索资产、研究或命令"/><span class="key">⌘K</span></label><button class="icon-btn" aria-label="通知">◌</button></div>
+      </header>
+      <div class="workspace">
+        <div class="title-row"><div><h1>早上好，Laurence</h1><p>市场数据已更新。以下内容基于本地缓存与只读数据源。</p></div><button class="primary">＋ 新建研究</button></div>
+        <section class="evidence-track" aria-label="证据状态">
+          <div class="evidence-step good"><span>市场行情</span><strong>实时 · 18 秒前</strong></div>
+          <div class="evidence-step good"><span>基本面</span><strong>已观察 · 6 项指标</strong></div>
+          <div class="evidence-step cache"><span>宏观数据</span><strong>缓存 · 2 小时前</strong></div>
+          <div class="evidence-step"><span>执行边界</span><strong>只读 · 本地会话</strong></div>
+        </section>
+        <section class="metrics">
+          <article class="metric"><label>关注资产</label><strong>14</strong><small>美股 8 · A股 4 · 加密资产 2</small></article>
+          <article class="metric"><label>组合市值</label><strong>¥ 824,631</strong><small class="gain">今日 +1.28%</small></article>
+          <article class="metric"><label>开放研究</label><strong>06</strong><small>2 项需要复核</small></article>
+          <article class="metric"><label>数据健康度</label><strong>92%</strong><small>1 个来源使用缓存</small></article>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>市场观察</h2><div class="tabs"><button class="active">关注列表</button><button>持仓</button><button>筛选结果</button></div></div>
+          <table>
+            <thead><tr><th>资产</th><th>最新价</th><th>日涨跌</th><th>成交量</th><th>数据状态</th></tr></thead>
+            <tbody>
+              <tr><td class="symbol">AAPL <small>NASDAQ</small></td><td>$ 226.34</td><td class="gain">+1.42%</td><td>48.2M</td><td><span class="badge observed">已观察</span></td></tr>
+              <tr><td class="symbol">NVDA <small>NASDAQ</small></td><td>$ 158.77</td><td class="gain">+2.18%</td><td>183.5M</td><td><span class="badge observed">已观察</span></td></tr>
+              <tr><td class="symbol">600519 <small>SSE</small></td><td>¥ 1,418.62</td><td class="loss">−0.36%</td><td>2.1M</td><td><span class="badge cached">缓存</span></td></tr>
+              <tr><td class="symbol">BTC/USDT <small>BINANCE</small></td><td>$ 108,421</td><td class="gain">+0.84%</td><td>26.8K</td><td><span class="badge observed">已观察</span></td></tr>
+              <tr><td class="symbol">0700 <small>HKEX</small></td><td>HK$ 512.50</td><td class="loss">−1.04%</td><td>18.7M</td><td><span class="badge blocked">受限</span></td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </main>
+
+    <aside class="inspector">
+      <div class="inspector-head"><strong>研究 Inspector</strong><span class="badge observed">证据就绪</span></div>
+      <section class="section"><div class="section-title">当前资产 <span>⌘1</span></div><div class="asset-name"><div class="asset-logo">AAPL</div><div><strong>Apple Inc.</strong><small>NASDAQ · USD</small></div></div></section>
+      <section class="section"><div class="section-title">证据来源 <span>3</span></div><div class="source-row"><strong>Yahoo Finance</strong><span class="gain">实时</span><time>行情 · 18 秒前</time></div><div class="source-row"><strong>SEC EDGAR</strong><span class="gain">有效</span><time>10-Q · 2026-05-02</time></div><div class="source-row"><strong>World Bank</strong><span style="color:var(--cached)">缓存</span><time>宏观背景 · 2 小时前</time></div></section>
+      <section class="section"><div class="section-title">研究摘要 <span>本地</span></div><p class="thesis">服务业务继续扩大经常性收入占比，但当前估值已经反映较强的利润率预期。下一步应核对中国区收入和资本回报趋势。</p></section>
+      <section class="section"><div class="section-title">安全边界</div><p class="thesis">只读数据源。AI 上下文尚未发送；任何云端调用都需要再次确认。</p></section>
+      <section class="section"><button class="inspector-action">打开完整研究画布 →</button></section>
+    </aside>
+  </div>
+
+  <div class="demo-switcher" aria-label="样稿显示设置">
+    <button id="theme" type="button">切换深色</button>
+    <button id="density" type="button">紧凑密度</button>
+  </div>
+  <script>
+    const root = document.documentElement;
+    const themeButton = document.querySelector('#theme');
+    const densityButton = document.querySelector('#density');
+    themeButton.addEventListener('click', () => {
+      const dark = root.dataset.theme !== 'dark';
+      root.dataset.theme = dark ? 'dark' : 'light';
+      themeButton.textContent = dark ? '切换浅色' : '切换深色';
+      themeButton.classList.toggle('active', dark);
+    });
+    densityButton.addEventListener('click', () => {
+      const compact = root.dataset.density !== 'compact';
+      root.dataset.density = compact ? 'compact' : 'standard';
+      densityButton.textContent = compact ? '标准密度' : '紧凑密度';
+      densityButton.classList.toggle('active', compact);
+    });
+  </script>
+</body>
+</html>

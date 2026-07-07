@@ -124,13 +124,19 @@ release channel yet.
   gates for Research, Factor Lab, Workflow Studio, Data Sources, Portfolio, and
   runtime settings; route-classification coverage for sensitive report/runtime
   routes; and packaged signoff evidence via `npm run smoke:security:packaged`.
+- T96-T97 establish the next-stage visual roadmap and Figma UI system for the
+  T96-T195 product arc.
+- T98 implements Design Tokens v1: a light-first semantic surface with a full
+  dark mapping, local/offline typography, standard and compact density modes,
+  accessible focus and reduced-motion behavior, and unified operational plus
+  financial status tones. The contract is repeatably checked with
+  `npm run check:design-tokens` and `npm run smoke:design-tokens`.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T95+ has been selected as a next-stage master task pool. Follow-up work is
-  now numbered T96-T195 across UI redesign, first useful research loop,
-  multi-model AI, data depth, professional workflows, Quant Factor Lab, release
-  hardening, safety, and commercialization.
+- T99 is next: collapse the current navigation into the T97 groups while
+  preserving all existing routes, sensitive-view gates, command targets, and
+  automation-safe labels before the T100 AppShell redesign.

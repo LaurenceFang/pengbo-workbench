@@ -1,6 +1,6 @@
 # Pengbo Workbench Task Board
 
-Updated: 2026-06-05
+Updated: 2026-07-07
 
 ## Current Assessment
 
@@ -13,6 +13,7 @@ Updated: 2026-06-05
 - `T95 - Next Stage Master Task Pool Selection` is now completed with a staged backlog for UI redesign, first useful research loop, multi-model AI, data depth, professional workflows, Quant Factor Lab, release hardening, safety, and commercialization.
 - `T96 - Figma Master Roadmap` is now completed. The desktop Chrome Figma file at `https://www.figma.com/design/54nRRjH5vjNbrrP6pMZmyW/Untitled?node-id=12-178` contains a source-safe five-screen readable roadmap frame covering cover, overview, execution order, first-batch detail, and design principles for T96-T195; supporting specs and generation assets are in `docs/t96-figma-master-roadmap.md`, `docs/t96-master-roadmap-full.svg`, `docs/t96-master-roadmap.svg`, and `scripts/figma_t96_master_roadmap.js`.
 - `T97 - Figma UI System` is now completed. The desktop Chrome Figma file at `https://www.figma.com/design/54nRRjH5vjNbrrP6pMZmyW/Untitled?node-id=14-2` contains a source-safe eight-section UI system board defining shell, navigation, workspace templates, component primitives, data table and inspector rules, operational states, and React mapping for T98-T106; supporting specs and generation assets are in `docs/t97-figma-ui-system.md`, `docs/t97-ui-system-board.svg`, and `scripts/figma_t97_ui_system.js`.
+- `T98 - Design Tokens v1` is now implemented and validated. `src/styles.css` has a light-first semantic token system with a complete dark mapping, local/offline typography, 4px spacing rhythm, standard/compact density contracts, reduced-motion support, and foreground/background/border triplets for 12 operational and financial states. The contract is documented in `docs/design-tokens-v1.md`, checked by `npm run check:design-tokens`, and visually covered in `logs/design-tokens-screenshots/design-tokens-smoke-latest.json`.
 - `T19 - Portfolio Offline Regression Automation` is now implemented and smoke-validated, with a repeatable packaged portfolio script recording `live`, `cached`, and `unavailable` semantics in `logs/portfolio-offline-smoke-latest.json`.
 - `T21 - Installed Bundle Startup Automation` is now implemented and smoke-validated for the MSI-installed desktop lifecycle, with a repeatable installed-app startup result recorded in `logs/installed-bundle-startup-smoke-latest.json`.
 - `T23 - NSIS Installed Startup Automation` is now implemented and smoke-validated for the NSIS-installed desktop lifecycle, with a repeatable installed-app startup result recorded in `logs/installed-bundle-startup-smoke-nsis-latest.json`.
@@ -952,35 +953,46 @@ Updated: 2026-06-05
 
 ## Recommended Next Task
 
-### T98 - Design Tokens v1
+### T99 - Navigation IA Collapse
 
 Priority: P1
 Status: Recommended
 
 Why this is next:
 
-- `T97` completed the Figma UI system handoff for shell, navigation, screen templates, components, operational states, and React mapping.
-- The next executable design-foundation slice is to convert that system board into concrete implementation tokens before AppShell, navigation, and component extraction begin.
-- Tokens should keep Pengbo dense, professional, Chinese-first, light-mode-first, local-first, and source-safe.
+- `T98` completed the implementation-ready visual foundation for light/dark themes, operational states, financial tones, and standard/compact density.
+- The next bounded structural slice is to collapse the current long workspace list into the T97 navigation groups without deleting routes or changing runtime behavior.
+- Navigation should remain Chinese-first, keyboard-friendly, local-first, and source-safe.
 
 Scope:
 
-- Define colors, typography, spacing, radius, shadow, status colors, gain/loss colors, table density, and focus tokens.
-- Map token names to `src/styles.css` custom properties and the existing density variables.
-- Keep light mode as the primary target while preserving dark mode as a supported theme.
-- Keep token output implementation-ready for T99 navigation IA, T100 AppShell redesign, T102 component library base, and T103 DataTable work.
+- Collapse primary navigation to Home, Research, Markets, Portfolio, Factor Lab, Automation, and Settings.
+- Map all current workspaces into those groups without removing existing routes, sensitive-view gates, command actions, or automation-safe labels.
+- Preserve current global context and prepare the navigation contract for the T100 AppShell redesign.
 
 Acceptance:
 
-- Token categories are named, documented, and mapped to current or future CSS custom properties.
-- Status and financial tones cover observed, cached, degraded, credential-required, blocked, audited, gain, loss, neutral, online, offline, and connecting states.
-- Density tokens explicitly cover standard and compact modes for shell, rows, toolbars, cards, and inspector panels.
+- Every existing workspace remains reachable through a clear future group.
+- Active, collapsed, expanded, keyboard-focus, sensitive-lock, and compact-density states remain legible.
+- Existing route keys, session/security gates, command palette targets, and smoke-test anchors remain compatible.
 - No secrets, runtime databases, generated logs, diagnostics, Stronghold vaults, installers, packaged binaries, hosted account promise, public API, remote sync, or new live-trading path are introduced.
 
 Implementation notes:
 
-- Start from the T97 UI system board and current `src/styles.css` token/density surface.
+- Start from the T97 UI system board, the current navigation map in `src/App.tsx`, and the T98 semantic token surface.
 - Keep packaged evidence source-safe. Do not commit secrets, logs, runtime databases, diagnostics bundles, Stronghold vaults, or generated desktop artifacts.
+
+### T98 - Design Tokens v1 Completion Evidence
+
+- Completed 2026-07-07 as the implementation foundation for T99-T106.
+- Replaced the runtime Google Fonts import with local/offline UI and financial-data font stacks.
+- Added light-first semantic surfaces plus a complete `html[data-theme="dark"]` mapping while leaving persisted theme selection to T101.
+- Added a 4px spacing rhythm, typography, radii, shadows, focus, motion, and reduced-motion tokens.
+- Expanded `density-standard` and `density-compact` contracts for shell gaps, data rows, toolbars, cards, and future inspector panels.
+- Added foreground/background/border triplets for observed, online, connecting, offline, cached, degraded, credential-required, blocked, audited, gain, loss, and neutral states.
+- Added `docs/design-tokens-v1.md`, `scripts/design_tokens_check.mjs`, and `scripts/design_tokens_visual_smoke.mjs`.
+- Validation passed: `npm run check:design-tokens`, `npm run typecheck`, `npm run web:build`, and `npm run smoke:design-tokens`.
+- Visual evidence covers `light-standard`, `light-compact`, and `dark-standard` in `logs/design-tokens-screenshots/design-tokens-smoke-latest.json` with `failures=[]`.
 
 ### T96 - Figma Master Roadmap Completion Evidence
 
