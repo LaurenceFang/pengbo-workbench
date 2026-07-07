@@ -14,6 +14,7 @@ Updated: 2026-07-07
 - `T96 - Figma Master Roadmap` is now completed. The desktop Chrome Figma file at `https://www.figma.com/design/54nRRjH5vjNbrrP6pMZmyW/Untitled?node-id=12-178` contains a source-safe five-screen readable roadmap frame covering cover, overview, execution order, first-batch detail, and design principles for T96-T195; supporting specs and generation assets are in `docs/t96-figma-master-roadmap.md`, `docs/t96-master-roadmap-full.svg`, `docs/t96-master-roadmap.svg`, and `scripts/figma_t96_master_roadmap.js`.
 - `T97 - Figma UI System` is now completed. The desktop Chrome Figma file at `https://www.figma.com/design/54nRRjH5vjNbrrP6pMZmyW/Untitled?node-id=14-2` contains a source-safe eight-section UI system board defining shell, navigation, workspace templates, component primitives, data table and inspector rules, operational states, and React mapping for T98-T106; supporting specs and generation assets are in `docs/t97-figma-ui-system.md`, `docs/t97-ui-system-board.svg`, and `scripts/figma_t97_ui_system.js`.
 - `T98 - Design Tokens v1` is now implemented and validated. `src/styles.css` has a light-first semantic token system with a complete dark mapping, local/offline typography, 4px spacing rhythm, standard/compact density contracts, reduced-motion support, and foreground/background/border triplets for 12 operational and financial states. The contract is documented in `docs/design-tokens-v1.md`, checked by `npm run check:design-tokens`, and visually covered in `logs/design-tokens-screenshots/design-tokens-smoke-latest.json`.
+- `T99 - Navigation IA Collapse` is now implemented and validated. The sidebar exposes seven task-oriented groups backed by `src/navigation.ts`, all 14 existing `ViewKey` workspaces remain reachable through stable automation anchors, multi-workspace groups use an accessible single-open disclosure pattern, and sensitive workspace gates plus command destinations remain unchanged. The contract is documented in `docs/navigation-ia-t99.md` and verified by `npm run check:navigation-ia` plus `npm run smoke:navigation-ia`.
 - `T19 - Portfolio Offline Regression Automation` is now implemented and smoke-validated, with a repeatable packaged portfolio script recording `live`, `cached`, and `unavailable` semantics in `logs/portfolio-offline-smoke-latest.json`.
 - `T21 - Installed Bundle Startup Automation` is now implemented and smoke-validated for the MSI-installed desktop lifecycle, with a repeatable installed-app startup result recorded in `logs/installed-bundle-startup-smoke-latest.json`.
 - `T23 - NSIS Installed Startup Automation` is now implemented and smoke-validated for the NSIS-installed desktop lifecycle, with a repeatable installed-app startup result recorded in `logs/installed-bundle-startup-smoke-nsis-latest.json`.
@@ -953,34 +954,46 @@ Updated: 2026-07-07
 
 ## Recommended Next Task
 
-### T99 - Navigation IA Collapse
+### T100 - AppShell Redesign
 
 Priority: P1
 Status: Recommended
 
 Why this is next:
 
-- `T98` completed the implementation-ready visual foundation for light/dark themes, operational states, financial tones, and standard/compact density.
-- The next bounded structural slice is to collapse the current long workspace list into the T97 navigation groups without deleting routes or changing runtime behavior.
-- Navigation should remain Chinese-first, keyboard-friendly, local-first, and source-safe.
+- `T99` completed the seven-group navigation contract while preserving all internal workspaces, automation anchors, and sensitive-view gates.
+- The next bounded structural slice is to extract stable Sidebar, Toolbar, Workspace, and Context Rail regions around the existing page renderer.
+- The shell should remain dense, Chinese-first, keyboard-friendly, local-first, and source-safe.
 
 Scope:
 
-- Collapse primary navigation to Home, Research, Markets, Portfolio, Factor Lab, Automation, and Settings.
-- Map all current workspaces into those groups without removing existing routes, sensitive-view gates, command actions, or automation-safe labels.
-- Preserve current global context and prepare the navigation contract for the T100 AppShell redesign.
+- Extract an AppShell that owns the four stable desktop regions without changing page behavior.
+- Reuse `src/navigation.ts` rather than rebuilding the T99 information architecture.
+- Add a bounded Context Rail shell for safe global context while leaving full Inspector behavior to T104.
 
 Acceptance:
 
-- Every existing workspace remains reachable through a clear future group.
-- Active, collapsed, expanded, keyboard-focus, sensitive-lock, and compact-density states remain legible.
-- Existing route keys, session/security gates, command palette targets, and smoke-test anchors remain compatible.
+- Sidebar, Toolbar, Workspace, and Context Rail have explicit ownership and stable automation surfaces.
+- Every existing workspace, route key, command target, session/security gate, and T99 navigation anchor remains compatible.
+- Locked workspaces do not expose sensitive context through the Context Rail.
 - No secrets, runtime databases, generated logs, diagnostics, Stronghold vaults, installers, packaged binaries, hosted account promise, public API, remote sync, or new live-trading path are introduced.
 
 Implementation notes:
 
-- Start from the T97 UI system board, the current navigation map in `src/App.tsx`, and the T98 semantic token surface.
+- Recalibrate from the completed T99 `src/navigation.ts`, current `src/App.tsx`, T98 tokens, and `docs/navigation-ia-t99.md` before editing.
 - Keep packaged evidence source-safe. Do not commit secrets, logs, runtime databases, diagnostics bundles, Stronghold vaults, or generated desktop artifacts.
+
+### T99 - Navigation IA Collapse Completion Evidence
+
+- Completed 2026-07-07 as the navigation contract consumed by T100.
+- Added `src/navigation.ts` with exactly seven groups and one-to-one coverage of all 14 existing `ViewKey` workspaces.
+- Replaced the flat sidebar with accessible group disclosures while preserving all `nav-<ViewKey>` automation anchors.
+- Multi-workspace groups use a single-open accordion; single-workspace groups navigate directly.
+- Preserved Command Palette destinations, cross-workspace handoffs, sensitive-view membership, and unlock behavior.
+- Added bilingual group labels, T98-token-based standard/compact styling, and reduced-motion-compatible disclosure affordances.
+- Added `docs/navigation-ia-t99.md`, `scripts/navigation_ia_check.mjs`, and `scripts/navigation_ia_smoke.mjs`.
+- Validation passed: zero-vulnerability audit, version/public-boundary/design-token/navigation/i18n checks, typecheck, build, and navigation smoke.
+- Visual smoke evidence is source-safe and ignored under `logs/navigation-ia-screenshots/`.
 
 ### T98 - Design Tokens v1 Completion Evidence
 

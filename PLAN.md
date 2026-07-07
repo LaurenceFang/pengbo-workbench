@@ -102,7 +102,11 @@ The active product-trust sequence is:
 - T98: design tokens v1. Completed with a light-first semantic system, dark
   mapping, two density modes, 12 operational/financial state contracts, local
   typography, and repeatable static plus visual verification.
-- T99: navigation IA collapse. Next.
+- T99: navigation IA collapse. Completed with seven task-oriented groups,
+  one-to-one coverage of all 14 internal workspaces, stable automation anchors,
+  and unchanged sensitive-view gates.
+- T100: AppShell redesign. Next; its implementation plan must be recalibrated
+  from the completed `src/navigation.ts` contract before editing.
 
 The current research-flow map is tracked in
 [docs/research-flow-definition.md](docs/research-flow-definition.md).

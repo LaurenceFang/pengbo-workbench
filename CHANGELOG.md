@@ -131,12 +131,17 @@ release channel yet.
   accessible focus and reduced-motion behavior, and unified operational plus
   financial status tones. The contract is repeatably checked with
   `npm run check:design-tokens` and `npm run smoke:design-tokens`.
+- T99 replaces the flat 14-item sidebar with seven task-oriented navigation
+  groups while preserving every internal workspace, Command Palette target,
+  sensitive-view gate, and stable `nav-<ViewKey>` automation anchor. Group
+  disclosures are keyboard-accessible, single-open, bilingual, and compatible
+  with standard and compact density.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T99 is next: collapse the current navigation into the T97 groups while
-  preserving all existing routes, sensitive-view gates, command targets, and
-  automation-safe labels before the T100 AppShell redesign.
+- T100 is next: extract stable Sidebar, Toolbar, Workspace, and safe Context
+  Rail regions around the completed T99 navigation contract before T101 adds
+  persisted light/dark theme behavior.

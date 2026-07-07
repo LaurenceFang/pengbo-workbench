@@ -5,6 +5,7 @@ import {
   BriefcaseBusiness,
   Cable,
   ChartCandlestick,
+  ChevronDown,
   Command,
   DatabaseZap,
   FolderCog,
@@ -42,6 +43,7 @@ import {
 } from "./lib/api";
 import { FirstRunOnboarding } from "./components/first-run-onboarding";
 import { deriveDesktopConnectionStatus, getRuntimeConfig, type RuntimeConfig } from "./lib/runtime";
+import { getNavigationGroupForView, getNavigationItem, navigationGroups, type NavGroupKey } from "./navigation";
 import { useAppStore, type ViewKey } from "./store/app-store";
 import { AssetView } from "./views/asset-view";
 import { CommandCenterView } from "./views/command-center-view";
@@ -58,25 +60,32 @@ import { StrategyLabView } from "./views/strategy-lab-view";
 import { WatchlistView } from "./views/watchlist-view";
 import { WorkflowStudioView } from "./views/workflow-studio-view";
 
-const navigation = [
-  { key: "dashboard", icon: LayoutDashboard },
-  { key: "commandCenter", icon: Command },
-  { key: "asset", icon: ChartCandlestick },
-  { key: "watchlist", icon: Star },
-  { key: "research", icon: Search },
-  { key: "factorLab", icon: FlaskConical },
-  { key: "strategyLab", icon: LineChart },
-  { key: "workflowStudio", icon: Workflow },
-  { key: "dataSources", icon: DatabaseZap },
-  { key: "screeners", icon: BarChart3 },
-  { key: "manual", icon: BookOpen },
-  { key: "portfolio", icon: BriefcaseBusiness },
-  { key: "connections", icon: Cable },
-  { key: "settings", icon: FolderCog },
-] satisfies Array<{
-  key: ViewKey;
-  icon: typeof LayoutDashboard;
-}>;
+const navigationGroupIcons: Record<NavGroupKey, typeof LayoutDashboard> = {
+  home: LayoutDashboard,
+  research: Search,
+  markets: ChartCandlestick,
+  portfolio: BriefcaseBusiness,
+  factorLab: FlaskConical,
+  automation: Workflow,
+  settings: FolderCog,
+};
+
+const navigationViewIcons: Record<ViewKey, typeof LayoutDashboard> = {
+  dashboard: LayoutDashboard,
+  commandCenter: Command,
+  asset: ChartCandlestick,
+  watchlist: Star,
+  research: Search,
+  factorLab: FlaskConical,
+  strategyLab: LineChart,
+  workflowStudio: Workflow,
+  dataSources: DatabaseZap,
+  screeners: BarChart3,
+  manual: BookOpen,
+  portfolio: BriefcaseBusiness,
+  connections: Cable,
+  settings: FolderCog,
+};
 
 const sensitiveViews = new Set<ViewKey>([
   "research",
@@ -114,6 +123,9 @@ function App() {
   const commandPaletteOpen = useAppStore((state) => state.commandPaletteOpen);
   const latestCommandFeedback = useAppStore((state) => state.latestCommandFeedback);
   const setActiveView = useAppStore((state) => state.setActiveView);
+  const [expandedNavGroups, setExpandedNavGroups] = useState<Set<NavGroupKey>>(
+    () => new Set([getNavigationGroupForView(activeView).key]),
+  );
   const setCommandPaletteOpen = useAppStore((state) => state.setCommandPaletteOpen);
   const setSelectedAssetId = useAppStore((state) => state.setSelectedAssetId);
   const language = useAppStore((state) => state.language);
@@ -257,7 +269,8 @@ function App() {
     dashboard.data?.focus_asset ??
     dashboard.data?.watchlist[0] ??
     null;
-  const activeNav = navigation.find((item) => item.key === activeView) ?? navigation[0];
+  const activeNav = getNavigationItem(activeView);
+  const activeNavigationGroup = getNavigationGroupForView(activeView);
   const isDashboardView = activeView === "dashboard";
   const activeViewRequiresUnlock = sensitiveViews.has(activeView);
   const localSecurityStatus = localSecurity.data;
@@ -266,6 +279,32 @@ function App() {
     activeViewRequiresUnlock &&
     localSecurityStatus !== null &&
     (!localSecurityStatus.initialized || localSecurityStatus.locked);
+
+  useEffect(() => {
+    setExpandedNavGroups((current) => {
+      if (current.size === 1 && current.has(activeNavigationGroup.key)) return current;
+      return new Set([activeNavigationGroup.key]);
+    });
+  }, [activeNavigationGroup.key]);
+
+  function handleNavigationGroup(groupKey: NavGroupKey) {
+    const group = navigationGroups.find((candidate) => candidate.key === groupKey) ?? navigationGroups[0];
+    if (group.items.length === 1) {
+      setActiveView(group.defaultView);
+      return;
+    }
+    if (activeNavigationGroup.key !== group.key) {
+      setActiveView(group.defaultView);
+      setExpandedNavGroups(new Set([group.key]));
+      return;
+    }
+    setExpandedNavGroups((current) => {
+      const next = new Set(current);
+      if (next.has(group.key)) next.delete(group.key);
+      else next.add(group.key);
+      return next;
+    });
+  }
 
   const searchableAssets = assetUniverse.data?.length ? assetUniverse.data : (dashboard.data?.watchlist ?? []);
   const searchResults = searchableAssets.filter((assetItem) => {
@@ -536,21 +575,49 @@ function App() {
 
         <div className="sidebar-section">
           <span className="section-caption">{i18n.t("nav.section")}</span>
-          <nav className="nav-stack">
-            {navigation.map(({ key, icon: Icon }) => (
-              <button
-                aria-label={`nav-${key}`}
-                key={key}
-                className={`nav-item ${activeView === key ? "active" : ""}`}
-                onClick={() => setActiveView(key)}
-                type="button"
-              >
-                <span className="nav-icon">
-                  <Icon size={18} />
-                </span>
-                <span>{i18n.viewLabel(key)}</span>
-              </button>
-            ))}
+          <nav className="nav-stack" aria-label={i18n.t("nav.section")}>
+            {navigationGroups.map((group) => {
+              const GroupIcon = navigationGroupIcons[group.key];
+              const isActiveGroup = activeNavigationGroup.key === group.key;
+              const hasChildren = group.items.length > 1;
+              const isExpanded = hasChildren && expandedNavGroups.has(group.key);
+              const childListId = `nav-group-${group.key}-items`;
+              return (
+                <div className={`nav-group ${isActiveGroup ? "active" : ""}`} key={group.key}>
+                  <button
+                    aria-controls={hasChildren ? childListId : undefined}
+                    aria-expanded={hasChildren ? isExpanded : undefined}
+                    aria-label={hasChildren ? `nav-group-${group.key}` : `nav-${group.defaultView}`}
+                    className={`nav-group-trigger ${isActiveGroup ? "active" : ""}`}
+                    onClick={() => handleNavigationGroup(group.key)}
+                    type="button"
+                  >
+                    <span className="nav-icon"><GroupIcon size={18} /></span>
+                    <span className="nav-group-label">{i18n.t(`nav.group.${group.key}`)}</span>
+                    {hasChildren ? <ChevronDown className={`nav-chevron ${isExpanded ? "expanded" : ""}`} size={15} /> : null}
+                  </button>
+                  {hasChildren && isExpanded ? (
+                    <div className="nav-group-children" id={childListId}>
+                      {group.items.map((item) => {
+                        const ItemIcon = navigationViewIcons[item.viewKey];
+                        return (
+                          <button
+                            aria-label={`nav-${item.viewKey}`}
+                            className={`nav-child-item ${activeView === item.viewKey ? "active" : ""}`}
+                            key={item.viewKey}
+                            onClick={() => setActiveView(item.viewKey)}
+                            type="button"
+                          >
+                            <ItemIcon size={14} />
+                            <span>{i18n.viewLabel(item.viewKey)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
           </nav>
         </div>
 
@@ -559,8 +626,8 @@ function App() {
       <main className="workspace">
         <header className="topbar">
           <div>
-            <p className="eyebrow">{i18n.viewEyebrow(activeNav.key)}</p>
-            <h2>{i18n.viewTitle(activeNav.key)}</h2>
+            <p className="eyebrow">{i18n.viewEyebrow(activeNav.viewKey)}</p>
+            <h2>{i18n.viewTitle(activeNav.viewKey)}</h2>
           </div>
 
           <div className="toolbar">

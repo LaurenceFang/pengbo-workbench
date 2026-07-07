@@ -5,6 +5,13 @@ export type TranslationKey =
   | "app.brandEyebrow"
   | "app.brandName"
   | "nav.section"
+  | "nav.group.home"
+  | "nav.group.research"
+  | "nav.group.markets"
+  | "nav.group.portfolio"
+  | "nav.group.factorLab"
+  | "nav.group.automation"
+  | "nav.group.settings"
   | "watchlist.title"
   | "topbar.commandPalette"
   | "topbar.searchPlaceholder"
@@ -260,6 +267,13 @@ const dictionary: Dictionary = {
     "app.brandEyebrow": "彭博",
     "app.brandName": "彭博工作台",
     "nav.section": "导航",
+    "nav.group.home": "首页",
+    "nav.group.research": "研究",
+    "nav.group.markets": "市场",
+    "nav.group.portfolio": "投资组合",
+    "nav.group.factorLab": "因子实验室",
+    "nav.group.automation": "自动化",
+    "nav.group.settings": "设置",
     "watchlist.title": "自选列表",
     "topbar.commandPalette": "命令面板",
     "topbar.searchPlaceholder": "搜索 AAPL / SPY / BTC/USDT",
@@ -512,6 +526,13 @@ const dictionary: Dictionary = {
     "app.brandEyebrow": "Pengbo",
     "app.brandName": "Pengbo Workbench",
     "nav.section": "Navigation",
+    "nav.group.home": "Home",
+    "nav.group.research": "Research",
+    "nav.group.markets": "Markets",
+    "nav.group.portfolio": "Portfolio",
+    "nav.group.factorLab": "Factor Lab",
+    "nav.group.automation": "Automation",
+    "nav.group.settings": "Settings",
     "watchlist.title": "Watchlist",
     "topbar.commandPalette": "Command Palette",
     "topbar.searchPlaceholder": "Search AAPL / SPY / BTC/USDT",
