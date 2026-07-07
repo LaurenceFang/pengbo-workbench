@@ -144,10 +144,11 @@ release channel yet.
   preference. Theme selection previews immediately in Settings, binds to the
   T100 AppShell root, and restores after backend restart without replacing the
   active workspace.
-- Rebuilt the Windows release EXE, MSI, and NSIS bundles after T101; the NSIS
-  installed lifecycle passed health, API, single-instance, adopt-existing, and
-  AppData checks, and the desktop-shortcut launch was visually verified online
-  in the new light-first shell. Generated release artifacts remain untracked.
+- Rebuilt the Windows release EXE, MSI, and NSIS bundles after T101. The NSIS
+  installer refreshed the user-level desktop shortcut; that exact installed
+  executable and bundled sidecar were visually verified online in the new
+  light-first shell. Existing local-security state was preserved rather than
+  reset for protected API probes. Generated release artifacts remain untracked.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
