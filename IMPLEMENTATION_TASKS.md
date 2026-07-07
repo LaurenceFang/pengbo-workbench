@@ -995,6 +995,8 @@ Implementation notes:
 - Added `docs/light-mode-first-t101.md`, `scripts/theme_preference_check.mjs`, and `scripts/theme_preference_smoke.mjs`.
 - Validation passed: 97 backend tests, zero-vulnerability audit, all static checks, typecheck, production build, localization/design-token/navigation/AppShell smokes, and the dedicated theme restart smoke.
 - Visual evidence is source-safe and ignored under `logs/theme-preference-screenshots/`.
+- Final desktop delivery passed on 2026-07-07: `npm run tauri:build` regenerated the release EXE plus a `125,286,271` byte MSI and `89,977,668` byte NSIS installer, `npm run check:release-artifacts` accepted all three Windows artifacts, and the NSIS installed-startup smoke passed health, runtime/settings, provider catalog, single-instance, adopt-existing, and AppData path checks with `failures=[]`.
+- The installed app was launched from the generated `Pengbo Workbench` desktop shortcut and visually verified in its default light theme with the T99 grouped navigation, T100 four-region shell, and local sidecar reporting `online`; installers, binaries, generated logs, and runtime state remain outside source control.
 
 ### T100 - AppShell Redesign Completion Evidence
 
