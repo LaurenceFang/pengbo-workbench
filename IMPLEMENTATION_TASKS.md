@@ -15,6 +15,7 @@ Updated: 2026-07-07
 - `T97 - Figma UI System` is now completed. The desktop Chrome Figma file at `https://www.figma.com/design/54nRRjH5vjNbrrP6pMZmyW/Untitled?node-id=14-2` contains a source-safe eight-section UI system board defining shell, navigation, workspace templates, component primitives, data table and inspector rules, operational states, and React mapping for T98-T106; supporting specs and generation assets are in `docs/t97-figma-ui-system.md`, `docs/t97-ui-system-board.svg`, and `scripts/figma_t97_ui_system.js`.
 - `T98 - Design Tokens v1` is now implemented and validated. `src/styles.css` has a light-first semantic token system with a complete dark mapping, local/offline typography, 4px spacing rhythm, standard/compact density contracts, reduced-motion support, and foreground/background/border triplets for 12 operational and financial states. The contract is documented in `docs/design-tokens-v1.md`, checked by `npm run check:design-tokens`, and visually covered in `logs/design-tokens-screenshots/design-tokens-smoke-latest.json`.
 - `T99 - Navigation IA Collapse` is now implemented and validated. The sidebar exposes seven task-oriented groups backed by `src/navigation.ts`, all 14 existing `ViewKey` workspaces remain reachable through stable automation anchors, multi-workspace groups use an accessible single-open disclosure pattern, and sensitive workspace gates plus command destinations remain unchanged. The contract is documented in `docs/navigation-ia-t99.md` and verified by `npm run check:navigation-ia` plus `npm run smoke:navigation-ia`.
+- `T100 - AppShell Redesign` is now implemented and validated. The desktop frame has explicit `AppSidebar`, `AppToolbar`, central Workspace, and collapsible `ContextRail` regions; the Sidebar consumes the T99 contract, the Context Rail hides sensitive context while locked, and responsive evidence covers 1600x1000 standard plus 1280x820 compact layouts. The contract is documented in `docs/app-shell-t100.md` and verified by `npm run check:app-shell` plus `npm run smoke:app-shell`.
 - `T19 - Portfolio Offline Regression Automation` is now implemented and smoke-validated, with a repeatable packaged portfolio script recording `live`, `cached`, and `unavailable` semantics in `logs/portfolio-offline-smoke-latest.json`.
 - `T21 - Installed Bundle Startup Automation` is now implemented and smoke-validated for the MSI-installed desktop lifecycle, with a repeatable installed-app startup result recorded in `logs/installed-bundle-startup-smoke-latest.json`.
 - `T23 - NSIS Installed Startup Automation` is now implemented and smoke-validated for the NSIS-installed desktop lifecycle, with a repeatable installed-app startup result recorded in `logs/installed-bundle-startup-smoke-nsis-latest.json`.
@@ -954,34 +955,46 @@ Updated: 2026-07-07
 
 ## Recommended Next Task
 
-### T100 - AppShell Redesign
+### T101 - Light Mode First
 
 Priority: P1
 Status: Recommended
 
 Why this is next:
 
-- `T99` completed the seven-group navigation contract while preserving all internal workspaces, automation anchors, and sensitive-view gates.
-- The next bounded structural slice is to extract stable Sidebar, Toolbar, Workspace, and Context Rail regions around the existing page renderer.
-- The shell should remain dense, Chinese-first, keyboard-friendly, local-first, and source-safe.
+- `T100` completed the four-region AppShell around the T99 navigation contract and current page renderer.
+- T98 already provides complete light and dark token maps; the remaining product slice is persisted theme selection, restart restoration, and hardcoded-theme cleanup against the real T100 shell.
+- Light mode remains the default while dark mode stays an explicit supported preference.
 
 Scope:
 
-- Extract an AppShell that owns the four stable desktop regions without changing page behavior.
-- Reuse `src/navigation.ts` rather than rebuilding the T99 information architecture.
-- Add a bounded Context Rail shell for safe global context while leaving full Inspector behavior to T104.
+- Add a compatible `light | dark` preference to the existing settings model and frontend store.
+- Bind the preference to the T100 AppShell root and add an immediate Settings control with restart persistence.
+- Audit the T100 shell, T99 navigation, lock gate, global controls, charts, and shared surfaces for theme-specific hardcoded leftovers.
 
 Acceptance:
 
-- Sidebar, Toolbar, Workspace, and Context Rail have explicit ownership and stable automation surfaces.
-- Every existing workspace, route key, command target, session/security gate, and T99 navigation anchor remains compatible.
-- Locked workspaces do not expose sensitive context through the Context Rail.
+- New and legacy preferences default safely to light mode; a saved dark preference survives restart.
+- Switching theme does not change active view, selected asset, navigation disclosure, security state, or business data.
+- T99 navigation and all four T100 shell regions remain legible in both themes and both density modes.
 - No secrets, runtime databases, generated logs, diagnostics, Stronghold vaults, installers, packaged binaries, hosted account promise, public API, remote sync, or new live-trading path are introduced.
 
 Implementation notes:
 
-- Recalibrate from the completed T99 `src/navigation.ts`, current `src/App.tsx`, T98 tokens, and `docs/navigation-ia-t99.md` before editing.
+- Recalibrate from the completed T100 components, current preference API/store, T98 token contract, and `docs/app-shell-t100.md` before editing.
 - Keep packaged evidence source-safe. Do not commit secrets, logs, runtime databases, diagnostics bundles, Stronghold vaults, or generated desktop artifacts.
+
+### T100 - AppShell Redesign Completion Evidence
+
+- Completed 2026-07-07 after T99 CI passed.
+- Added `AppShell`, `AppSidebar`, `AppToolbar`, and `ContextRail` components with explicit automation region markers.
+- Reused `src/navigation.ts` directly inside `AppSidebar`; no route or navigation contract was duplicated.
+- Kept App orchestration, page rendering, Command Palette, global search, runtime actions, and security gates behaviorally compatible.
+- Added a collapsible 280px Context Rail with safe workspace/runtime/asset summaries and locked-context redaction.
+- Added responsive fallbacks at 1180px and 960px while preserving a workspace wider than 600px at the 1280px desktop minimum.
+- Added `docs/app-shell-t100.md`, `scripts/app_shell_check.mjs`, and `scripts/app_shell_smoke.mjs`.
+- Validation passed: AppShell/navigation contracts, typecheck, and real-browser standard/compact shell smoke.
+- Visual evidence is source-safe and ignored under `logs/app-shell-screenshots/`.
 
 ### T99 - Navigation IA Collapse Completion Evidence
 

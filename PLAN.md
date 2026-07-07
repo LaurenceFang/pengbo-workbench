@@ -105,8 +105,11 @@ The active product-trust sequence is:
 - T99: navigation IA collapse. Completed with seven task-oriented groups,
   one-to-one coverage of all 14 internal workspaces, stable automation anchors,
   and unchanged sensitive-view gates.
-- T100: AppShell redesign. Next; its implementation plan must be recalibrated
-  from the completed `src/navigation.ts` contract before editing.
+- T100: AppShell redesign. Completed with explicit Sidebar, Toolbar, Workspace,
+  and safe collapsible Context Rail regions that reuse the T99 navigation
+  contract.
+- T101: light mode first. Next; its implementation plan is recalibrated from
+  the actual T100 shell and existing T98 token maps.
 
 The current research-flow map is tracked in
 [docs/research-flow-definition.md](docs/research-flow-definition.md).

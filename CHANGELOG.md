@@ -136,12 +136,16 @@ release channel yet.
   sensitive-view gate, and stable `nav-<ViewKey>` automation anchor. Group
   disclosures are keyboard-accessible, single-open, bilingual, and compatible
   with standard and compact density.
+- T100 extracts the desktop frame into explicit Sidebar, Toolbar, Workspace,
+  and collapsible Context Rail regions. The shell reuses T99 navigation,
+  preserves global search/command/runtime controls, keeps one workspace scroll
+  boundary, and hides sensitive context while a protected workspace is locked.
 - The first GitHub Release is published as
   [v0.1.0](https://github.com/LaurenceFang/pengbo-workbench/releases/tag/v0.1.0)
   with approved Windows desktop artifacts.
 
 ## Upcoming
 
-- T100 is next: extract stable Sidebar, Toolbar, Workspace, and safe Context
-  Rail regions around the completed T99 navigation contract before T101 adds
-  persisted light/dark theme behavior.
+- T101 is next: bind a persisted light/dark preference to the completed T100
+  shell, keep light mode as the default, and verify restart restoration plus
+  both density modes before rebuilding the desktop installers.

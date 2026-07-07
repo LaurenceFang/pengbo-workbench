@@ -1,27 +1,17 @@
 import {
   ArrowRight,
-  BarChart3,
-  BookOpen,
-  BriefcaseBusiness,
-  Cable,
-  ChartCandlestick,
-  ChevronDown,
   Command,
-  DatabaseZap,
-  FolderCog,
-  FlaskConical,
-  LayoutDashboard,
-  LineChart,
   Lock,
   RefreshCcw,
   Search,
-  Sparkles,
-  Star,
   TriangleAlert,
-  Workflow,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { CommandPalette } from "./components/command-palette";
+import { AppShell } from "./components/app-shell";
+import { AppSidebar } from "./components/app-sidebar";
+import { AppToolbar } from "./components/app-toolbar";
+import { ContextRail } from "./components/context-rail";
 import { LocalUnlockGate } from "./components/local-unlock-gate";
 import { InlineState, StatusBadge, type BackendStatus } from "./components/shared";
 import { useAsyncResource } from "./hooks/use-async-resource";
@@ -59,33 +49,6 @@ import { SettingsView } from "./views/settings-view";
 import { StrategyLabView } from "./views/strategy-lab-view";
 import { WatchlistView } from "./views/watchlist-view";
 import { WorkflowStudioView } from "./views/workflow-studio-view";
-
-const navigationGroupIcons: Record<NavGroupKey, typeof LayoutDashboard> = {
-  home: LayoutDashboard,
-  research: Search,
-  markets: ChartCandlestick,
-  portfolio: BriefcaseBusiness,
-  factorLab: FlaskConical,
-  automation: Workflow,
-  settings: FolderCog,
-};
-
-const navigationViewIcons: Record<ViewKey, typeof LayoutDashboard> = {
-  dashboard: LayoutDashboard,
-  commandCenter: Command,
-  asset: ChartCandlestick,
-  watchlist: Star,
-  research: Search,
-  factorLab: FlaskConical,
-  strategyLab: LineChart,
-  workflowStudio: Workflow,
-  dataSources: DatabaseZap,
-  screeners: BarChart3,
-  manual: BookOpen,
-  portfolio: BriefcaseBusiness,
-  connections: Cable,
-  settings: FolderCog,
-};
 
 const sensitiveViews = new Set<ViewKey>([
   "research",
@@ -126,6 +89,7 @@ function App() {
   const [expandedNavGroups, setExpandedNavGroups] = useState<Set<NavGroupKey>>(
     () => new Set([getNavigationGroupForView(activeView).key]),
   );
+  const [contextRailCollapsed, setContextRailCollapsed] = useState(false);
   const setCommandPaletteOpen = useAppStore((state) => state.setCommandPaletteOpen);
   const setSelectedAssetId = useAppStore((state) => state.setSelectedAssetId);
   const language = useAppStore((state) => state.language);
@@ -558,79 +522,26 @@ function App() {
   }, [activeView, activeViewRequiresUnlock, localSecurity, localSecurity.data, sidecarReady]);
 
   return (
-      <div className={`app-shell density-${density}`}>
-      <div className="backdrop-orb orb-left" />
-      <div className="backdrop-orb orb-right" />
-
-      <aside className="sidebar">
-        <div className="brand-panel">
-          <div className="brand-mark">
-            <Sparkles size={18} />
-          </div>
-          <div>
-            <p className="eyebrow">{i18n.t("app.brandEyebrow")}</p>
-            <h1>{i18n.t("app.brandName")}</h1>
-          </div>
-        </div>
-
-        <div className="sidebar-section">
-          <span className="section-caption">{i18n.t("nav.section")}</span>
-          <nav className="nav-stack" aria-label={i18n.t("nav.section")}>
-            {navigationGroups.map((group) => {
-              const GroupIcon = navigationGroupIcons[group.key];
-              const isActiveGroup = activeNavigationGroup.key === group.key;
-              const hasChildren = group.items.length > 1;
-              const isExpanded = hasChildren && expandedNavGroups.has(group.key);
-              const childListId = `nav-group-${group.key}-items`;
-              return (
-                <div className={`nav-group ${isActiveGroup ? "active" : ""}`} key={group.key}>
-                  <button
-                    aria-controls={hasChildren ? childListId : undefined}
-                    aria-expanded={hasChildren ? isExpanded : undefined}
-                    aria-label={hasChildren ? `nav-group-${group.key}` : `nav-${group.defaultView}`}
-                    className={`nav-group-trigger ${isActiveGroup ? "active" : ""}`}
-                    onClick={() => handleNavigationGroup(group.key)}
-                    type="button"
-                  >
-                    <span className="nav-icon"><GroupIcon size={18} /></span>
-                    <span className="nav-group-label">{i18n.t(`nav.group.${group.key}`)}</span>
-                    {hasChildren ? <ChevronDown className={`nav-chevron ${isExpanded ? "expanded" : ""}`} size={15} /> : null}
-                  </button>
-                  {hasChildren && isExpanded ? (
-                    <div className="nav-group-children" id={childListId}>
-                      {group.items.map((item) => {
-                        const ItemIcon = navigationViewIcons[item.viewKey];
-                        return (
-                          <button
-                            aria-label={`nav-${item.viewKey}`}
-                            className={`nav-child-item ${activeView === item.viewKey ? "active" : ""}`}
-                            key={item.viewKey}
-                            onClick={() => setActiveView(item.viewKey)}
-                            type="button"
-                          >
-                            <ItemIcon size={14} />
-                            <span>{i18n.viewLabel(item.viewKey)}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
-          </nav>
-        </div>
-
-      </aside>
-
-      <main className="workspace">
-        <header className="topbar">
-          <div>
-            <p className="eyebrow">{i18n.viewEyebrow(activeNav.viewKey)}</p>
-            <h2>{i18n.viewTitle(activeNav.viewKey)}</h2>
-          </div>
-
-          <div className="toolbar">
+    <>
+      <AppShell
+        contextRailCollapsed={contextRailCollapsed}
+        density={density}
+        sidebar={(
+          <AppSidebar
+            activeGroup={activeNavigationGroup.key}
+            activeView={activeView}
+            brandEyebrow={i18n.t("app.brandEyebrow")}
+            brandName={i18n.t("app.brandName")}
+            expandedGroups={expandedNavGroups}
+            groupLabel={(key) => i18n.t(`nav.group.${key}`)}
+            navigationLabel={i18n.t("nav.section")}
+            onGroupClick={handleNavigationGroup}
+            onViewClick={setActiveView}
+            viewLabel={i18n.viewLabel}
+          />
+        )}
+        toolbar={(
+          <AppToolbar eyebrow={i18n.viewEyebrow(activeNav.viewKey)} title={i18n.viewTitle(activeNav.viewKey)}>
             {latestCommandFeedback ? (
               <div className={`command-feedback-pill ${latestCommandFeedback.tone}`}>
                 <strong>{latestCommandFeedback.title}</strong>
@@ -712,10 +623,30 @@ function App() {
                 {language === "zh-CN" ? "锁定" : "Lock"}
               </button>
             ) : null}
-          </div>
-        </header>
-
-        <div className="workspace-scroll">
+          </AppToolbar>
+        )}
+        contextRail={(
+          <ContextRail
+            backendStatus={backendStatus}
+            collapsed={contextRailCollapsed}
+            groupLabel={i18n.t(`nav.group.${activeNavigationGroup.key}`)}
+            labels={{
+              collapse: language === "zh-CN" ? "收起上下文栏" : "Collapse context rail",
+              expand: language === "zh-CN" ? "展开上下文栏" : "Expand context rail",
+              workspace: language === "zh-CN" ? "当前工作区" : "Current workspace",
+              activeAsset: language === "zh-CN" ? "当前资产" : "Active asset",
+              runtime: language === "zh-CN" ? "本地运行状态" : "Local runtime",
+              locked: language === "zh-CN" ? "敏感上下文已锁定" : "Sensitive context locked",
+              noAsset: language === "zh-CN" ? "尚未选择" : "Not selected",
+            }}
+            locked={activeViewLocked}
+            onToggle={() => setContextRailCollapsed((current) => !current)}
+            selectedAsset={activeViewLocked ? undefined : selectedAssetId}
+            title={language === "zh-CN" ? "上下文" : "Context"}
+            viewLabel={i18n.viewLabel(activeView)}
+          />
+        )}
+      >
           {isDashboardView && setupStatus.firstRun ? (
             <FirstRunOnboarding
               state={currentOnboarding}
@@ -930,10 +861,9 @@ function App() {
               onExportDiagnostics={handleExportDiagnostics}
             />
           ) : null}
-        </div>
-      </main>
+      </AppShell>
       <CommandPalette onGlobalRefresh={reloadEverything} sidecarReady={sidecarReady} />
-    </div>
+    </>
   );
 }
 

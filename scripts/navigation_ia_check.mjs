@@ -15,9 +15,10 @@ const expectedSensitiveViews = [
 ];
 
 async function main() {
-  const [navigation, app, store, i18n] = await Promise.all([
+  const [navigation, app, sidebar, store, i18n] = await Promise.all([
     readFile(path.join(repoRoot, "src", "navigation.ts"), "utf8"),
     readFile(path.join(repoRoot, "src", "App.tsx"), "utf8"),
+    readFile(path.join(repoRoot, "src", "components", "app-sidebar.tsx"), "utf8"),
     readFile(path.join(repoRoot, "src", "store", "app-store.ts"), "utf8"),
     readFile(path.join(repoRoot, "src", "i18n", "index.ts"), "utf8"),
   ]);
@@ -41,10 +42,10 @@ async function main() {
     if (!app.includes(`"${view}"`)) failures.push(`sensitive view no longer represented in App: ${view}`);
   }
 
-  if (!app.includes("aria-expanded")) failures.push("group disclosure is missing aria-expanded");
-  if (!app.includes("aria-controls")) failures.push("group disclosure is missing aria-controls");
-  if (!app.includes("`nav-${item.viewKey}`")) failures.push("existing nav-ViewKey automation anchors are not preserved");
-  if (!app.includes("navigationGroups")) failures.push("App does not consume the shared navigation contract");
+  if (!sidebar.includes("aria-expanded")) failures.push("group disclosure is missing aria-expanded");
+  if (!sidebar.includes("aria-controls")) failures.push("group disclosure is missing aria-controls");
+  if (!sidebar.includes("`nav-${item.viewKey}`")) failures.push("existing nav-ViewKey automation anchors are not preserved");
+  if (!app.includes("AppSidebar") || !sidebar.includes("navigationGroups")) failures.push("App shell does not consume the shared navigation contract");
 
   if (failures.length) throw new Error(`T99 navigation IA contract failed:\n- ${failures.join("\n- ")}`);
   console.log(`T99 navigation IA contract passed (${expectedGroups.length} groups, ${expectedViews.length} views).`);
