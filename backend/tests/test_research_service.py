@@ -124,7 +124,8 @@ class FakeAssetService:
     def __init__(self, workspace_map):
         self.workspace_map = workspace_map
 
-    def get_asset_workspace(self, symbol: str):
+    def get_asset_workspace(self, symbol: str, *, cache_only: bool = False):
+        del cache_only
         workspace = self.workspace_map[symbol]
         if isinstance(workspace, Exception):
             raise workspace
@@ -392,7 +393,9 @@ class ResearchApiTests(unittest.TestCase):
                 session = client.post("/api/v1/security/session", json={}).json()
                 session_headers = {"X-Pengbo-Session": session["session_id"]}
                 container = app.state.container
-                container.asset_service.get_asset_workspace = lambda symbol: make_asset_workspace(symbol=symbol)
+                container.asset_service.get_asset_workspace = (
+                    lambda symbol, **_kwargs: make_asset_workspace(symbol=symbol)
+                )
                 container.research_service.asset_service = container.asset_service
                 container.research_service.screener_service = FakeScreenerService()
                 container.research_service.portfolio_service = FakePortfolioService()
@@ -459,7 +462,9 @@ class ResearchApiTests(unittest.TestCase):
                 session = client.post("/api/v1/security/session", json={}).json()
                 session_headers = {"X-Pengbo-Session": session["session_id"]}
                 container = app.state.container
-                container.asset_service.get_asset_workspace = lambda symbol: make_factor_workspace("AAPL")
+                container.asset_service.get_asset_workspace = (
+                    lambda symbol, **_kwargs: make_factor_workspace("AAPL")
+                )
                 container.screener_service.asset_service = container.asset_service
                 container.screener_service.universe_sources["catalog"] = StaticUniverseSource(["AAPL"])
                 container.factor_service.asset_service = container.asset_service

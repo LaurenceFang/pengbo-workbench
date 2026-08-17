@@ -52,17 +52,18 @@ async function main() {
   await waitForHttp(`${apiUrl}/health`);
   await fetch(`${apiUrl}/security/local/initialize`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ unlock_secret: "2468" }) });
   await fetch(`${apiUrl}/security/local/unlock`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ unlock_secret: "2468" }) });
-  spawnProcess("npm", ["run", "dev", "--", "--host", "127.0.0.1", "--port", String(port)], "vite");
+  spawnProcess("npm.cmd", ["run", "dev", "--", "--host", "127.0.0.1", "--port", String(port)], "vite");
   await waitForHttp(appUrl);
 
-  const browser = await chromium.launch({ channel: "msedge", headless: true });
+  const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
     await page.goto(appUrl, { waitUntil: "domcontentloaded" });
     await page.locator('.app-shell[data-theme="light"]').waitFor({ state: "visible", timeout: 20000 });
     await page.screenshot({ path: path.join(outputDir, "light-default.png"), fullPage: true });
 
-    await page.locator('[aria-label="nav-group-settings"]').click();
+    await page.goto(`${appUrl}/settings/appearance`, { waitUntil: "domcontentloaded" });
+    await page.locator('[data-route-page="settingsAppearance"]').waitFor({ state: "visible", timeout: 20000 });
     const themeSelect = page.locator('[aria-label="settings-theme"]');
     await themeSelect.waitFor({ state: "visible", timeout: 20000 });
     await themeSelect.selectOption("dark");
@@ -87,6 +88,11 @@ async function main() {
     const reset = { ...restored, theme: "light" };
     const resetResponse = await fetch(`${apiUrl}/settings/preferences`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(reset) });
     if (!resetResponse.ok) failures.push(`failed to restore light preference: HTTP ${resetResponse.status}`);
+    const resetSaved = await (await fetch(`${apiUrl}/settings/preferences`)).json();
+    if (resetSaved.theme !== "light") failures.push(`reset theme expected light, got ${resetSaved.theme}`);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator('.app-shell[data-theme="light"]').waitFor({ state: "visible", timeout: 20000 });
+    await page.screenshot({ path: path.join(outputDir, "light-reset.png"), fullPage: true });
   } finally { await browser.close(); }
 
   await writeFile(path.join(outputDir, "theme-preference-smoke-latest.json"), `${JSON.stringify({ generated_at: new Date().toISOString(), failures, scenarios: ["light-default", "dark-preview", "dark-restored-after-backend-restart", "light-reset"] }, null, 2)}\n`);

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -8,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from backend.app.api.factory import create_app
 from backend.app.runtime import RuntimeSettings
+from backend.tests.test_research_service import FakeAssetService, FakePortfolioService, FakeScreenerService, make_asset_workspace
 
 
 def make_settings(runtime_root: Path) -> RuntimeSettings:
@@ -26,6 +28,31 @@ def make_settings(runtime_root: Path) -> RuntimeSettings:
 
 
 class SecurityAuditServiceTests(unittest.TestCase):
+    def test_stale_idle_expiry_cannot_overwrite_a_newer_unlock(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
+            app = create_app(make_settings(Path(temp_dir)))
+            with TestClient(app) as client:
+                initialized = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(initialized.status_code, 200)
+
+                store = app.state.container.sqlite_store
+                stale_record = store.get_local_security_state()
+                self.assertIsNotNone(stale_record)
+                stale_record["unlocked_until"] = (datetime.now(UTC) - timedelta(seconds=1)).isoformat()
+                stale_record["updated_at"] = (datetime.now(UTC) - timedelta(seconds=2)).isoformat()
+                store.upsert_local_security_state(stale_record)
+                stale_snapshot = store.get_local_security_state()
+
+                unlocked = client.post("/api/v1/security/local/unlock", json={"unlock_secret": "2468"})
+                self.assertEqual(unlocked.status_code, 200)
+                self.assertFalse(unlocked.json()["locked"])
+
+                resolved = app.state.container.local_security_service._expire_if_idle(stale_snapshot)
+                self.assertIsNotNone(resolved["unlocked_until"])
+                status = client.get("/api/v1/security/local/status")
+                self.assertEqual(status.status_code, 200)
+                self.assertFalse(status.json()["locked"])
+
     def test_security_audit_redacts_sensitive_payload_fields(self) -> None:
         with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
             app = create_app(make_settings(Path(temp_dir)))
@@ -71,6 +98,10 @@ class SecurityAuditServiceTests(unittest.TestCase):
         with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
             app = create_app(make_settings(Path(temp_dir)))
             with TestClient(app) as client:
+                research_service = app.state.container.research_service
+                research_service.asset_service = FakeAssetService({"AAPL": make_asset_workspace(symbol="AAPL")})
+                research_service.screener_service = FakeScreenerService()
+                research_service.portfolio_service = FakePortfolioService()
                 locked_research = client.get("/api/v1/research/briefs/recent")
                 self.assertEqual(locked_research.status_code, 423)
                 locked_portfolio = client.get("/api/v1/portfolio/transactions")

@@ -36,6 +36,7 @@ $script:resolvedOutputPath = $null
 $script:dataDirPath = $null
 $script:backupDirPath = $null
 $script:dataDirBackedUp = $false
+$script:sessionHeaders = @{}
 
 function Add-Failure {
     param([string]$Message)
@@ -106,6 +107,9 @@ function Invoke-ApiJson {
         Method = $Method
         Uri = "$baseUrl$Path"
         TimeoutSec = $TimeoutSeconds
+    }
+    if ($script:sessionHeaders.Count -gt 0) {
+        $params.Headers = $script:sessionHeaders
     }
     if ($null -ne $Body) {
         $params.Body = ($Body | ConvertTo-Json -Depth 16)
@@ -187,6 +191,9 @@ try {
     if ($result.config_live_enabled) {
         throw "Packaged Binance execution config must be default-off."
     }
+
+    $session = Invoke-ApiJson -Method Post -Path "/security/session" -Body @{}
+    $script:sessionHeaders = @{ "X-Pengbo-Session" = [string]$session.session_id }
 
     $intent = Invoke-ApiJson -Method Post -Path "/execution/binance/intents" -Body @{
         symbol = "BTC/USDT"

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   api,
+  type AssetSearchResult,
   type AssetWorkspaceResponse,
   type PortfolioHolding,
   type PriceHistoryInterval,
@@ -19,9 +20,20 @@ import {
   type DataStatusItem,
 } from "../components/shared";
 import { useI18n } from "../i18n";
+import { usePengboNavigation } from "../hooks/use-pengbo-navigation";
 import { useAppStore } from "../store/app-store";
 
 type CoverageStatus = AssetWorkspaceResponse["capabilities"]["fundamentals_status"];
+export type AssetRouteSection = "assetSearch" | "assetOverview" | "assetPrice" | "assetFundamentals" | "assetFilings" | "assetData" | "assetResearch";
+const assetRoutePaths: Record<AssetRouteSection, string> = {
+  assetSearch: "/markets/assets",
+  assetOverview: "/markets/assets/:symbol/overview",
+  assetPrice: "/markets/assets/:symbol/price",
+  assetFundamentals: "/markets/assets/:symbol/fundamentals",
+  assetFilings: "/markets/assets/:symbol/filings",
+  assetData: "/markets/assets/:symbol/data",
+  assetResearch: "/markets/assets/:symbol/research",
+};
 
 const DEFAULT_INTERVAL: PriceHistoryInterval = "30m";
 const QUICK_INTERVALS: Array<{ value: PriceHistoryInterval; label: string }> = [
@@ -39,6 +51,23 @@ const MORE_INTERVALS: Array<{ value: PriceHistoryInterval; label: string }> = [
   { value: "1y", label: "年度K线图" },
   { value: "1d", label: "日线图" },
   { value: "1wk", label: "周线图" },
+];
+
+const CLEAN_QUICK_INTERVALS: Array<{ value: PriceHistoryInterval; label: string }> = [
+  { value: "15m", label: "15 分钟" },
+  { value: "1h", label: "1 小时" },
+  { value: "1d", label: "日线" },
+  { value: "1wk", label: "周线" },
+];
+const CLEAN_MORE_INTERVALS: Array<{ value: PriceHistoryInterval; label: string }> = [
+  { value: "30m", label: "30 分钟" },
+  { value: "2h", label: "2 小时" },
+  { value: "4h", label: "4 小时" },
+  { value: "8h", label: "8 小时" },
+  { value: "1mo", label: "月线" },
+  { value: "1y", label: "年度 K 线" },
+  { value: "1d", label: "日线" },
+  { value: "1wk", label: "周线" },
 ];
 
 function chartRangeFor(interval: PriceHistoryInterval): string {
@@ -63,15 +92,19 @@ export function AssetView({
   loading,
   error,
   onRetry,
+  sensitiveContextReady,
+  routeSection = "assetOverview",
 }: {
   asset: AssetWorkspaceResponse | null;
   selectedAsset: WatchlistAssetSnapshot | null;
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+  sensitiveContextReady: boolean;
+  routeSection?: AssetRouteSection;
 }) {
   const i18n = useI18n();
-  const setActiveView = useAppStore((state) => state.setActiveView);
+  const { openAsset, openView: setActiveView } = usePengboNavigation();
   const setSelectedAssetId = useAppStore((state) => state.setSelectedAssetId);
   const setSelectedResearchBriefId = useAppStore((state) => state.setSelectedResearchBriefId);
   const [interval, setInterval] = useState<PriceHistoryInterval>(DEFAULT_INTERVAL);
@@ -81,8 +114,27 @@ export function AssetView({
   const [recentBriefs, setRecentBriefs] = useState<ResearchBriefListItem[]>([]);
   const [portfolioHoldings, setPortfolioHoldings] = useState<PortfolioHolding[]>([]);
   const [contextError, setContextError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<AssetSearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (routeSection !== "assetSearch") return;
+    let cancelled = false;
+    setSearchLoading(true);
+    setSearchError(null);
+    api.searchAssets(searchTerm.trim())
+      .then((results) => { if (!cancelled) setSearchResults(results); })
+      .catch((searchFailure) => { if (!cancelled) setSearchError(searchFailure instanceof Error ? searchFailure.message : "资产搜索失败"); })
+      .finally(() => { if (!cancelled) setSearchLoading(false); });
+    return () => { cancelled = true; };
+  }, [routeSection, searchTerm]);
+
+  useEffect(() => {
+    if (routeSection !== "assetPrice") {
+      return;
+    }
     if (!asset?.asset.symbol) {
       return;
     }
@@ -110,10 +162,19 @@ export function AssetView({
     return () => {
       cancelled = true;
     };
-  }, [asset?.asset.symbol, interval]);
+  }, [asset?.asset.symbol, interval, routeSection]);
 
   useEffect(() => {
+    if (routeSection !== "assetResearch") {
+      return;
+    }
     if (!asset?.asset.symbol) {
+      return;
+    }
+    if (!sensitiveContextReady) {
+      setRecentBriefs([]);
+      setPortfolioHoldings([]);
+      setContextError("Local unlock is required before Research and Portfolio context can be loaded.");
       return;
     }
     let cancelled = false;
@@ -135,26 +196,44 @@ export function AssetView({
     return () => {
       cancelled = true;
     };
-  }, [asset?.asset.symbol]);
+  }, [asset?.asset.symbol, routeSection, sensitiveContextReady]);
 
   const selectedIntervalLabel = useMemo(
     () => [...QUICK_INTERVALS, ...MORE_INTERVALS].find((item) => item.value === interval)?.label ?? interval,
     [interval],
   );
 
+  if (routeSection === "assetSearch") {
+    return (
+      <div className="p1-page p1-asset-page asset-search-page" data-route-id="/markets/assets" data-context-inspector="asset-search" data-primary-task={routeSection}>
+        <header className="p1-page-header">
+          <div><p className="eyebrow">ASSET DIRECTORY</p><h2>资产搜索</h2><p className="p1-page-lede">搜索本地资产目录，选择后进入该资产的独立概览页面。</p></div>
+        </header>
+        <section className="card p1-panel asset-search-workspace" aria-label="asset-search-primary-task">
+          <div className="p1-section-heading"><div><p className="eyebrow">PRIMARY TASK</p><h3>搜索并选择一个资产</h3></div><span className="mini-pill accent">{searchResults.length} 项</span></div>
+          <label className="asset-search-control"><span>名称、代码或市场</span><input autoFocus aria-label="asset-search-query" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="例如 AAPL、BTC、沪深300" /></label>
+          {searchLoading ? <InlineState label="正在搜索资产目录…" /> : null}
+          {searchError ? <InlineState label={`搜索失败：${searchError}`} /> : null}
+          {!searchLoading && !searchError && searchResults.length === 0 ? <InlineState label="没有匹配资产，请调整关键词。" /> : null}
+          <div className="asset-search-results" role="list">
+            {searchResults.map((result) => (
+              <button key={result.symbol} className="asset-search-result" type="button" role="listitem" onClick={() => { setSelectedAssetId(result.symbol); openAsset(result.symbol, "overview"); }}>
+                <span><strong>{result.symbol}</strong><small>{result.name}</small></span>
+                <span>{result.market}<small>{result.asset_class}</small></span>
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   if (loading) {
-    return <PanelState title={i18n.t("asset.loadingTitle")} copy={i18n.t("asset.loadingCopy")} />;
+    return <div className="p1-page p1-asset-page" data-route-id={assetRoutePaths[routeSection]} data-context-inspector="asset" data-primary-task={routeSection}><PanelState title={i18n.t("asset.loadingTitle")} copy={i18n.t("asset.loadingCopy")} /></div>;
   }
 
   if (error || !asset) {
-    return (
-      <PanelState
-        title={i18n.t("asset.errorTitle")}
-        copy={error ?? i18n.t("asset.errorCopy")}
-        actionLabel={i18n.t("common.retry")}
-        onAction={onRetry}
-      />
-    );
+    return <div className="p1-page p1-asset-page" data-route-id={assetRoutePaths[routeSection]} data-context-inspector="asset" data-primary-task={routeSection}><PanelState title={i18n.t("asset.errorTitle")} copy={error ?? i18n.t("asset.errorCopy")} actionLabel={i18n.t("common.retry")} onAction={onRetry} /></div>;
   }
 
   const fundamentalsMessage = asset.capabilities.fundamentals_message ?? asset.capabilities.notes[0] ?? i18n.t("asset.noFundamentals");
@@ -180,9 +259,39 @@ export function AssetView({
   }
 
   return (
-    <div aria-label={`asset-workspace symbol=${asset.asset.symbol}`} className="asset-layout terminal-asset-layout">
-      <section className="card hero-chart">
-        <div className="card-header">
+    <div aria-label={`asset-workspace symbol=${asset.asset.symbol} section=${routeSection}`} className="p1-page p1-asset-page asset-layout terminal-asset-layout" data-route-id={assetRoutePaths[routeSection]} data-context-inspector="asset" data-primary-task={routeSection}>
+      <header className="p1-page-header p1-asset-header">
+        <div>
+          <p className="eyebrow">{i18n.t("asset.detailEyebrow")}</p>
+          <h2>{asset.asset.name}<span className="inline-symbol">{asset.asset.symbol}</span></h2>
+          <p className="p1-page-lede">{i18n.language === "zh-CN" ? "在进入研究前，先统一查看行情、覆盖范围和数据来源。" : "Quote, coverage, and source context stay together before the Research handoff."}</p>
+        </div>
+        <div className="p1-page-actions">
+          <span className={`p1-status-dot ${asset.stale ? "is-cached" : "is-live"}`}>{asset.stale ? "cached" : "observed"}</span>
+          <button className="primary-button" type="button" onClick={openResearchBrief}>
+            {relatedBrief ? (i18n.language === "zh-CN" ? "打开研究简报" : "Open research brief") : (i18n.language === "zh-CN" ? "创建研究简报" : "Create research brief")}
+          </button>
+        </div>
+      </header>
+
+      {routeSection === "assetOverview" ? (
+        <section className="card p1-panel asset-overview-page" aria-label="asset-overview-primary-task">
+          <div className="p1-section-heading">
+            <div><p className="eyebrow">ASSET OVERVIEW</p><h3>{asset.asset.symbol} 当前概览</h3></div>
+            <div className="price-stack"><strong>{formatPrice(asset.quote.price, asset.quote.currency, asset.asset.asset_class)}</strong><span className={`delta-pill ${asset.quote.change < 0 ? "down" : "up"}`}>{formatSignedMoney(asset.quote.change, asset.quote.currency)} / {formatPercent(asset.quote.change_pct)}</span></div>
+          </div>
+          <DataStatusStrip ariaLabel={`asset-overview-status symbol=${symbol}`} items={[
+            { label: "Market", value: asset.asset.market, detail: `${asset.asset.asset_class} · ${asset.asset.currency}`, tone: "observed" },
+            { label: "Quote", value: asset.stale ? "Cached" : "Observed", detail: new Date(asset.quote.as_of).toLocaleString(), tone: asset.stale ? "cached" : "observed" },
+            { label: "Coverage", value: dataStatusCopy.title, detail: dataStatusCopy.copy, tone: dataStatusCopy.tone },
+          ]} />
+          <div className="asset-overview-summary"><span>公司与资产说明</span><strong>{asset.overview?.company ?? asset.asset.name}</strong><p>{asset.overview?.summary ?? "当前资产暂无额外公司摘要；行情和来源状态仍可独立检查。"}</p></div>
+        </section>
+      ) : null}
+
+      {routeSection === "assetPrice" ? (
+      <section className="card p1-panel hero-chart p1-asset-primary">
+        <div className="p1-section-heading">
           <div>
             <p className="eyebrow">{i18n.t("asset.detailEyebrow")}</p>
             <h3>
@@ -200,7 +309,7 @@ export function AssetView({
 
         <div className="chart-control-bar">
           <div className="range-row">
-            {QUICK_INTERVALS.map((item) => (
+            {CLEAN_QUICK_INTERVALS.map((item) => (
               <button
                 key={item.value}
                 className={`range-chip ${item.value === interval ? "active" : ""}`}
@@ -218,7 +327,7 @@ export function AssetView({
               value={interval}
               onChange={(event) => setInterval(event.target.value as PriceHistoryInterval)}
             >
-              {MORE_INTERVALS.map((item) => (
+              {CLEAN_MORE_INTERVALS.map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}
                 </option>
@@ -237,15 +346,17 @@ export function AssetView({
         {historyError ? <InlineState label={`已回退到缓存/默认历史：${historyError}`} /> : null}
         <KLineChartPanel data={chartData} legend={`${asset.asset.symbol} ${selectedIntervalLabel}`} />
       </section>
+      ) : null}
 
+      {routeSection === "assetResearch" ? (
       <section
         aria-label={`asset-research-entry symbol=${symbol} brief=${relatedBrief?.brief_id ?? "none"} holding=${holding ? "held" : "not-held"}`}
-        className="card asset-research-card"
+        className="card p1-panel asset-research-card p1-asset-handoff"
       >
-        <div className="card-header">
+        <div className="p1-section-heading">
           <div>
-            <p className="eyebrow">Research loop</p>
-            <h3>Start the brief from this asset</h3>
+          <p className="eyebrow">{i18n.language === "zh-CN" ? "研究闭环" : "Research loop"}</p>
+          <h3>{i18n.language === "zh-CN" ? "从当前资产开始研究" : "Start the brief from this asset"}</h3>
           </div>
           <span className={`mini-pill status-${asset.stale ? "cached" : "available"}`}>
             {asset.stale ? "cached" : "observed"}
@@ -277,7 +388,7 @@ export function AssetView({
             type="button"
             onClick={openResearchBrief}
           >
-            {relatedBrief ? "Open research brief" : "Create research brief"}
+            {relatedBrief ? (i18n.language === "zh-CN" ? "打开研究简报" : "Open research brief") : (i18n.language === "zh-CN" ? "创建研究简报" : "Create research brief")}
           </button>
           <button
             aria-label={`asset-next-action action=evidence symbol=${symbol} state=${evidenceState}`}
@@ -285,7 +396,7 @@ export function AssetView({
             type="button"
             onClick={openResearchBrief}
           >
-            Review evidence
+            {i18n.language === "zh-CN" ? "查看证据" : "Review evidence"}
           </button>
           <button
             aria-label={`asset-next-action action=report symbol=${symbol} state=${relatedBrief ? "ready" : "needs-brief"}`}
@@ -293,7 +404,7 @@ export function AssetView({
             type="button"
             onClick={openResearchBrief}
           >
-            Prepare report
+            {i18n.language === "zh-CN" ? "准备报告" : "Prepare report"}
           </button>
           <button
             aria-label={`asset-next-action action=data-sources symbol=${symbol} source=${watchlistState}`}
@@ -301,19 +412,21 @@ export function AssetView({
             type="button"
             onClick={openDataSources}
           >
-            Check data sources
+            {i18n.language === "zh-CN" ? "检查数据来源" : "Check data sources"}
           </button>
         </div>
         <p className="panel-note">
-          Research outputs stay local. Provider credentials, Stronghold data, generated logs, and live trading remain outside this asset handoff.
+          {i18n.language === "zh-CN" ? "研究输出保留在本地。数据源凭证、Stronghold 数据、生成日志和实盘交易都不会进入本次资产交接。" : "Research outputs stay local. Provider credentials, Stronghold data, generated logs, and live trading remain outside this asset handoff."}
         </p>
       </section>
+      ) : null}
 
+      {routeSection === "assetFundamentals" ? (
       <section
         aria-label={`asset-capability symbol=${asset.asset.symbol} capability=fundamentals status=${asset.capabilities.fundamentals_status}`}
-        className="card ratios-card"
+        className="card p1-panel ratios-card"
       >
-        <div className="card-header">
+        <div className="p1-section-heading">
           <div>
             <p className="eyebrow">{i18n.t("asset.fundamentals")}</p>
             <h3>{describeCoverageTitle(asset.capabilities.fundamentals_status, i18n.t("asset.fundamentalsAvailable"), i18n)}</h3>
@@ -353,12 +466,14 @@ export function AssetView({
           <InlineState label={fundamentalsMessage} />
         )}
       </section>
+      ) : null}
 
+      {routeSection === "assetFilings" ? (
       <section
         aria-label={`asset-capability symbol=${asset.asset.symbol} capability=filings status=${asset.capabilities.filings_status}`}
-        className="card filings-card"
+        className="card p1-panel filings-card"
       >
-        <div className="card-header">
+        <div className="p1-section-heading">
           <div>
             <p className="eyebrow">{i18n.t("asset.secFilings")}</p>
             <h3>{describeCoverageTitle(asset.capabilities.filings_status, i18n.t("asset.filingsAvailable"), i18n)}</h3>
@@ -386,6 +501,20 @@ export function AssetView({
           <InlineState label={filingsMessage} />
         )}
       </section>
+      ) : null}
+
+      {routeSection === "assetData" ? (
+        <section className="card p1-panel asset-data-page" aria-label={`asset-data-primary-task symbol=${symbol}`}>
+          <div className="p1-section-heading"><div><p className="eyebrow">DATA / PROVENANCE</p><h3>数据覆盖与来源</h3></div><span className={`mini-pill status-${asset.stale ? "cached" : "available"}`}>{asset.stale ? "cached" : "observed"}</span></div>
+          <DataStatusStrip ariaLabel={`asset-data-coverage symbol=${symbol}`} items={[
+            { label: "Price", value: asset.stale ? "Cached" : "Observed", detail: `${asset.quote.provider} · ${new Date(asset.quote.as_of).toLocaleString()}`, tone: asset.stale ? "cached" : "observed" },
+            { label: "Fundamentals", value: formatCoverageStatus(asset.capabilities.fundamentals_status, i18n), detail: fundamentalsMessage, tone: asset.capabilities.fundamentals_status === "available" ? "observed" : "blocked" },
+            { label: "Filings", value: formatCoverageStatus(asset.capabilities.filings_status, i18n), detail: filingsMessage, tone: asset.capabilities.filings_status === "available" ? "observed" : "blocked" },
+          ]} />
+          <div className="holding-list">{asset.capabilities.notes.map((note, index) => <div className="holding-row" key={`${index}-${note}`}><div><strong>限制 {index + 1}</strong><span>{note}</span></div></div>)}</div>
+          <div className="hero-actions"><button className="ghost-button" type="button" onClick={openDataSources}>打开数据源中心</button><button className="ghost-button" type="button" onClick={onRetry}>刷新当前资产数据</button></div>
+        </section>
+      ) : null}
     </div>
   );
 }

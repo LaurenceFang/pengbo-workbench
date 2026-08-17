@@ -10,6 +10,9 @@ import {
   type Time,
 } from "lightweight-charts";
 import { useI18n } from "../i18n";
+import { Button } from "./button";
+import { EmptyState } from "./ui-kit";
+import { getUiStateDefinition, inferUiState, type UiState } from "../ui-state-registry";
 
 export type BackendStatus = "connecting" | "online" | "offline";
 
@@ -78,16 +81,16 @@ export function StatusBadge({
         <small>{note}</small>
       </div>
       {canRestart ? (
-        <button className="text-button" disabled={restarting} onClick={onRestart} type="button">
+        <Button variant="text" disabled={restarting} onClick={onRestart}>
           <RefreshCcw size={14} />
           {restarting ? labels?.restarting ?? "Restarting..." : labels?.restart ?? "Restart"}
-        </button>
+        </Button>
       ) : null}
       {canExportDiagnostics && onExportDiagnostics ? (
-        <button className="text-button" disabled={exportingDiagnostics} onClick={onExportDiagnostics} type="button">
+        <Button variant="text" disabled={exportingDiagnostics} onClick={onExportDiagnostics}>
           <LifeBuoy size={14} />
           {exportingDiagnostics ? labels?.exporting ?? "Exporting..." : labels?.exportDiagnostics ?? "Export diagnostics"}
-        </button>
+        </Button>
       ) : null}
     </div>
   );
@@ -97,19 +100,30 @@ export function InlineState({
   label,
   actionLabel,
   onAction,
+  state,
 }: {
   label: string;
   actionLabel?: string;
   onAction?: () => void | Promise<void>;
+  state?: UiState;
 }) {
+  const i18n = useI18n();
+  const resolvedState = state ?? inferUiState(label);
+  const definition = getUiStateDefinition(resolvedState);
+  const localizedLabel = i18n.language === "zh-CN" && /403|auth session|forbidden/i.test(label)
+    ? "本地会话未解锁或服务拒绝（403），请重试。"
+    : label;
+  const localizedActionLabel = i18n.language === "zh-CN"
+    ? actionLabel === "Retry" ? "重试" : actionLabel === "Retry catalog" ? "重试目录" : actionLabel
+    : actionLabel;
   return (
-    <div className="task-item">
-      <Activity size={16} />
-      <span>{label}</span>
-      {actionLabel && onAction ? (
-        <button className="text-button" onClick={() => void onAction()} type="button">
-          {actionLabel}
-        </button>
+    <div className={`task-item ui-inline-state ui-inline-${resolvedState}`} data-ui-state={resolvedState}>
+      <Activity size={16} aria-hidden="true" />
+      <span><strong>{definition.label}</strong> {localizedLabel}</span>
+      {localizedActionLabel && onAction ? (
+        <Button variant="text" onClick={() => void onAction()}>
+          {localizedActionLabel}
+        </Button>
       ) : null}
     </div>
   );
@@ -120,31 +134,22 @@ export function PanelState({
   copy,
   actionLabel,
   onAction,
+  state,
 }: {
   title: string;
   copy: string;
   actionLabel?: string;
   onAction?: () => void | Promise<void>;
+  state?: UiState;
 }) {
   const i18n = useI18n();
-  return (
-    <div className="stack-layout">
-      <section className="card">
-        <div className="card-header">
-          <div>
-            <p className="eyebrow">{i18n.t("common.status")}</p>
-            <h3>{title}</h3>
-          </div>
-        </div>
-        <p className="body-copy">{copy}</p>
-        {actionLabel && onAction ? (
-          <button className="ghost-button" onClick={() => void onAction()} type="button">
-            {actionLabel}
-          </button>
-        ) : null}
-      </section>
-    </div>
-  );
+  const resolvedState = state ?? inferUiState(`${title} ${copy}`);
+  const definition = getUiStateDefinition(resolvedState);
+  const localizedCopy = i18n.language === "zh-CN" && /403|auth session|forbidden/i.test(copy)
+    ? "本地会话未解锁或服务拒绝（403），请重试。"
+    : copy;
+  const localizedActionLabel = i18n.language === "zh-CN" && actionLabel === "Retry" ? "重试" : actionLabel;
+  return <div className={`stack-layout ui-panel-state ui-panel-${resolvedState}`} data-ui-state={resolvedState}><EmptyState title={title || definition.defaultTitle} description={localizedCopy || definition.defaultDescription} actionLabel={localizedActionLabel} onAction={onAction ? () => void onAction() : undefined} tone={definition.tone} /></div>;
 }
 
 export function MetricCard({

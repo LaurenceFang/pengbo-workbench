@@ -1,6 +1,61 @@
 # Pengbo Workbench Task Board
 
-Updated: 2026-07-07
+Updated: 2026-07-22
+
+## TOP PRIORITY - Locked UI Design Baseline
+
+This is now the highest-priority product/UI constraint before downstream page
+implementation. The locked visual acceptance baseline is:
+
+`E:\彭博\Pengbo_UI_Rebuild.svg`
+
+The editable design source is the single Penpot page `FINAL - All Pengbo Pages`,
+with the layer `FINAL - 79 Full-screen Route Frames + AI`. The SVG and Penpot
+page must remain visually equivalent; any disagreement is a baseline failure.
+
+Registered SVG baseline:
+
+- Path: `E:\彭博\Pengbo_UI_Rebuild.svg`
+- SHA-256: `206E6C79553594070FE7ADE443D97094AC8016E515B19AE8F49B9B3544028CAF`
+- Size: `1,170,776 bytes`
+- Coverage: `79` full-screen frames, contextual AI entry, AI context state, and
+  standalone `/ai-assistant` route.
+- Route Workspace structure: production status legend count `0`; legacy generic
+  `820x500` outer-frame count `0`.
+
+Locked requirements:
+
+- Every planned second- or third-level route is an independent full-screen page;
+  no route may be collapsed back into a summary card or stacked mega-page.
+- Research, Factor Lab, Strategy Lab, Workflow, Screeners, and every Asset
+  subpage expose a contextual `打开 AI 助手` entry with the current route,
+  asset/brief/run context, evidence scope, and security state.
+- `/ai-assistant` remains an independent page for AI requests without a
+  research, experiment, or asset context.
+- Every route owns its loading, empty, blocked, error, locked, and ready states;
+  state text and next actions must remain visible and Chinese-first.
+- The existing T99 seven navigation groups, fourteen top-level ViewKey entries,
+  `nav-<ViewKey>` anchors, local unlock gates, read-only provider boundary, and
+  gated Binance execution semantics remain intact during migration.
+- Any change to this UI baseline requires explicit user approval and must update
+  the Penpot final page plus the affected task/document contract before code.
+
+Source contracts:
+
+- `docs/ui-restructure-ia-t102-t106.md`
+- `docs/frontend-design-plan-t102-t106.md`
+- Penpot: `http://localhost:9001`, page `FINAL - All Pengbo Pages`
+
+## Task Execution Preference
+
+For any non-trivial task that can be clearly split into exploration,
+implementation, evidence collection, research, or independent verification,
+first evaluate whether an existing configured sub-agent is a useful fit and
+prefer using it when it can materially advance the work. The parent task/main
+thread remains responsible for scope, write ownership, integration decisions,
+and final acceptance. Direct execution remains appropriate for trivial,
+tightly coupled, urgent, or conflict-prone work; do not spawn an agent merely
+to satisfy this preference.
 
 ## Current Assessment
 
@@ -17,6 +72,53 @@ Updated: 2026-07-07
 - `T99 - Navigation IA Collapse` is now implemented and validated. The sidebar exposes seven task-oriented groups backed by `src/navigation.ts`, all 14 existing `ViewKey` workspaces remain reachable through stable automation anchors, multi-workspace groups use an accessible single-open disclosure pattern, and sensitive workspace gates plus command destinations remain unchanged. The contract is documented in `docs/navigation-ia-t99.md` and verified by `npm run check:navigation-ia` plus `npm run smoke:navigation-ia`.
 - `T100 - AppShell Redesign` is now implemented and validated. The desktop frame has explicit `AppSidebar`, `AppToolbar`, central Workspace, and collapsible `ContextRail` regions; the Sidebar consumes the T99 contract, the Context Rail hides sensitive context while locked, and responsive evidence covers 1600x1000 standard plus 1280x820 compact layouts. The contract is documented in `docs/app-shell-t100.md` and verified by `npm run check:app-shell` plus `npm run smoke:app-shell`.
 - `T101 - Light Mode First` is now implemented and validated. New and legacy preferences resolve safely to light mode, Settings provides immediate light/dark preview and persistence, and the T100 AppShell restores a saved dark preference after backend restart without changing workspace state. The contract is documented in `docs/light-mode-first-t101.md` and verified by `npm run check:theme-preference` plus `npm run smoke:theme-preference`.
+- M1 correction historical checkpoint (2026-07-17): the app had 79 real route records and route-level dispatch. Sixty-eight available routes mounted genuine T1–T101 business components; eleven future routes rendered task-numbered blocked states. The previous generic `route-content` production body and the 14-View mega-page override were no longer the runtime page layer. Current acceptance evidence and remaining gates use the 2026-07-22 T102 Full-route Dual-theme and Manual Workspace correction below.
+- Route isolation now covers Dashboard, Asset, Data Sources, Research, Factor Lab, Strategy Lab, Workflow Studio, Screeners, Portfolio, Connections, Settings, Manual, and the standalone AI page. `npm.cmd run smoke:all-subpages-runtime` passes 79/79 with exactly one route business page and one primary task per available route.
+- `T102 - Route Component Library / 2026-07-21 Route Workspace 结构修正`
+  removes the production status legend and legacy generic `820x500` outer
+  frame. The transparent `route-child-workspace` is now a direct child of
+  `RoutePageFrame`, contains only the current route-family page, keeps natural
+  content height, and delegates vertical
+  scrolling to the parent Workspace instead of introducing a nested scroll.
+- `T102 / 2026-07-22 Light Theme Contrast and Routed Page Layout Correction`
+  is implemented with a focused `96/96` four-viewport gate. It restores
+  readable light-theme text, natural-height Research evidence content,
+  readable Research Decision/evidence surfaces, full-workspace
+  Asset/Portfolio/Workflow/Screener pages, and compact 960px Toolbar actions.
+  T102 remains `Implemented / Acceptance Pending`.
+- At the earlier 2026-07-22 page-layout checkpoint, the dirty source was rebuilt
+  successfully with `npm.cmd run
+  tauri:build`; the build recreated the web bundle, clean PyInstaller sidecar,
+  release EXE, MSI, and NSIS. Current-source packaged startup passed on the
+  immediate full retest, and current-source NSIS install/startup passed. MSI
+  install/startup and the complete nine packaged M1 regressions had not yet been
+  rerun. The later T105/T106 checkpoint below supersedes that pending status.
+- The follow-up T102 Full-route Dual-theme and Manual Workspace correction
+  passes `632/632` across all 79 routes, both themes and four viewports; Manual
+  passes `40/40`. Broader human per-Frame acceptance remains open.
+- Data Sources preview routes now honor the URL provider instead of stacking macro, equity, crypto, and news on one long page. The packaged test separately navigates to `/markets/data-sources/worldbank/preview` and `/markets/data-sources/coingecko/preview`.
+- T105 remains `In Progress / Acceptance Pending`, but its automated, dynamic,
+  and security acceptance now passes. The sidecar-offline permanent security
+  `loading` defect has RED-before/GREEN-after evidence; route applicability is
+  `79/79`, and runtime state checks are `491/491`. Overall M1 signoff still waits
+  on T106 human approval.
+- T106 remains `In Progress / Automated Rule Passed, Human Signoff Pending`.
+  State/theme/viewport evidence is `3928/3928` screenshots; dual-theme evidence
+  is `632/632`; base screenshots and Route Workspace structure are each
+  `316/316`, with zero rate warnings; approved SVG geometry/style/structure is
+  `79/79`. Sixteen contact sheets cover all 79 Frames, but human approval is
+  still pending.
+- Current-source packaged acceptance now passes all nine business regression
+  groups, full local-security lifecycle, source EXE startup, MSI install/startup,
+  and NSIS install/startup. AppData log/data paths remain `skipped_locked` under
+  the expected security block and therefore are not reported as verified. The
+  desktop installation is updated at
+  `E:\彭博自用情况\Pengbo Workbench\pengbo-workbench.exe`.
+- Authoritative M1 acceptance order as of this 2026-07-22 checkpoint: obtain
+  T106 human expected/edge/failure approval for all 79 Frames. Until that global
+  signoff is recorded, T102–T104 remain `Implemented / Acceptance Pending`,
+  T105 remains `In Progress / Acceptance Pending`, T106 remains `Automated Rule
+  Passed / Human Signoff Pending`, T107 remains frozen, and M1 is not closed.
 - `T19 - Portfolio Offline Regression Automation` is now implemented and smoke-validated, with a repeatable packaged portfolio script recording `live`, `cached`, and `unavailable` semantics in `logs/portfolio-offline-smoke-latest.json`.
 - `T21 - Installed Bundle Startup Automation` is now implemented and smoke-validated for the MSI-installed desktop lifecycle, with a repeatable installed-app startup result recorded in `logs/installed-bundle-startup-smoke-latest.json`.
 - `T23 - NSIS Installed Startup Automation` is now implemented and smoke-validated for the NSIS-installed desktop lifecycle, with a repeatable installed-app startup result recorded in `logs/installed-bundle-startup-smoke-nsis-latest.json`.
@@ -956,10 +1058,15 @@ Updated: 2026-07-07
 
 ## Recommended Next Task
 
-### T102 - Component Library Base
+2026-07-22 execution note: T102–T104 remain implemented with acceptance pending;
+T105 automated/dynamic/security acceptance passes, and the next active M1
+closure work is T106 human per-Frame signoff. The T102 evidence section below is
+retained as the implementation record, not as authorization to start T107.
+
+### T102 - Route Component Library / 2026-07-21 Route Workspace 结构修正
 
 Priority: P1
-Status: Recommended
+Status: Implemented / Acceptance Pending (automated SVG rule passed; human signoff open)
 
 Why this is next:
 
@@ -984,6 +1091,232 @@ Implementation notes:
 
 - Recalibrate from the completed T100 component boundaries and T101 theme screenshots before editing.
 - Keep packaged evidence source-safe. Do not commit secrets, logs, runtime databases, diagnostics bundles, Stronghold vaults, or generated desktop artifacts.
+
+Completion evidence:
+
+- Added typed `RoutePageFrame`, `PageHeader`, `SubrouteNav`, `Button`, `IconButton`, `Input`, `SearchField`, `SegmentedControl`, `Sheet`, `Popover`, `Tooltip`, `Badge`, `StateBlock`, `AITrigger`, and `HandoffAction` primitives in `src/components/ui-kit.tsx`.
+- Added T98-token-based foundation styles with readable state blocks, focus behavior, subroute navigation, tooltip/popover surfaces, and theme/density-compatible controls in `src/styles.css`.
+- Migrated AppSidebar navigation controls and Context Rail toggle to shared button primitives while preserving all T99 `nav-*` anchors and T100 shell behavior.
+- Browser evidence passed at the default 1280px desktop viewport and the 960px compact viewport; Context Rail collapse/expand interaction passed and browser console reported no warnings or errors.
+- Validation passed: `npm run typecheck`, `npm run build`, `npm run check:t102-106`, `npm run check:design-tokens`, `npm run check:navigation-ia`, `npm run check:app-shell`, and `git diff --check`.
+- No packaged EXE, installer, runtime database, credential, API, route business logic, or live-execution behavior changed. The T104 correction pass is now the active M1 implementation; T105/T106 remain separate downstream tasks and are not included here.
+
+2026-07-21 Route Workspace structure correction:
+
+- Goal: make the transparent route child workspace a direct child of
+  `RoutePageFrame`, containing only the current route-family page, and remove
+  the generic presentation wrapper that constrained every route to the same
+  fixed-height surface.
+- Depends on: the T99 navigation contract, T100 AppShell regions, T101 theme
+  persistence, the 79-route SVG registry, and the existing T103/T104 business
+  content and Inspector contracts. No downstream task number was added.
+- Done when: all four viewports for all 79 routes have one route page, one
+  family page, one primary task and one active subroute; the parent Workspace
+  owns vertical scrolling; production state legends and legacy generic
+  `820x500` outer frames are both absent.
+- Evidence: `npm.cmd run smoke:route-workspace-structure` passes `316/316`;
+  `npm.cmd run smoke:all-subpages-runtime` passes navigation `79/79`;
+  geometry/style/structure pass `79/79`; screenshots pass `316/316`; and
+  `npm.cmd run typecheck`, `npm.cmd run web:build`, and
+  `npm.cmd run check:t102-106` pass.
+- Delivery evidence: source manifest SHA-256
+  `AB7F3C3D6E8C76188CD46CBE6DD5C1E27DCFB977F1262D8562E9168542272508`;
+  packaged business regression `9/9`; MSI and NSIS installed startup pass.
+- Independent result: `logs/t102-route-workspace-reality-check.json` passes the
+  T102 core structure and records the sidecar-offline sensitive-route loading
+  defect plus the current-package local-security lifecycle rerun as T105/M1
+  blockers outside this correction's implementation scope.
+- Status and risk: T102 remains `Implemented / Acceptance Pending`; SVG human
+  signoff is still pending. T105 is unchanged, T106 remains `Automated Rule
+  Passed, Human Signoff Pending`, and T107 remains frozen. The open risk is
+  acceptance evidence, not a reason to claim M1 completion.
+
+2026-07-22 Light Theme Contrast and Routed Page Layout Correction:
+
+- Goal: correct the user-reported page-level defects without changing route,
+  API, data, permission, Context Inspector, or business-action semantics. Light
+  theme text must remain readable; the Research `基本面与文件` content must grow
+  with the page instead of using a grey nested-scroll viewport; the selected
+  Asset, Portfolio, Workflow, and Screener subpages must use the available
+  route workspace instead of collapsing into a narrow left column.
+- Scope: Asset `资产概览`、`基本面与比率`、`文件与公告`、`数据覆盖与来源`;
+  Portfolio `持仓`、`配置与集中度`、`交易记录`、`新增交易`、`持仓研究交接`;
+  Research `基本面与文件` and Research Decision/evidence surfaces; routed
+  Workflow and Screener workspaces; and the 960px compact Toolbar labels/icons
+  affected by the same layout regression. This is a correction under T102; no
+  new task number was created.
+- Done when: the targeted primary tasks occupy the route workspace at 1600,
+  1440, 1180, and 960 widths; Research has `max-height: none`, visible overflow,
+  no nested scrolling, and a subwindow-to-primary width ratio of `1`; sampled
+  light-theme text has WCAG contrast of at least `4.5`; and the 960px Toolbar no
+  longer renders AI/lock controls one character per line.
+- Evidence: `logs/page-layout-correction-smoke.json`, generated at
+  `2026-07-22T06:00:58.226Z`, records `24 routes x 4 viewports = 96/96`, zero
+  failures, forced/recorded light theme, minimum sampled contrast `4.72`,
+  full-workspace target pages, and the Research natural-height contract. Frame
+  22 records title/section contrast `16.32` and minimum evidence-description
+  contrast `5.38`. Evidence SHA-256:
+  `93DC7E482984B7FAC4D565FA01029BDB7D57FFEB78A7FFBA0AC934A79EAA67FE`.
+- Supporting validation passed: `npm.cmd run typecheck` and `npm.cmd run build`.
+  The smoke now includes `researchDecision`, reaches both Research routes via a
+  real Research Brief journey, asserts decision/evidence copy contrast, and
+  uses bounded local-API retry.
+- Current-source packaging evidence: `npm.cmd run tauri:build` passed, rebuilding
+  the current web app and clean PyInstaller sidecar before emitting release EXE,
+  MSI, and NSIS artifacts.
+- `logs/m1-release-manifest.json` now records `sourceFileCount=296` and source
+  manifest SHA-256
+  `5E593330D890E72D8A016F7E6BB5ED15CCD9848CDF6DCFE81F5C96DFFF0A6D8B`.
+  Artifact SHA-256 values are sidecar
+  `3697E49E3EA5C1EC9083B9422F310DC1E7D9B3F1B1485A6CF7F99AF83EAD0092`,
+  release EXE
+  `3924BFBF60E741BCDAD1665DB9D3868E08654C7BD4676CED39E27FD01E9BBF25`,
+  MSI `19791405F2E13465673211E93DD1B2D5F988F3F50D8C42A51FAF4386F4FD4890`,
+  and NSIS
+  `9BCAFABD8A499E0D3319462DB4024C718D5106308FC2835B095DAF6B561A3EDE`.
+- Packaged startup retains the first cold-run 5s performance failure at
+  `7.15s`; the immediate retest passed at `4.51s` with `failures=[]`. The
+  current-source NSIS install returned exit `0`, refreshed the desktop target
+  to `E:\彭博自用情况\Pengbo Workbench\pengbo-workbench.exe`, reached health in
+  `3.93s`, recorded `health_ready=true` and `failures=[]`, and has an installed
+  sidecar hash matching the built sidecar.
+- Status and risk: this focused correction is implemented and its automated
+  page-layout gate, current-source packaging, packaged-startup retest, and NSIS
+  installed-startup checks pass, while T102 remains `Implemented / Acceptance
+  Pending`. MSI installed startup and the complete nine packaged M1 regression
+  groups were not rerun; this does not close M1, does not change T105 or T106
+  global status, and does not unfreeze T107.
+
+2026-07-22 Full-route Dual-theme and Manual Workspace Correction:
+
+- Goal: make all five Manual subpages use the full route workspace as a
+  single-column, natural-height page without nested scrolling, and verify both
+  light and dark themes across all 79 registered routes at all four supported
+  viewports. This remains a T102 correction; no new task number was created.
+- Manual acceptance: all five Manual routes across two themes and four
+  viewports pass `40/40`, with `widthRatio=1`, `column=1`, visible overflow, and
+  nested-scroll count `0`.
+- Full-route dual-theme evidence: `logs/full-route-theme-smoke.json`, generated
+  at `2026-07-22T07:00:11.574Z`, records `79 routes x 2 themes x 4 viewports =
+  632/632`, 632 screenshots, zero console errors and zero page errors. Evidence
+  SHA-256 is
+  `09EE577A752E66D37B82627C42A81F2F93B5127B044BC275AD755D6B234F8A7E`;
+  screenshot-corpus SHA-256 is
+  `28123E7463385FECBA910A01D390D2F819E61D2927EF51CCE4637DB3757B4E2A`.
+- Supporting route evidence: the updated page-layout smoke passes `96/96`,
+  SHA-256
+  `0D3328AD0E3419D26EE55815203B8BFFDAFA1B30552DB479CC403976C91B5A97`;
+  Route Workspace structure passes `316/316`, SHA-256
+  `64893B39D802BD4CCF824C401623AFA91B6FA6681EA370DAB9030C2E1D5AAA5B`.
+  `npm.cmd run typecheck`, `npm.cmd run build`, and `npm.cmd run
+  check:theme-preference` pass.
+- Theme persistence evidence: the default light theme, dark preview, dark save,
+  dark restoration after backend restart, and reset-to-light GET plus DOM state
+  all pass. `logs/theme-preference-screenshots/theme-preference-smoke-latest.json`
+  SHA-256 is
+  `0A21303F16DBB86D9D1BBF38BAEFC6EAB241D12EBFE441B9AEC81CBF9848A09A`.
+- Current-source delivery: `logs/m1-release-manifest.json` records
+  `sourceFileCount=297`, source manifest SHA-256
+  `F94EF4CB11A397944573EFC506A800221B029A8EB2B22AA9F202DFBC0EAA446F`,
+  and manifest-file SHA-256
+  `B2F4E160EAE5A56BA7C6B22453943E54906280D67CB5B3FCF4653FEF1E9D99FA`.
+  The test-only theme reset check is outside the bundle source manifest, so the
+  297-file source manifest and artifact hashes remain unchanged.
+  Artifact SHA-256 values are sidecar
+  `CB518863B957728A00521D49DB8710569E03F35BAAA869051DB06BED75E3927D`,
+  release EXE
+  `FF7123BACBA2FB99387472A310CEB490230E2529B2A8B92522EA24D61A783DD2`,
+  MSI `0DFF341CBF571B12410A101B5151BEB1742B0A71BCF3165E6570CEF998940FD7`,
+  and NSIS
+  `F140138ACB75FD6E54B2A0286CE23C70018C174FB9FC08B1DA96464035BFB897`.
+- Packaged result: the first cold startup remains recorded as a 5s performance
+  failure at `5.81s`; the immediate retest passes at `4.46s`. Current-source
+  NSIS install/update and startup pass at
+  `E:\彭博自用情况\Pengbo Workbench\pengbo-workbench.exe`, with startup
+  `3.41s`, matching installed/built sidecar hashes, single-instance and
+  adopt-existing checks passing, expected locked-state runtime-path skips, and
+  no failures.
+- Independent Evidence Collector and Reality Checker results pass this focused
+  correction only. Broader per-Frame human signoff remains open; current-source
+  MSI installation and the complete nine packaged business regressions were not
+  rerun. T102 therefore remains `Implemented / Acceptance Pending`; T105 and
+  T106 global status is unchanged, T107 remains frozen, and M1 is not closed.
+
+2026-07-22 T105/T106 automated and packaged acceptance checkpoint:
+
+- T105 security regression is preserved as RED before the fix in
+  `logs/t105-security-state-regression-red-before-fix.json` and GREEN after the
+  fix in `logs/t105-security-state-regression-latest.json`. Sidecar-offline
+  sensitive routes now settle at a recoverable error state with Retry instead
+  of remaining permanently in security `loading`.
+- `logs/t105-route-state-matrix.json` passes route applicability `79/79`;
+  `logs/t105-route-state-runtime.json` passes `491/491` applicable runtime state
+  checks. T105 automated/dynamic/security acceptance passes, while its board
+  status remains `In Progress / Acceptance Pending` until the global M1 human
+  gate closes.
+- `logs/t106-route-state-visual.json` passes `3928/3928` state/theme/viewport
+  screenshots. `logs/full-route-theme-smoke.json` passes `632/632`;
+  `logs/full-route-evidence.jsonl` and the base screenshot set pass `316/316`;
+  `logs/route-workspace-structure-smoke.json` passes `316/316` with zero rate
+  warnings. Approved SVG geometry/style/structure remains `79/79`.
+- `logs/t106-human-review/index.json` contains 16 contact sheets covering all
+  79 Frames and records `humanSignoff=pending`. T106 therefore remains
+  `Automated Rule Passed / Human Signoff Pending`.
+- Validation passes: TypeScript typecheck, production web build, Cargo check,
+  105 backend tests, public-boundary scan across 350 files, and the T102–T106
+  contract check.
+- Current-source release manifest: `sourceFileCount=302`, source manifest
+  SHA-256
+  `3C89FB64E56979B847A3AC1D6E464DB07F2C5672D0EA3693164DABEFCEA11872`.
+  Artifact SHA-256 values are sidecar
+  `591F6101F5941E7DBA2B499E7B1F50091B1425A841D8591289A58E55ABFA9D5C`,
+  release EXE
+  `67522D785ECA95F169146386D2648CE8EA786CFD028DF5208837F2EB8A0F734C`,
+  MSI `04B52F02EC014FC2149780BF578AE34015790E57C416AE661EBD2C151E05625E`,
+  and NSIS
+  `727DB3C317D5594C86EBAF6F5B4ACB0804F9039D678906F8D6CA5D645A8CB178`.
+- `logs/m1-packaged-regression-latest.json` passes all `9/9` groups. Original,
+  backup, and restored profile manifest SHA-256 values all equal
+  `DF8E7DA935F67597D28FC87606A802EEC36AF13E990EEC4AE0A045183F627311`;
+  backup and restore verification pass.
+- Full packaged local-security lifecycle passes; SQLite plaintext-secret scan is
+  false and the profile is restored. Current source EXE startup passes at
+  `3.42s`; MSI install/startup passes at `3.92s`; NSIS install/startup passes at
+  `2.90s`; installed sidecars match the current build. Locked AppData log/data
+  paths are correctly `skipped_locked`, which is an expected security block and
+  not path verification. The installed desktop target is
+  `E:\彭博自用情况\Pengbo Workbench\pengbo-workbench.exe`.
+- Status boundary: T102–T104 remain `Implemented / Acceptance Pending`; T105
+  remains `In Progress / Acceptance Pending`; T106 remains `Automated Rule
+  Passed / Human Signoff Pending`; T107 remains frozen; M1 is not closed.
+
+### T103 - Financial DataTable Completion Evidence
+
+Status: Implemented / Acceptance Pending (automated SVG rule passed; human signoff open)
+
+- Implemented 2026-07-12 under `docs/ui-restructure-ia-t102-t106.md` and the T103 task-pool contract; M1 acceptance remains pending on the SVG gate.
+- Added the typed generic `DataTable` foundation in `src/components/data-table.tsx` and re-exported it through `src/components/ui-kit.tsx`.
+- Added stable-width fixed-column table styling, sortable headers with `aria-sort`, filterable rows, selected rows with `aria-selected`, keyboard row navigation, optional fixed-height virtualization, source/freshness metadata, and Inspector/AI handoff actions.
+- Added loading, empty, error with functional Retry, locked, blocked, ready, and degraded state boundaries with Chinese-first labels and accessible table labeling.
+- Migrated Factor Lab ranking results to the shared table, including source, freshness, selection, Inspector handoff, and contextual AI entry without changing API or execution behavior.
+- Added `npm run check:data-table` as a source contract gate; it passed together with `npm.cmd run typecheck`, `npm.cmd run web:build`, `npm.cmd run check:t102-106`, and `git diff --check`.
+- Browser evidence passed on the current dev server in Factor Lab ready state with 7 real local rows, visible source/update metadata, selection, and the Inspector/AI action row. A prior locked/403 response was recorded as the expected local security boundary and was not bypassed.
+
+### T104 - Context Inspector Correction Evidence
+
+Status: Implemented / Acceptance Pending (automated SVG rule passed; human signoff open)
+
+- Implemented the route-aware `InspectorContext` and `ContextInspector` contract in `src/components/ui-kit.tsx`.
+- The contract carries route/object identity, asset/brief/run identifiers, evidence scope, source, freshness, permission state, and AI state without carrying secrets or execution payloads.
+- Context Rail, Screeners, and Factor Lab now expose the contract; Asset, Data Sources, and Research expose stable route/context anchors for the same migration.
+- DataTable now accepts an optional `inspectorContext` resolver and exposes the selected row's route/object metadata as stable DOM attributes.
+- T101 theme preference checking was corrected to validate the theme control and `setTheme(...)` call semantically instead of requiring the variable name `theme`.
+- T105 Chinese State System and T106 full-route screenshot baseline are explicitly excluded from this correction evidence.
+- Source contract checks: `npm.cmd run check:context-inspector`, `npm.cmd run check:data-table`, and `npm.cmd run check:t102-106`.
+- The T104 rendered/security sub-gate passed on 2026-07-13: `npm.cmd run smoke:context-inspector` verified six route anchors, one Context Inspector, Context Rail collapse/expand, real `locked` rendering, and expected 403 security blocks with no console errors. T104 implementation is present, but M1 acceptance remains pending on the SVG gate.
+- Follow-up correction: local unlock, reset, lock, and status operations now bypass the ordinary local session bootstrap. This is required because the session endpoint is intentionally 403 while the local workspace is locked; PIN/reset requests must reach the local security service directly.
+- Browser follow-up correction: the active web-dev origin `http://127.0.0.1:4190` is now explicitly allowed by the loopback gateway, and concurrent session creation is deduplicated in `src/lib/api.ts`; the supplied local unlock factor was accepted by the sidecar and browser session creation returned 200.
+- M1 route-level correction evidence on 2026-07-17: T102–T104 are implemented across all 79 route contracts. The user-approved automated SVG rule now passes 79/79, but these tasks remain Acceptance Pending because human per-Frame and independent signoff are still open. Raw full-frame pixel comparison remains diagnostic only. This status supersedes earlier wording that called these tasks complete before the M1 visual gate.
 
 ### T101 - Light Mode First Completion Evidence
 
@@ -1057,36 +1390,62 @@ This pool is the selected T96-T195 backlog for the v0.1.0 to v1.0 product arc. I
 should be promoted into executable implementation tasks in order, keeping each
 slice locally verifiable and source-safe.
 
-### M1 - UI Foundation: full redesign base (`T96-T106`)
+### Locked UI Baseline Gate for T102-T195
 
-- `T96 - Figma Master Roadmap`: Create a v0.1-to-v1.0 master roadmap page with product, UI, AI, data, quant, release, safety, and commercial lanes.
-- `T97 - Figma UI System`: Create the Apple/macOS-style UI system board for shell, screens, components, states, and React mapping.
-- `T98 - Design Tokens v1`: Define colors, typography, spacing, radius, shadow, status colors, gain/loss colors, and table density tokens.
-- `T99 - Navigation IA Collapse`: Collapse navigation to Home, Research, Markets, Portfolio, Factor Lab, Automation, and Settings.
-- `T100 - AppShell Redesign`: Implement the desktop shell with sidebar, toolbar, main workspace, and right inspector.
-- `T101 - Light Mode First`: Make a clean light theme the default while preserving dark mode as a supported mode.
-- `T102 - Component Library Base`: Extract Button, IconButton, Input, SearchField, SegmentedControl, Sheet, Popover, Tooltip, and Badge components.
-- `T103 - DataTable Component`: Build the financial data table with fixed columns, sorting, filtering, stable widths, and virtual scrolling.
-- `T104 - Inspector Panel`: Standardize the right-side panel for evidence, AI context, data status, exports, and parameters.
-- `T105 - Chinese Empty States`: Add polished Chinese empty states, next-step copy, and clear calls to action across major surfaces.
-- `T106 - Screenshot Baseline`: Add screenshot regression baselines for the redesigned shell and core pages.
+The only UI source of truth is the single Penpot page `FINAL - All Pengbo Pages`
+at `http://localhost:9001`. It contains the continuous full-screen route flow
+and the `FINAL - 79 Full-screen Route Frames + AI` layer.
+
+Every task from T102 onward must satisfy these gates:
+
+- Each second- or third-level route is an independent full-screen page; no task
+  may collapse routes into a summary card, hidden tab, or mega-page.
+- Research, Factor Lab, Strategy Lab, Workflow, Screeners, and every Asset
+  subpage expose `打开 AI 助手` with the current route and object context.
+- `/ai-assistant` remains an independent general-purpose AI page for requests
+  without Research, Experiment, or Asset context.
+- Each route has its own loading, empty, blocked, error, locked, and ready states.
+- Every implementation task must map to a Penpot frame, route, React entry,
+  state variants, AI entry behavior, and 1600/1180/960 evidence.
+- Every rendered UI must be visually compared against `E:\彭博\Pengbo_UI_Rebuild.svg`;
+  an implementation that matches only the written MD rules but diverges from
+  this SVG is not accepted.
+- A task is not complete if its code diverges from the Penpot final page without
+  explicit user approval and an updated design contract.
+- T99's seven navigation groups, fourteen ViewKeys, `nav-<ViewKey>` anchors,
+  local unlock gates, read-only providers, and gated Binance execution remain
+  unchanged during migration.
+
+### M1 - UI Foundation: locked full-route UI base (`T96-T106`)
+
+- `T96 - Product And UI Master Roadmap`: Keep the v0.1-to-v1.0 product, UI, AI, data, quant, release, safety, and commercial lanes; Penpot is the current UI source of truth.
+- `T97 - Penpot UI System`: Maintain the shell, full-screen route frames, components, states, AI mappings, and React implementation contract.
+- `T98 - Design Tokens v1`: Define colors, typography, spacing, radius, shadow, status, evidence, AI, gain/loss, and table-density tokens.
+- `T99 - Navigation And Route IA`: Preserve seven navigation groups and fourteen ViewKeys while adding explicit second- and third-level routes.
+- `T100 - AppShell Redesign`: Preserve sidebar, toolbar, workspace, and right inspector while adding Breadcrumb, SubrouteNav, route state boundaries, and AI entry surfaces.
+- `T101 - Light Mode First`: Completed; keep the light-first theme as the locked Penpot baseline while preserving dark mode, density, and security state.
+- `T102 - Route Component Library`: Extract RoutePageFrame, PageHeader, SubrouteNav, Button, Input, SearchField, SegmentedControl, Sheet, Popover, Tooltip, Badge, StateBlock, AITrigger, and HandoffAction.
+- `T103 - Financial DataTable`: Build fixed-column, sortable, filterable, stable-width, virtualized tables with row Inspector, full-screen states, and contextual AI explanation entry.
+- `T104 - Context Inspector`: Standardize evidence, AI context, data status, exports, parameters, permissions, source freshness, and next actions; Inspector must not replace a route page.
+- `T105 - Chinese State System`: Add Chinese-first loading, empty, blocked, error, locked, ready, AI-insufficient-evidence, cloud-opt-in, and recovery states.
+- `T106 - Full Route Screenshot Baseline`: Add 1600/1180/960 screenshot regression baselines for every Penpot route and every applicable state.
 
 ### M2 - First Useful Loop: first research success path (`T107-T115`)
 
-- `T107 - First Run Demo Flow`: Let a no-key user complete a sample research flow on first launch.
+- `T107 - First Run Demo Flow`: Let a no-key user complete Asset search, Asset route review, contextual AI, Research Brief, evidence review, and report export.
 - `T108 - Home Dashboard Simplification`: Reframe Dashboard as the daily research entry point instead of an engineering status board.
 - `T109 - Global Command Center`: Add command search for symbols, pinyin, page jumps, workflow starts, and AI actions.
-- `T110 - Asset Cockpit v1`: Add an asset cockpit with data status, key facts, related research, and one-click brief creation.
-- `T111 - Research Canvas v1`: Redesign Research into brief list, document canvas, evidence chain, and AI inspector.
-- `T112 - Evidence Timeline`: Show provider, cache, freshness, audit, and workflow artifacts as a readable evidence timeline.
-- `T113 - One Click Research Brief`: Create a research brief directly from Asset, Command Center, or Data Sources with context preview.
+- `T110 - Asset Route Family`: Implement independent Asset Search, Overview, Price, Fundamentals, Filings, Data Coverage, and Research Handoff pages with contextual AI entry on every page.
+- `T111 - Research Route Family`: Implement independent Research Inbox, Decision Review, Asset Data, Structured Analysis, Evidence, Notes, Export, and contextual AI pages.
+- `T112 - Evidence Timeline`: Make provider, cache, freshness, audit, workflow, factor, and backtest evidence a dedicated route with AI evidence review.
+- `T113 - One Click Research Brief`: Create a Brief from Asset, Command Center, Screener, Data Sources, or Factor results while preserving source, asset, evidence, and AI context.
 - `T114 - Export Report Polish`: Ensure reports include provenance, limitations, evidence boundaries, and AI-generation notes.
-- `T115 - 10 Minute Success Test`: Validate that a new user can search, research, and export within ten minutes.
+- `T115 - 10 Minute Success Test`: Validate Asset search, contextual AI, Research, evidence review, and report export within ten minutes.
 
 ### M3 - AI Router: multi-model assistant system (`T116-T125`)
 
-- `T116 - AI Provider Router Spec`: Define local, cloud, custom, budget, fallback, and model-use routing rules.
-- `T117 - AI Control Redesign`: Redesign Dashboard AI Control as a visible provider-state and mode panel without in-app secret entry.
+- `T116 - AI Provider Router Spec`: Define standalone AI, Research AI, Experiment AI, Asset AI, local, cloud, custom, budget, fallback, and model-use routing rules.
+- `T117 - AI Assistant And Control Redesign`: Implement the independent `/ai-assistant` page, Dashboard AI status summary, and contextual AI entry surfaces without in-app secret entry.
 - `T118 - Local Model Runtime Probe v2`: Improve Ollama, MiMO, Hermes, and OpenAI-compatible endpoint probing.
 - `T119 - Cloud Opt-in Sheet`: Show provider, model, context preview, estimated size, and risk confirmation before cloud submission.
 - `T120 - AI Evidence Contract`: Require assistant output to cite allowed evidence or enter a blocked/limited state.
@@ -1098,7 +1457,7 @@ slice locally verifiable and source-safe.
 
 ### M4 - Data Depth: provider and market-data capability (`T126-T135`)
 
-- `T126 - Data Sources Center Redesign`: Turn Data Sources into a provider health cockpit with status, freshness, samples, and limitations.
+- `T126 - Data Sources Route Family`: Split Data Sources into provider catalog, provider detail, preview, quality, and report routes with status, freshness, samples, limitations, and Asset/Research AI handoff context.
 - `T127 - China Equity Provider v2`: Expand A-share quote, profile, daily basics, financial indicators, and classification coverage.
 - `T128 - HK Market Data Expansion`: Improve Hong Kong equity and macro data coverage, cache behavior, and error states.
 - `T129 - Macro Data Explorer`: Add a unified browser for FRED, World Bank, DBnomics, HKMA, and other macro series.
@@ -1111,7 +1470,7 @@ slice locally verifiable and source-safe.
 
 ### M5 - Research, Banking, and Equity Workflows (`T136-T145`)
 
-- `T136 - Workflow Recipe Gallery`: Reframe Workflow Studio as a user-facing recipe gallery instead of a technical template list.
+- `T136 - Workflow Recipe Gallery`: Reframe Workflow Studio as a user-facing recipe gallery with independent template, configuration, run, artifact, confirmation, and contextual AI routes.
 - `T137 - Screener To Research v2`: Convert screener results into research candidates and batch brief creation.
 - `T138 - Data Sources To Research v2`: Route provider samples and source-health context into research briefs.
 - `T139 - Public Equity Memo Template`: Add a public-equity memo covering business, financials, valuation, catalysts, risks, and evidence.
@@ -1124,7 +1483,7 @@ slice locally verifiable and source-safe.
 
 ### M6 - Quant Factor Lab: factor discovery and backtesting (`T146-T165`)
 
-- `T146 - Factor Lab IA And UI`: Add Factor Lab as a first-class module with project list, formula/workspace, charts, and inspector.
+- `T146 - Factor Lab Route IA And UI`: Add Factor Lab as a first-class route family with project list, formula, run, results, quality, handoff, full-screen states, and contextual AI entry.
 - `T147 - Factor Project Model`: Store factor projects with universe, date range, rebalance frequency, parameters, and artifacts.
 - `T148 - Factor Definition Schema`: Define factor metadata, expression, inputs, transformations, provenance, and validation status.
 - `T149 - Built-in Factor Library`: Add valuation, quality, growth, momentum, volatility, liquidity, and macro-sensitivity factors.
@@ -1139,11 +1498,11 @@ slice locally verifiable and source-safe.
 - `T158 - Exposure Diagnostics`: Diagnose industry, size, style, liquidity, and market exposures.
 - `T159 - Overfitting Checks`: Flag lookahead risk, survivorship risk, sample leakage, too-small samples, and unstable periods.
 - `T160 - Factor Report Export`: Export factor definition, economics, data sources, diagnostics, backtest results, and limitations.
-- `T161 - AI Factor Hypothesis Assistant`: Let AI propose explainable factor hypotheses and convert them into testable expressions.
+- `T161 - AI Factor Hypothesis Assistant`: Let contextual Factor Lab AI and the standalone AI Assistant propose explainable factor hypotheses and convert them into testable expressions.
 - `T162 - Research To Factor Handoff`: Convert a research hypothesis into a candidate factor idea.
 - `T163 - Factor To Backtest Handoff`: Send validated factor results into the backtest workflow.
 - `T164 - Backtest To Paper Intent`: Convert backtest results to paper trade intent only, without automatic execution.
-- `T165 - Factor Lab Screenshot Tests`: Add screenshot and numeric regression tests for Factor Lab outputs.
+- `T165 - Factor Lab Screenshot Tests`: Add route, state, contextual-AI, screenshot, and numeric regression tests for Factor Lab outputs.
 
 ### M7 - Release Hardening: shipping and engineering stability (`T166-T175`)
 
@@ -1155,7 +1514,7 @@ slice locally verifiable and source-safe.
 - `T171 - Local Runtime Diagnostics`: Generate local diagnostics that are redacted and exclude secrets and runtime databases by default.
 - `T172 - CI Expansion`: Expand typecheck, backend tests, provider-contract tests, AI eval fixtures, and screenshot tests.
 - `T173 - Release Checklist v2`: Update release checks for UI, AI, data, quant, security, packaging, and smoke evidence.
-- `T174 - Documentation Sync`: Keep README, CHANGELOG, manual, security docs, and task board aligned with each shipped slice.
+- `T174 - Documentation Sync`: Keep README, CHANGELOG, Manual, Security, Penpot final page, route manifest, and task board aligned with each shipped slice.
 - `T175 - Packaged Smoke Test v2`: Add packaged smoke coverage for the redesigned shell, first-use loop, data, AI, and Factor Lab.
 
 ### M8 - Security And Compliance (`T176-T185`)
@@ -1177,8 +1536,8 @@ slice locally verifiable and source-safe.
 - `T187 - Pricing Hypothesis`: Draft Pro Desktop, template pack, paid connector, and private-deployment pricing hypotheses.
 - `T188 - Template Marketplace Seed`: Seed internal templates before building any external marketplace.
 - `T189 - Private Deployment Playbook`: Draft local/private deployment instructions, update policy, and safety boundaries.
-- `T190 - Demo Video Script`: Script a three-minute demo from no-key launch to evidence-backed report export.
-- `T191 - README Product Proof`: Upgrade README with product screenshots, first-use flow, safety boundaries, and release links.
+- `T190 - Demo Video Script`: Script a three-minute demo from no-key launch to Asset, contextual AI, Research, evidence-backed report export, with the standalone AI Assistant discoverable.
+- `T191 - README Product Proof`: Upgrade README with the locked Penpot UI, full route structure, standalone AI, contextual AI, first-use flow, safety boundaries, and release links.
 - `T192 - Landing Page Later`: Defer a public landing page while collecting the assets and copy needed for one.
 - `T193 - Feedback Capture Loop`: Add issue templates and feedback categories for UI, data, AI, quant, install, and security feedback.
 - `T194 - Early User Trial Plan`: Define who tests the product first, what they do, and what evidence is collected.
@@ -3340,7 +3699,28 @@ Acceptance:
 - pending verification:
   - Optional final visual walkthrough of the freshly rebuilt EXE remains useful, but `T12` is now package-smoke validated at the runtime/API layer.
 
+## M1 全路由整改执行记录（2026-07-15）
+
+- 已解析并校验 `Pengbo_UI_Rebuild.svg` 的 79 个 Frame 与 79 条唯一 route。
+- 已接入 `react-router-dom`、根路径 redirect、未知路径 404、参数路由和 URL 刷新恢复；14 个 ViewKey 与 7 组导航保持不变。
+- 已建立 RouteContext、API 优先/Fixture 降级 loader、Context Inspector、contextual/standalone AI 入口和 4 视口全路由证据脚本。
+- `npm.cmd run smoke:all-routes-render` 已生成 316/316 截图并通过 316/316 结构渲染检查。
+- 本记录不把结构渲染通过等同于视觉完全一致；逐 Frame 的 SVG 几何、页面内容、状态矩阵和 packaged runtime 验收仍未完成。详见 `docs/full-route-visual-acceptance.md`。
+- 安全门回归修复：路由页面现在复用 `LocalUnlockGate`，研究/数据源等敏感族自动继承 `local_unlock` 策略；`backend/requirements.txt` 固定兼容的 Starlette 版本后，sidecar 可正常启动并返回 `initialized=true, locked=true`。
+
 ## Notes
+
+## M1 pause checkpoint (2026-07-15 17:28 CST)
+
+- Historical status at the interrupted 2026-07-15 correction run was:
+  `T102-T104 = Implemented / Acceptance Pending`, `T105 = implemented in code /
+  Acceptance Pending`, `T106 = Open / Acceptance Pending`, and `T107 = Frozen`.
+  It is not the current task status; the 2026-07-22 Current Assessment above is
+  authoritative.
+- The 79-route registry and `316/316` four-viewport terminal-state captures now exist; this supersedes the earlier statement that no 79-frame route registry existed. These captures do not close visual acceptance.
+- SVG pixel acceptance remains `0/79` at the 1.5% threshold, so M1 is not complete.
+- Packaged startup and local-security locked-to-ready smoke passed. The larger packaged workflow run was force-stopped at the user's deadline and is not accepted as complete; the real Roaming profile was restored with matching SHA-256.
+- Exact completed evidence and the unsynchronized remainder are recorded in `docs/m1-pause-handoff-2026-07-15.md`. Earlier completion wording for T102-T104 should be read as implementation completion, not final M1 acceptance.
 
 - Source of truth for the latest packaging baseline:
   - `logs/SIDECAR_PACKAGING_SPRINT_2026-04-15.md`

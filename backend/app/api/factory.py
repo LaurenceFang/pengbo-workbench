@@ -46,18 +46,20 @@ class AppContainer:
         self.duck_store = DuckDbStore(settings.duckdb_path)
         self.sqlite_store.initialize()
         self.duck_store.initialize()
+        self.settings_service = SettingsService(settings, self.sqlite_store)
         self.binance_provider = BinanceProvider(settings)
         self.market_provider = MarketProvider(
             self.binance_provider,
             china_fixture_mode=settings.china_connector_fixture_mode,
+            market_fixture_mode=settings.market_fixture_mode,
         )
-        self.fundamental_provider = FundamentalProvider()
+        self.fundamental_provider = FundamentalProvider(market_fixture_mode=settings.market_fixture_mode)
         self.filings_provider = FilingsProvider(settings.edgar_identity)
         self.watchlist_service = WatchlistService(self.sqlite_store)
         self.security_audit_service = SecurityAuditService(self.sqlite_store)
         self.local_security_service = LocalSecurityService(self.sqlite_store, self.security_audit_service)
         self.auth_session_service = AuthSessionService(self.sqlite_store, self.security_audit_service)
-        self.ai_runtime_service = AIRuntimeService(settings)
+        self.ai_runtime_service = AIRuntimeService(settings, self.settings_service)
         self.capability_service = CapabilityService(
             self.filings_provider,
             self.binance_provider,
@@ -85,7 +87,6 @@ class AppContainer:
             self.duck_store,
             self.binance_provider,
         )
-        self.settings_service = SettingsService(settings, self.sqlite_store)
         self.translation_service = TranslationService(settings)
         self.connections_service = ConnectionsService(
             self.sqlite_store,
@@ -162,7 +163,7 @@ class LazyAppContainer:
         self.settings_service = SettingsService(settings, self.sqlite_store)
         self.security_audit_service = SecurityAuditService(self.sqlite_store)
         self.local_security_service = LocalSecurityService(self.sqlite_store, self.security_audit_service)
-        self.ai_runtime_service = AIRuntimeService(settings)
+        self.ai_runtime_service = AIRuntimeService(settings, self.settings_service)
         self._container: AppContainer | None = None
         self._lock = Lock()
 

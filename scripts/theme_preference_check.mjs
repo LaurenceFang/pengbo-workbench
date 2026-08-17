@@ -18,10 +18,23 @@ async function main() {
   if (!store.includes('theme: "light"')) failures.push("store light default is missing");
   if (!app.includes("setTheme(preferences.data.theme)")) failures.push("preference hydration does not restore theme");
   if (!shell.includes("data-theme={theme}")) failures.push("AppShell root does not bind data-theme");
-  if (!settings.includes("setTheme(theme)")) failures.push("Settings does not preview theme immediately");
+  if (!settings.includes("settings-theme") || !/setTheme\s*\(/.test(settings)) failures.push("Settings does not preview theme immediately");
   for (const key of ["settings.theme", "settings.themeLight", "settings.themeDark"]) if (!i18n.includes(`"${key}"`)) failures.push(`missing i18n key: ${key}`);
   if (!styles.includes('html[data-theme="dark"]')) failures.push("dark token map is missing");
   if (!styles.includes("color-scheme: light")) failures.push("light-first token map is missing");
+  const darkTokenMap = styles.match(/html\[data-theme="dark"\],[\s\S]*?\.app-shell\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+  for (const [alias, semantic] of [
+    ["--bg-base", "--surface-canvas"],
+    ["--bg-elevated", "--surface-elevated"],
+    ["--bg-panel", "--surface-panel"],
+    ["--bg-panel-soft", "--surface-muted"],
+    ["--bg-control", "--surface-control"],
+  ]) {
+    if (!darkTokenMap.includes(`${alias}: var(${semantic})`)) failures.push(`dark compatibility alias is missing: ${alias}`);
+  }
+  if (/\.app-shell-context\s+\.ui-context-inspector\s*\{[^}]*background:\s*#e7efea/is.test(styles)) {
+    failures.push("Context Inspector still hard-codes the light surface");
+  }
   if (failures.length) throw new Error(`T101 theme preference contract failed:\n- ${failures.join("\n- ")}`);
   console.log("T101 theme preference contract passed (light default, dark persistence binding)." );
 }

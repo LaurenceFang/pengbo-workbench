@@ -24,8 +24,10 @@ class FakeResponse:
 class QueueSession:
     def __init__(self, responses):
         self.responses = list(responses)
+        self.requested_urls = []
 
     def get(self, url, **kwargs):
+        self.requested_urls.append(url)
         if not self.responses:
             raise RuntimeError("no queued response")
         response = self.responses.pop(0)
@@ -101,6 +103,82 @@ class AIRuntimeServiceTests(unittest.TestCase):
                 self.assertIn("qwen3:8b", contents)
                 self.assertNotIn("api_key", contents.lower())
                 self.assertNotIn("secret", contents.lower())
+
+    def test_ai_runtime_status_and_probe_use_persisted_local_base_url(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            app = create_app(make_settings(Path(temp_dir)))
+            with TestClient(app) as client:
+                session = client.post("/api/v1/security/session", json={}).json()
+                headers = {"X-Pengbo-Session": session["session_id"]}
+                unlock = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock.status_code, 200)
+                updated = client.put(
+                    "/api/v1/settings/ai-control",
+                    headers=headers,
+                    json={
+                        "enabled": True,
+                        "provider_mode": "local",
+                        "local_base_url": "http://127.0.0.1:22434/",
+                        "local_model": "qwen3:8b",
+                        "cloud_provider": "deepseek",
+                        "cloud_base_url": None,
+                        "cloud_model": None,
+                    },
+                )
+                self.assertEqual(updated.status_code, 200)
+
+                service = app.state.container.ai_runtime_service
+                service.session = QueueSession(
+                    [
+                        FakeResponse({"models": [{"name": "qwen3:8b"}]}),
+                        FakeResponse({"models": [{"name": "qwen3:8b"}]}),
+                    ]
+                )
+
+                status = client.get("/api/v1/ai/runtime/status")
+                self.assertEqual(status.status_code, 200)
+                self.assertTrue(status.json()["enabled"])
+                self.assertEqual(status.json()["local_base_url"], "http://127.0.0.1:22434")
+
+                probe = client.post("/api/v1/ai/runtime/probe")
+                self.assertEqual(probe.status_code, 200)
+                self.assertEqual(probe.json()["local_base_url"], "http://127.0.0.1:22434")
+                self.assertEqual(
+                    service.session.requested_urls,
+                    ["http://127.0.0.1:22434/api/tags", "http://127.0.0.1:22434/api/tags"],
+                )
+
+    def test_cloud_mode_does_not_activate_local_runtime_probe(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            app = create_app(make_settings(Path(temp_dir)))
+            with TestClient(app) as client:
+                session = client.post("/api/v1/security/session", json={}).json()
+                headers = {"X-Pengbo-Session": session["session_id"]}
+                unlock = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock.status_code, 200)
+                updated = client.put(
+                    "/api/v1/settings/ai-control",
+                    headers=headers,
+                    json={
+                        "enabled": True,
+                        "provider_mode": "cloud",
+                        "local_base_url": "http://127.0.0.1:22434",
+                        "local_model": "qwen3:8b",
+                        "cloud_provider": "deepseek",
+                        "cloud_base_url": None,
+                        "cloud_model": None,
+                    },
+                )
+                self.assertEqual(updated.status_code, 200)
+
+                service = app.state.container.ai_runtime_service
+                service.session = QueueSession([])
+                status = client.get("/api/v1/ai/runtime/status")
+                self.assertEqual(status.status_code, 200)
+                self.assertFalse(status.json()["enabled"])
+                self.assertEqual(status.json()["mode"], "disabled")
+                self.assertEqual(status.json()["local_base_url"], "http://127.0.0.1:22434")
+                self.assertEqual(service.session.requested_urls, [])
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
 from ..data_seed import AssetCatalogEntry
@@ -28,6 +29,7 @@ class AssetService:
         self.filings_provider = filings_provider
         self.duck_store = duck_store
         self.capability_service = capability_service
+        self.explicit_fixture_mode = market_provider.market_fixture_mode
 
     def _get_entry(self, symbol: str) -> AssetCatalogEntry:
         entry = get_asset(symbol)
@@ -101,6 +103,12 @@ class AssetService:
                 return [], True
             return list(cached), True
 
+    def _resolve_fundamentals(
+        self,
+        entry: AssetCatalogEntry,
+    ) -> tuple[tuple[dict | None, bool], tuple[list[dict], bool]]:
+        return self._resolve_overview(entry), self._resolve_ratios(entry)
+
     def _resolve_filings(self, entry: AssetCatalogEntry) -> tuple[list[dict], bool]:
         if not entry.is_us_equity:
             return [], False
@@ -148,13 +156,52 @@ class AssetService:
         history, stale = self._resolve_history(entry, interval=interval, range_value=range_value)
         return entry, history, stale
 
-    def get_asset_workspace(self, symbol: str) -> AssetWorkspaceResponse:
+    def get_asset_workspace(
+        self,
+        symbol: str,
+        *,
+        refresh: bool = False,
+        cache_only: bool = False,
+    ) -> AssetWorkspaceResponse:
         entry = self._get_entry(symbol)
-        quote, quote_stale = self._resolve_quote(entry)
-        history, history_stale = self._resolve_history(entry)
-        overview, overview_stale = self._resolve_overview(entry)
-        ratios, ratios_stale = self._resolve_ratios(entry)
-        filings, filings_stale = self._resolve_filings(entry)
+        cached_quote = self.duck_store.get_latest_quote_snapshot(entry.symbol)
+        cached_history = self.duck_store.get_latest_price_history(entry.symbol, "1d")
+        if cache_only and (cached_quote is None or cached_history is None):
+            raise RuntimeError(f"Cached market data unavailable for {entry.symbol}")
+
+        if (cache_only or not refresh) and cached_quote is not None and cached_history is not None:
+            quote, quote_stale = cached_quote, True
+            history, history_stale = cached_history, True
+            overview, overview_stale = self.duck_store.get_latest_fundamental_snapshot(entry.symbol, "overview"), True
+            cached_ratios = self.duck_store.get_latest_fundamental_snapshot(entry.symbol, "ratios")
+            ratios, ratios_stale = list(cached_ratios) if isinstance(cached_ratios, list) else [], True
+            filings, filings_stale = self.duck_store.get_latest_filings(entry.symbol) or [], True
+        elif not refresh:
+            # A normal cold-cache workspace only needs live quote/history to become
+            # usable. Optional fundamentals and filings stay explicit-refresh only,
+            # avoiding several unbounded provider calls during startup/research.
+            with ThreadPoolExecutor(max_workers=2, thread_name_prefix="asset-market") as executor:
+                quote_future = executor.submit(self._resolve_quote, entry)
+                history_future = executor.submit(self._resolve_history, entry)
+                quote, quote_stale = quote_future.result()
+                history, history_stale = history_future.result()
+            overview = self.duck_store.get_latest_fundamental_snapshot(entry.symbol, "overview")
+            cached_ratios = self.duck_store.get_latest_fundamental_snapshot(entry.symbol, "ratios")
+            ratios = list(cached_ratios) if isinstance(cached_ratios, list) else []
+            filings = self.duck_store.get_latest_filings(entry.symbol) or []
+            overview_stale = entry.is_us_equity
+            ratios_stale = entry.is_us_equity
+            filings_stale = entry.is_us_equity
+        else:
+            with ThreadPoolExecutor(max_workers=4, thread_name_prefix="asset-workspace") as executor:
+                quote_future = executor.submit(self._resolve_quote, entry)
+                history_future = executor.submit(self._resolve_history, entry)
+                fundamentals_future = executor.submit(self._resolve_fundamentals, entry)
+                filings_future = executor.submit(self._resolve_filings, entry)
+                quote, quote_stale = quote_future.result()
+                history, history_stale = history_future.result()
+                (overview, overview_stale), (ratios, ratios_stale) = fundamentals_future.result()
+                filings, filings_stale = filings_future.result()
         fundamentals_assessment = self.capability_service.assess_fundamentals(
             entry,
             data_available=overview is not None or bool(ratios),

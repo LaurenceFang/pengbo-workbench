@@ -1,6 +1,7 @@
 import { Command, FileSearch, RefreshCcw, ScrollText, ShieldAlert, Wallet, Workflow } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "../i18n";
+import { usePengboNavigation } from "../hooks/use-pengbo-navigation";
 import {
  api,
  type AssetSearchResult,
@@ -33,6 +34,7 @@ function toSearchKey(value: string): string {
 
 export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPaletteProps) {
  const i18n = useI18n();
+ const { openAsset, openRoute, openView } = usePengboNavigation();
  const activeView = useAppStore((state) => state.activeView);
  const selectedAssetId = useAppStore((state) => state.selectedAssetId);
  const selectedResearchBriefId = useAppStore((state) => state.selectedResearchBriefId);
@@ -44,7 +46,6 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
  const selectedStrategyPaperSessionId = useAppStore((state) => state.selectedStrategyPaperSessionId);
  const open = useAppStore((state) => state.commandPaletteOpen);
  const setOpen = useAppStore((state) => state.setCommandPaletteOpen);
- const setActiveView = useAppStore((state) => state.setActiveView);
  const setSelectedAssetId = useAppStore((state) => state.setSelectedAssetId);
  const setSelectedResearchBriefId = useAppStore((state) => state.setSelectedResearchBriefId);
  const setPortfolioHandoffDraft = useAppStore((state) => state.setPortfolioHandoffDraft);
@@ -170,7 +171,7 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
   if (existing) {
    setSelectedAssetId(existing.symbol);
    setSelectedResearchBriefId(existing.brief_id);
-   setActiveView("research");
+   openRoute("/research/briefs/:briefId/decision", { params: { briefId: existing.brief_id } });
    return existing.brief_id;
   }
 
@@ -182,7 +183,7 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
   });
   setSelectedAssetId(normalized);
   setSelectedResearchBriefId(created.brief_id);
-  setActiveView("research");
+  openRoute("/research/briefs/:briefId/decision", { params: { briefId: created.brief_id } });
   return created.brief_id;
  }
 
@@ -228,7 +229,7 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
      run: async () => {
       setSelectedAssetId(asset.symbol);
       setSelectedResearchBriefId(null);
-      setActiveView("asset");
+      openAsset(asset.symbol);
       setLatestCommandFeedback({
        tone: "success",
        title: `Opened asset ${asset.symbol}`,
@@ -267,7 +268,7 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
     run: async () => {
      setSelectedAssetId(brief.symbol);
      setSelectedResearchBriefId(brief.brief_id);
-     setActiveView("research");
+     openRoute("/research/briefs/:briefId/decision", { params: { briefId: brief.brief_id } });
      setLatestCommandFeedback({
       tone: "success",
       title: `Opened recent brief ${brief.symbol}`,
@@ -296,7 +297,7 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
       setSelectedScreenerPresetKey(preset.key);
       setSelectedScreenerVariantKey(variant.variant_key);
       setLastScreenerRunResult(result);
-      setActiveView("screeners");
+      openView("screeners");
       await onGlobalRefresh();
       setLatestCommandFeedback({
        tone: "success",
@@ -317,7 +318,7 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
    badge: "Workflow",
    disabled: !sidecarReady,
    run: async () => {
-    setActiveView("workflowStudio");
+    openView("workflowStudio");
     setLatestCommandFeedback({
      tone: "success",
      title: "Opened Workflow Studio",
@@ -337,7 +338,7 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
     disabled: !sidecarReady,
     run: async () => {
      setSelectedWorkflowRunId(run.run_id);
-     setActiveView("workflowStudio");
+     openRoute("/automation/workflows/runs/:runId", { params: { runId: run.run_id } });
      setLatestCommandFeedback({
       tone: run.status === "failed" ? "error" : "success",
       title: `Opened workflow ${run.template_key}`,
@@ -373,7 +374,7 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
     });
     setSelectedAssetId(currentSymbol);
     setSelectedResearchBriefId(created.brief_id);
-    setActiveView("research");
+    openRoute("/research/briefs/:briefId/evidence", { params: { briefId: created.brief_id } });
     setLatestCommandFeedback({
      tone: "success",
      title: `Opened evidence chain for ${currentSymbol}`,
@@ -412,7 +413,7 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
      traded_at: new Date().toISOString().slice(0, 10),
      notes: `Draft created from ${activeView}.`,
     });
-    setActiveView("portfolio");
+    openRoute("/portfolio/handoff/:symbol", { params: { symbol } });
     setLatestCommandFeedback({
      tone: "success",
      title: `Opened portfolio draft for ${symbol}`,
@@ -431,7 +432,7 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
    disabled: !sidecarReady,
    run: async () => {
     const result = await api.testConnection("edgar");
-    setActiveView("connections");
+    openRoute("/settings/connections/:provider", { params: { provider: "edgar" } });
     await onGlobalRefresh();
     setLatestCommandFeedback({
      tone: result.status === "ok" ? "success" : "error",
@@ -451,7 +452,7 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
    disabled: !sidecarReady,
    run: async () => {
     const result = await api.testConnection("binance");
-    setActiveView("connections");
+    openRoute("/settings/connections/:provider", { params: { provider: "binance" } });
     await onGlobalRefresh();
     setLatestCommandFeedback({
      tone: result.status === "ok" ? "success" : "error",
@@ -471,7 +472,7 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
    disabled: !sidecarReady,
    run: async () => {
     const config = await api.getBinanceExecutionConfig();
-    setActiveView("strategyLab");
+    openView("strategyLab");
     setLatestCommandFeedback({
      tone: "success",
      title: "Opened Binance execution status",
@@ -490,7 +491,7 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
    disabled: !sidecarReady,
    run: async () => {
     const events = await api.getBinanceExecutionAudit(10);
-    setActiveView("strategyLab");
+    openView("strategyLab");
     setLatestCommandFeedback({
      tone: "success",
      title: "Opened Binance execution audit",
@@ -512,7 +513,7 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
      throw new Error("No active research brief is selected.");
     }
     const result = await api.exportResearchBrief(selectedResearchBriefId);
-    setActiveView("research");
+    openRoute("/research/briefs/:briefId/export", { params: { briefId: selectedResearchBriefId } });
     await onGlobalRefresh();
     setLatestCommandFeedback({
      tone: "success",
@@ -549,7 +550,7 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
     const result = await api.exportResearchBrief(created.brief_id);
     setSelectedAssetId(currentSymbol);
     setSelectedResearchBriefId(created.brief_id);
-    setActiveView("research");
+    openRoute("/research/briefs/:briefId/export", { params: { briefId: created.brief_id } });
     await onGlobalRefresh();
     setLatestCommandFeedback({
      tone: "success",
@@ -576,7 +577,9 @@ export function CommandPalette({ sidecarReady, onGlobalRefresh }: CommandPalette
   selectedScreenerUniverseSource,
   selectedStrategyBacktestId,
   selectedStrategyPaperSessionId,
-  setActiveView,
+  openAsset,
+  openRoute,
+  openView,
   setLastScreenerRunResult,
   setLatestCommandFeedback,
   setPortfolioHandoffDraft,

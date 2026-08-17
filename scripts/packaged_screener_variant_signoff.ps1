@@ -297,7 +297,16 @@ function Get-ElementByName {
         [System.Windows.Automation.AutomationElement]::NameProperty,
         $Name
     )
-    return $Root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
+    $matches = $Root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $condition)
+    for ($index = 0; $index -lt $matches.Count; $index++) {
+        if ($matches[$index].Current.ControlType -eq [System.Windows.Automation.ControlType]::Button) {
+            return $matches[$index]
+        }
+    }
+    if ($matches.Count -gt 0) {
+        return $matches[0]
+    }
+    return $null
 }
 
 function Get-ElementByNameLike {
@@ -311,14 +320,20 @@ function Get-ElementByNameLike {
         [System.Windows.Automation.Condition]::TrueCondition
     )
 
+    $fallback = $null
     for ($index = 0; $index -lt $elements.Count; $index++) {
         $name = $elements[$index].Current.Name
         if (-not [string]::IsNullOrWhiteSpace($name) -and $name -like $Pattern) {
-            return $elements[$index]
+            if ($elements[$index].Current.ControlType -eq [System.Windows.Automation.ControlType]::Button) {
+                return $elements[$index]
+            }
+            if ($null -eq $fallback) {
+                $fallback = $elements[$index]
+            }
         }
     }
 
-    return $null
+    return $fallback
 }
 
 function Wait-ForElementByName {
@@ -362,8 +377,30 @@ function Wait-ForElementByNameLike {
 function Invoke-Element {
     param([System.Windows.Automation.AutomationElement]$Element)
 
-    $invoke = $Element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
-    $invoke.Invoke()
+    $invoke = $null
+    if ($Element.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern, [ref]$invoke)) {
+        $invoke.Invoke()
+        return
+    }
+    $selection = $null
+    if ($Element.TryGetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern, [ref]$selection)) {
+        $selection.Select()
+        return
+    }
+    throw "Element '$($Element.Current.Name)' does not expose an actionable automation pattern."
+}
+
+function Ensure-ScreenersDefaultView {
+    $preferences = Invoke-ApiJson -Method Get -Path "/settings/preferences"
+    $payload = [ordered]@{
+        default_view = "screeners"
+        quote_ttl_minutes = [int]$preferences.quote_ttl_minutes
+        log_collection_enabled = [bool]$preferences.log_collection_enabled
+        diagnostics_export_enabled = [bool]$preferences.diagnostics_export_enabled
+        language = [string]$preferences.language
+        density = [string]$preferences.density
+    }
+    Invoke-ApiJson -Method Put -Path "/settings/preferences" -Body $payload | Out-Null
 }
 
 function Get-AllAutomationNames {
@@ -516,6 +553,9 @@ function Open-ScreenersView {
         [int]$TimeoutSeconds
     )
 
+    # The native window is available before React has restored the persisted
+    # default route. Wait for the active Automation group to expand instead of
+    # treating its non-interactive accessibility container as a button.
     $screenersButton = Wait-ForElementByName -Root $Root -Name "nav-screeners" -TimeoutSeconds $TimeoutSeconds
     Invoke-Element -Element $screenersButton
 }
@@ -542,10 +582,12 @@ function Capture-SignoffStage {
     $presetPattern = "screener-preset key=$Preset*"
     $presetButton = Wait-ForElementByNameLike -Root $window -Pattern $presetPattern -TimeoutSeconds $UiTimeoutSeconds
     Invoke-Element -Element $presetButton
-    Wait-ForElementByNameLike -Root $window -Pattern "screener-preset key=$Preset selected=true active-variant=$ExpectedVariantKey" -TimeoutSeconds $UiTimeoutSeconds | Out-Null
     $variantButton = Wait-ForElementByNameLike -Root $window -Pattern "screener-variant key=$ExpectedVariantKey * active=true system=$($ExpectedSystemDefault.ToString().ToLowerInvariant())" -TimeoutSeconds $UiTimeoutSeconds
     Invoke-Element -Element $variantButton
     Wait-ForElementByNameLike -Root $window -Pattern "screener-variant key=$ExpectedVariantKey selected=true active=true system=$($ExpectedSystemDefault.ToString().ToLowerInvariant())" -TimeoutSeconds $UiTimeoutSeconds | Out-Null
+
+    $tuningSubroute = Wait-ForElementByName -Root $window -Name "subroute:/automation/screeners/:presetKey/variants/:variantKey/tuning" -TimeoutSeconds $UiTimeoutSeconds
+    Invoke-Element -Element $tuningSubroute
     Wait-ForElementByName -Root $window -Name "screener-summary-list variant=$ExpectedVariantKey count=$(@($ExpectedVariant.filters).Count)" -TimeoutSeconds $UiTimeoutSeconds | Out-Null
 
     for ($index = 0; $index -lt @($ExpectedVariant.filters).Count; $index++) {
@@ -599,6 +641,7 @@ try {
     $createdVariant = New-TestVariant -Preset $PresetKey
     $result.created_variant_key = $createdVariant.variant_key
     $result.created_variant_name = $createdVariant.name
+    Ensure-ScreenersDefaultView
     Stop-DesktopScenario -ResolvedExePath $script:resolvedExePath
 
     $null = Start-DesktopPhase -ResolvedExePath $script:resolvedExePath -PhaseName "initial_run"

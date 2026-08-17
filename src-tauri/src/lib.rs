@@ -24,6 +24,7 @@ const DEFAULT_PORT: u16 = 8765;
 const HEALTH_RETRY_COUNT: usize = 40;
 const HEALTH_RETRY_DELAY_MS: u64 = 250;
 const STRONGHOLD_CLIENT: &[u8] = b"pengbo-workbench";
+const AUTOMATION_WINDOW_MODE_ENV: &str = "PENGBO_AUTOMATION_WINDOW_MODE";
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
@@ -33,6 +34,63 @@ enum SidecarStatus {
     Starting,
     Online,
     Offline,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum AutomationWindowMode {
+    Normal,
+    Hidden,
+    Minimized,
+}
+
+fn automation_window_mode() -> AutomationWindowMode {
+    match env::var(AUTOMATION_WINDOW_MODE_ENV)
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "hidden" => AutomationWindowMode::Hidden,
+        "minimized" => AutomationWindowMode::Minimized,
+        _ => AutomationWindowMode::Normal,
+    }
+}
+
+fn apply_initial_window_mode(app: &AppHandle) {
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    match automation_window_mode() {
+        AutomationWindowMode::Normal => {
+            let _ = window.show();
+        }
+        AutomationWindowMode::Hidden => {
+            let _ = window.hide();
+        }
+        AutomationWindowMode::Minimized => {
+            let _ = window.minimize();
+            let _ = window.show();
+        }
+    }
+}
+
+fn apply_single_instance_window_mode(app: &AppHandle) {
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    match automation_window_mode() {
+        AutomationWindowMode::Normal => {
+            let _ = window.show();
+            let _ = window.unminimize();
+            let _ = window.set_focus();
+        }
+        AutomationWindowMode::Hidden => {
+            let _ = window.hide();
+        }
+        AutomationWindowMode::Minimized => {
+            let _ = window.minimize();
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -170,11 +228,7 @@ pub fn run() {
     let app = tauri::Builder::default()
         .manage(AppState::default())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.unminimize();
-                let _ = window.set_focus();
-            }
+            apply_single_instance_window_mode(app);
         }))
         .plugin(
             tauri_plugin_log::Builder::default()
@@ -193,6 +247,7 @@ pub fn run() {
             test_connection
         ])
         .setup(|app| {
+            apply_initial_window_mode(app.handle());
             let state = app.state::<AppState>().inner().clone();
             start_sidecar_background(app.handle().clone(), state);
             Ok(())

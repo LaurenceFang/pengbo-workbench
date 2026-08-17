@@ -58,7 +58,8 @@ class FakeAssetService:
     def __init__(self, workspaces: dict[str, object | Exception]) -> None:
         self.workspaces = workspaces
 
-    def get_asset_workspace(self, symbol: str):
+    def get_asset_workspace(self, symbol: str, *, cache_only: bool = False):
+        del cache_only
         workspace = self.workspaces[symbol]
         if isinstance(workspace, Exception):
             raise workspace
@@ -329,7 +330,8 @@ class ScreenerApiTests(unittest.TestCase):
                     ),
                 }
 
-                def fake_get_asset_workspace(symbol: str):
+                def fake_get_asset_workspace(symbol: str, *, cache_only: bool = False):
+                    del cache_only
                     return fake_workspaces[symbol]
 
                 container.asset_service.get_asset_workspace = fake_get_asset_workspace

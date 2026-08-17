@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
 from ..data_seed import ASSET_CATALOG
@@ -29,12 +30,26 @@ class DashboardService:
         self.duck_store = duck_store
         self.binance_provider = binance_provider
 
-    def get_overview(self) -> DashboardOverviewResponse:
+    def get_overview(self, *, refresh: bool = False) -> DashboardOverviewResponse:
         watchlist_entries = self.watchlist_service.get_default_watchlist_entries()
         watchlist_items = []
         stale = False
-        for entry in watchlist_entries:
-            workspace = self.asset_service.get_asset_workspace(entry.symbol)
+
+        def load_watchlist_workspace(entry):
+            try:
+                return self.asset_service.get_asset_workspace(entry.symbol, refresh=refresh)
+            except Exception:
+                return None
+
+        with ThreadPoolExecutor(
+            max_workers=max(1, min(len(watchlist_entries), 6)),
+            thread_name_prefix="dashboard-watchlist",
+        ) as executor:
+            workspaces = list(executor.map(load_watchlist_workspace, watchlist_entries))
+        for entry, workspace in zip(watchlist_entries, workspaces, strict=True):
+            if workspace is None:
+                stale = True
+                continue
             stale = stale or workspace.stale
             watchlist_items.append(
                 {
@@ -58,28 +73,32 @@ class DashboardService:
             ("US10Y", "10Y 美债"),
             ("BTC/USDT", "BTC/USDT"),
         ]
-        market_pulse = []
-        for symbol, label in pulse_specs:
+        def load_pulse(spec: tuple[str, str]) -> dict | None:
+            symbol, label = spec
             entry = ASSET_CATALOG[symbol]
             try:
-                quote = self.market_provider.get_latest_quote(entry)
+                quote = None if refresh else self.duck_store.get_latest_quote_snapshot(entry.symbol)
+                quote = quote or self.market_provider.get_latest_quote(entry)
                 tone = "neutral"
                 if quote["change_pct"] > 0:
                     tone = "up"
                 elif quote["change_pct"] < 0:
                     tone = "down"
-                market_pulse.append(
-                    {
-                        "label": label,
-                        "symbol": entry.symbol,
-                        "value": quote["price"],
-                        "change_pct": quote["change_pct"],
-                        "currency": quote["currency"],
-                        "tone": tone,
-                    }
-                )
+                return {
+                    "label": label,
+                    "symbol": entry.symbol,
+                    "value": quote["price"],
+                    "change_pct": quote["change_pct"],
+                    "currency": quote["currency"],
+                    "tone": tone,
+                }
             except Exception:
-                stale = True
+                return None
+
+        with ThreadPoolExecutor(max_workers=len(pulse_specs), thread_name_prefix="dashboard-pulse") as executor:
+            pulse_results = list(executor.map(load_pulse, pulse_specs))
+        market_pulse = [item for item in pulse_results if item is not None]
+        stale = stale or len(market_pulse) != len(pulse_specs)
 
         return DashboardOverviewResponse.model_validate(
             {

@@ -292,6 +292,7 @@ class LocalSecurityService:
             return record
         if record.get("locked_at") == unlocked_until.isoformat():
             return record
+        expected_updated_at = record["updated_at"]
         record.update(
             {
                 "unlocked_until": None,
@@ -299,7 +300,14 @@ class LocalSecurityService:
                 "updated_at": _utc_now_iso(),
             }
         )
-        self.sqlite_store.upsert_local_security_state(record)
+        if not self.sqlite_store.update_local_security_state_if_unchanged(
+            record,
+            expected_updated_at=expected_updated_at,
+        ):
+            # Another request changed the security state after this request read
+            # it. In particular, never let a stale idle-expiry snapshot overwrite
+            # a newer successful unlock.
+            return self._require_initialized()
         self.audit_service.record(
             category="local_security",
             event_type="local_idle_timeout",

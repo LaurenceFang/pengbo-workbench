@@ -515,6 +515,42 @@ class SqliteStore:
             self.connection.commit()
         return payload
 
+    def update_local_security_state_if_unchanged(
+        self,
+        payload: dict[str, Any],
+        *,
+        expected_updated_at: str,
+    ) -> bool:
+        """Update the singleton security record only when the caller read its current version."""
+        with self._lock:
+            cursor = self.connection.execute(
+                """
+                UPDATE local_security_state
+                SET pin_hash = ?,
+                    salt = ?,
+                    initialized_at = ?,
+                    updated_at = ?,
+                    unlocked_until = ?,
+                    locked_at = ?,
+                    failed_attempts = ?,
+                    lockout_until = ?
+                WHERE id = 1 AND updated_at = ?
+                """,
+                (
+                    payload["pin_hash"],
+                    payload["salt"],
+                    payload["initialized_at"],
+                    payload["updated_at"],
+                    payload.get("unlocked_until"),
+                    payload.get("locked_at"),
+                    int(payload.get("failed_attempts") or 0),
+                    payload.get("lockout_until"),
+                    expected_updated_at,
+                ),
+            )
+            self.connection.commit()
+        return cursor.rowcount == 1
+
     def delete_local_security_state(self) -> None:
         with self._lock:
             self.connection.execute("DELETE FROM local_security_state WHERE id = 1")

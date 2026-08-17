@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import requests
@@ -10,9 +10,16 @@ from .binance import BinanceProvider
 
 
 class MarketProvider:
-    def __init__(self, binance_provider: BinanceProvider, *, china_fixture_mode: bool = False) -> None:
+    def __init__(
+        self,
+        binance_provider: BinanceProvider,
+        *,
+        china_fixture_mode: bool = False,
+        market_fixture_mode: bool = False,
+    ) -> None:
         self.binance_provider = binance_provider
         self.china_fixture_mode = china_fixture_mode
+        self.market_fixture_mode = market_fixture_mode
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": "Mozilla/5.0 Pengbo Workbench/0.1"})
 
@@ -31,6 +38,8 @@ class MarketProvider:
         return chart
 
     def get_latest_quote(self, entry: AssetCatalogEntry) -> dict[str, Any]:
+        if self.market_fixture_mode:
+            return self._explicit_fixture_quote(entry)
         if entry.provider == "tushare" and self.china_fixture_mode:
             return self._china_fixture_quote(entry)
         if entry.binance_symbol:
@@ -66,6 +75,21 @@ class MarketProvider:
         interval: str = "1d",
     ) -> list[dict[str, Any]]:
         normalized_interval = _normalize_interval(interval)
+        if self.market_fixture_mode:
+            quote = self._explicit_fixture_quote(entry)
+            base = float(quote["price"])
+            start = datetime.now(UTC).date() - timedelta(days=11)
+            return [
+                {
+                    "timestamp": (start + timedelta(days=index)).isoformat(),
+                    "open": round(base * (0.96 + index * 0.003), 2),
+                    "high": round(base * (0.98 + index * 0.003), 2),
+                    "low": round(base * (0.95 + index * 0.003), 2),
+                    "close": round(base * (0.97 + index * 0.003), 2),
+                    "volume": float(1_000_000 + index * 25_000),
+                }
+                for index in range(12)
+            ]
         if entry.provider == "tushare" and self.china_fixture_mode:
             quote = self._china_fixture_quote(entry)
             return [
@@ -143,6 +167,21 @@ class MarketProvider:
             "change_pct": change_pct,
             "currency": entry.currency,
             "provider": entry.provider,
+            "as_of": datetime.now(UTC).isoformat(),
+        }
+
+    def _explicit_fixture_quote(self, entry: AssetCatalogEntry) -> dict[str, Any]:
+        seed = sum(ord(character) for character in entry.symbol)
+        price = round(40 + (seed % 460) + (seed % 17) / 10, 2)
+        change = round(((seed % 13) - 6) / 10, 2)
+        previous_close = price - change
+        return {
+            "symbol": entry.symbol,
+            "price": price,
+            "change": change,
+            "change_pct": 0.0 if previous_close == 0 else (change / previous_close) * 100,
+            "currency": entry.currency,
+            "provider": "explicit-test-fixture",
             "as_of": datetime.now(UTC).isoformat(),
         }
 

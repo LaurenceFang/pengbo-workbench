@@ -34,9 +34,20 @@ import {
   type DataStatusItem,
 } from "../components/shared";
 import { useI18n, type TranslationKey } from "../i18n";
+import { Badge, SegmentedControl } from "../components/ui-kit";
 
 type PortfolioViewState = "connecting" | "empty" | "degraded" | "ready";
 type AllocationGroupKey = "asset" | "asset_class" | "currency" | "market" | "sector";
+
+export type PortfolioRouteSection =
+  | "portfolioOverview"
+  | "portfolioHoldings"
+  | "portfolioAllocation"
+  | "portfolioAnalytics"
+  | "portfolioRisk"
+  | "portfolioTransactions"
+  | "portfolioTransactionNew"
+  | "portfolioHandoff";
 
 const windowLabels: Record<PortfolioAnalyticsWindow["key"], string> = {
   today: "Today",
@@ -130,22 +141,35 @@ export function PortfolioView({
   assetUniverse,
   onGlobalRefresh,
   backendStatus,
+  routeSection,
 }: {
   assetOptions: WatchlistAssetSnapshot[];
   assetUniverse: AssetSearchResult[];
   onGlobalRefresh: () => Promise<void>;
   backendStatus: BackendStatus;
+  routeSection?: PortfolioRouteSection;
 }) {
   const i18n = useI18n();
+  const copy = portfolioCopy(i18n.language);
   const sidecarReady = backendStatus === "online";
+  const legacyLayout = routeSection === undefined;
+  const summaryEnabled =
+    sidecarReady &&
+    (legacyLayout ||
+      routeSection === "portfolioOverview" ||
+      routeSection === "portfolioAllocation" ||
+      routeSection === "portfolioAnalytics" ||
+      routeSection === "portfolioRisk");
+  const holdingsEnabled = sidecarReady && (legacyLayout || routeSection === "portfolioHoldings");
+  const transactionsEnabled = sidecarReady && (legacyLayout || routeSection === "portfolioTransactions");
   const summary = useAsyncResource<PortfolioSummaryResponse>(async () => api.getPortfolioSummary(), [], {
-    enabled: sidecarReady,
+    enabled: summaryEnabled,
   });
   const holdings = useAsyncResource(async () => api.getPortfolioHoldings(), [], {
-    enabled: sidecarReady,
+    enabled: holdingsEnabled,
   });
   const transactions = useAsyncResource(async () => api.getPortfolioTransactions(), [], {
-    enabled: sidecarReady,
+    enabled: transactionsEnabled,
   });
   const [editing, setEditing] = useState<PortfolioTransaction | null>(null);
   const [busy, setBusy] = useState(false);
@@ -175,7 +199,18 @@ export function PortfolioView({
   }, [transactionAssetOptions]);
 
   useEffect(() => {
-    if (!portfolioHandoffDraft) {
+    if (routeSection !== "portfolioTransactions") {
+      setEditing(null);
+    }
+  }, [routeSection]);
+
+  useEffect(() => {
+    if (
+      !portfolioHandoffDraft ||
+      (routeSection !== undefined &&
+        routeSection !== "portfolioTransactionNew" &&
+        routeSection !== "portfolioHandoff")
+    ) {
       return;
     }
 
@@ -190,7 +225,7 @@ export function PortfolioView({
       notes: portfolioHandoffDraft.notes ?? "",
     });
     setPortfolioHandoffDraft(null);
-  }, [portfolioHandoffDraft, setPortfolioHandoffDraft]);
+  }, [portfolioHandoffDraft, routeSection, setPortfolioHandoffDraft]);
 
   async function refreshPortfolio() {
     summary.reload();
@@ -292,16 +327,31 @@ export function PortfolioView({
     [summary.data],
   );
 
+  const relevantLoading =
+    (summaryEnabled && summary.loading && summary.data === null) ||
+    (holdingsEnabled && holdings.loading && holdings.data === null) ||
+    (transactionsEnabled && transactions.loading && transactions.data === null);
+  const relevantError =
+    (summaryEnabled ? summary.error : null) ||
+    (holdingsEnabled ? holdings.error : null) ||
+    (transactionsEnabled ? transactions.error : null);
+  const relevantEmpty = legacyLayout
+    ? !hasTransactions && transactions.error === null
+    : routeSection === "portfolioHoldings"
+      ? (holdings.data?.length ?? 0) === 0
+      : routeSection === "portfolioTransactions"
+        ? (transactions.data?.length ?? 0) === 0
+        : summaryEnabled
+          ? (summary.data?.positions ?? 0) === 0
+          : false;
+
   const portfolioState: PortfolioViewState =
-    !sidecarReady ||
-    ((summary.loading && summary.data === null) ||
-      (holdings.loading && holdings.data === null) ||
-      (transactions.loading && transactions.data === null))
+    !sidecarReady || relevantLoading
       ? "connecting"
-      : !hasTransactions && transactions.error === null
-        ? "empty"
-        : summary.error !== null || holdings.error !== null || transactions.error !== null || Boolean(summary.data?.degraded)
-          ? "degraded"
+      : relevantError !== null || (summaryEnabled && Boolean(summary.data?.degraded))
+        ? "degraded"
+        : relevantEmpty
+          ? "empty"
           : "ready";
 
   const formDisabled = busy || !sidecarReady;
@@ -317,10 +367,33 @@ export function PortfolioView({
         : portfolioState === "empty"
           ? "empty"
           : "connecting";
+  const sectionCopy = portfolioSectionCopy(routeSection, i18n.language);
 
   return (
-    <div aria-label={`portfolio-view state=${portfolioState}`} className="portfolio-layout">
-      <section className="card portfolio-overview-card">
+    <div
+      aria-label={`portfolio-view state=${portfolioState}`}
+      className="p2-page p2-portfolio-page portfolio-layout"
+      data-portfolio-section={routeSection ?? "legacy"}
+    >
+      <header className="p2-page-header">
+        <div>
+          <p className="eyebrow">{copy.eyebrow}</p>
+          <h2>{sectionCopy.title}</h2>
+          <p className="p2-page-description">{sectionCopy.description}</p>
+        </div>
+        <div className="p2-page-header-meta">
+          <Badge tone={renderedPortfolioStatus === "live" ? "success" : renderedPortfolioStatus === "degraded" ? "warning" : "info"}>
+            {copy.status[renderedPortfolioStatus]}
+          </Badge>
+          <span className="p2-header-count">{summary.data?.positions ?? 0} {copy.positions}</span>
+        </div>
+      </header>
+
+      {legacyLayout || routeSection === "portfolioOverview" ? (
+      <section
+        className="card p2-section-card p2-primary-section portfolio-overview-card"
+        data-primary-task={routeSection}
+      >
         <div className="card-header">
           <div>
             <p className="eyebrow">{i18n.t("portfolio.eyebrow")}</p>
@@ -354,12 +427,12 @@ export function PortfolioView({
             />
             <div className="sample-state-grid" aria-label="portfolio-demo-sample state=sample-only">
               <div>
-                <strong>{i18n.t("portfolio.sampleTitle")}</strong>
-                <span>{i18n.t("portfolio.sampleCopy")}</span>
+                <strong>{copy.sampleTitle}</strong>
+                <span>{copy.sampleCopy}</span>
               </div>
               <div>
                 <strong>AAPL / SPY / BTC</strong>
-                <span>{i18n.t("portfolio.sampleBoundary")}</span>
+                <span>{copy.sampleBoundary}</span>
               </div>
             </div>
           </>
@@ -385,7 +458,7 @@ export function PortfolioView({
                 tone={summary.data.daily_pnl >= 0 ? "up" : "down"}
               />
               <MetricCard label={i18n.t("portfolio.positionCount")} value={String(summary.data.positions)} />
-              <MetricCard label="Quality" value={summary.data.data_quality?.overall ?? "unknown"} />
+              <MetricCard label={copy.quality} value={summary.data.data_quality?.overall ?? copy.unknown} />
             </div>
             {summary.data.provenance.length ? (
               <DataStatusStrip
@@ -418,29 +491,23 @@ export function PortfolioView({
           />
         )}
       </section>
+      ) : null}
 
-      <section className="card portfolio-analytics-card">
+      {legacyLayout || routeSection === "portfolioAnalytics" ? (
+      <section className="card portfolio-analytics-card" data-primary-task={routeSection}>
         <div className="card-header">
           <div>
-            <p className="eyebrow">Analytics</p>
+            <p className="eyebrow">{copy.analytics}</p>
             <h3>{i18n.t("portfolio.analyticsTitle")}</h3>
           </div>
         </div>
         {summary.data ? (
           <>
-            <div className="segmented-control" aria-label="portfolio-analytics-window-tabs">
-              {summary.data.analytics.windows.map((item) => (
-                <button
-                  aria-label={`portfolio-window key=${item.key} status=${item.status}`}
-                  className={item.key === selectedWindowKey ? "active" : ""}
-                  key={item.key}
-                  onClick={() => setSelectedWindowKey(item.key)}
-                  type="button"
-                >
-                  {windowLabels[item.key]}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              options={summary.data.analytics.windows.map((item) => ({ value: item.key, label: localizedWindowLabel(item.key, i18n.language) }))}
+              value={selectedWindowKey}
+              onChange={(value) => setSelectedWindowKey(value as PortfolioAnalyticsWindow["key"])}
+            />
             {selectedWindow ? (
               <div className="analytics-window-grid">
                 <MetricCard
@@ -454,9 +521,9 @@ export function PortfolioView({
                   tone={selectedWindow.max_drawdown_pct !== null && selectedWindow.max_drawdown_pct < 0 ? "down" : "neutral"}
                 />
                 <MetricCard label={i18n.t("portfolio.annualVolatility")} value={formatMaybePercent(selectedWindow.volatility_pct, i18n.t("portfolio.unavailable"))} />
-                <MetricCard label="Sharpe-style" value={formatMaybeNumber(selectedWindow.sharpe_style, 2, i18n.t("portfolio.unavailable"))} />
+                <MetricCard label={copy.sharpeStyle} value={formatMaybeNumber(selectedWindow.sharpe_style, 2, i18n.t("portfolio.unavailable"))} />
                 <MetricCard
-                  label={`${i18n.t("portfolio.relative")} ${selectedWindow.benchmark_symbol ?? "Benchmark"}`}
+                  label={`${i18n.t("portfolio.relative")} ${selectedWindow.benchmark_symbol ?? copy.benchmark}`}
                   value={formatMaybePercent(selectedWindow.benchmark_relative_return_pct, i18n.t("portfolio.unavailable"))}
                   tone={getWindowTone(selectedWindow.benchmark_relative_return_pct)}
                 />
@@ -475,32 +542,82 @@ export function PortfolioView({
             ))}
           </>
         ) : (
-          <InlineState label={i18n.t("portfolio.analyticsEmpty")} />
+          <InlineState label={copy.analyticsEmpty} />
         )}
       </section>
+      ) : null}
 
-      <section className="card">
+      {routeSection === "portfolioRisk" ? (
+      <section className="card p2-risk-section" data-primary-task={routeSection}>
+        <div className="card-header">
+          <div>
+            <p className="eyebrow">{copy.risk}</p>
+            <h3>{sectionCopy.title}</h3>
+          </div>
+        </div>
+        {summary.loading && summary.data === null ? (
+          <InlineState label={i18n.t("portfolio.connectingCopy")} />
+        ) : summary.error ? (
+          <InlineState label={summary.error} actionLabel={i18n.t("common.retry")} onAction={refreshPortfolio} />
+        ) : summary.data ? (
+          <>
+            <SegmentedControl
+              options={summary.data.analytics.windows.map((item) => ({
+                value: item.key,
+                label: localizedWindowLabel(item.key, i18n.language),
+              }))}
+              value={selectedWindowKey}
+              onChange={(value) => setSelectedWindowKey(value as PortfolioAnalyticsWindow["key"])}
+            />
+            <div className="analytics-window-grid">
+              <MetricCard
+                label={i18n.t("portfolio.maxDrawdown")}
+                value={formatMaybePercent(selectedWindow?.max_drawdown_pct ?? null, i18n.t("portfolio.unavailable"))}
+                tone={selectedWindow?.max_drawdown_pct !== null && (selectedWindow?.max_drawdown_pct ?? 0) < 0 ? "down" : "neutral"}
+              />
+              <MetricCard
+                label={i18n.t("portfolio.annualVolatility")}
+                value={formatMaybePercent(selectedWindow?.volatility_pct ?? null, i18n.t("portfolio.unavailable"))}
+              />
+              <MetricCard
+                label={copy.concentration}
+                value={formatMaybePercent(summary.data.analytics.concentration_pct, i18n.t("portfolio.unavailable"))}
+              />
+              <MetricCard label={copy.missingAssets} value={String(summary.data.missing_symbols.length)} />
+              <MetricCard label={copy.quality} value={summary.data.data_quality?.overall ?? copy.unknown} />
+            </div>
+            {summary.data.analytics.notes.map((note) => (
+              <InlineState key={note} label={note} />
+            ))}
+            {summary.data.provenance.length ? (
+              <DataStatusStrip
+                ariaLabel={`portfolio-risk-provenance references=${summary.data.provenance.length}`}
+                items={summary.data.provenance.slice(0, 5).map(provenanceTile)}
+              />
+            ) : null}
+          </>
+        ) : (
+          <InlineState label={copy.riskEmpty} />
+        )}
+      </section>
+      ) : null}
+
+      {legacyLayout || routeSection === "portfolioAllocation" ? (
+      <section className="card" data-primary-task={routeSection}>
         <div className="card-header">
           <div>
             <p className="eyebrow">{i18n.t("portfolio.allocationEyebrow")}</p>
             <h3>{i18n.t("portfolio.allocationTitle")}</h3>
           </div>
           {summary.data?.analytics.concentration_pct !== null && summary.data?.analytics.concentration_pct !== undefined ? (
-            <span className="mini-pill">Top {summary.data.analytics.concentration_pct.toFixed(1)}%</span>
+            <span className="mini-pill">{copy.top} {summary.data.analytics.concentration_pct.toFixed(1)}%</span>
           ) : null}
         </div>
-        <div className="segmented-control" aria-label="portfolio-allocation-tabs">
-          {(Object.keys(allocationLabelKeys) as AllocationGroupKey[]).map((key) => (
-            <button
-              className={allocationGroup === key ? "active" : ""}
-              key={key}
-              onClick={() => setAllocationGroup(key)}
-              type="button"
-            >
-              {i18n.t(allocationLabelKeys[key])}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          options={(Object.keys(allocationLabelKeys) as AllocationGroupKey[]).map((key) => ({ value: key, label: i18n.t(allocationLabelKeys[key]) }))}
+          value={allocationGroup}
+          onChange={(value) => setAllocationGroup(value as AllocationGroupKey)}
+        />
         <div className="allocation-list">
           {allocationBuckets.length === 0 ? (
             <InlineState label={i18n.t("portfolio.allocationEmpty")} />
@@ -520,12 +637,23 @@ export function PortfolioView({
           )}
         </div>
       </section>
+      ) : null}
 
-      <section className="card">
+      {legacyLayout ||
+      routeSection === "portfolioTransactionNew" ||
+      routeSection === "portfolioHandoff" ||
+      (routeSection === "portfolioTransactions" && editing !== null) ? (
+      <section className="card" data-primary-task={routeSection}>
         <div className="card-header">
           <div>
             <p className="eyebrow">{i18n.t("portfolio.transactionsEyebrow")}</p>
-            <h3>{editing ? i18n.t("portfolio.editTransactionTitle") : i18n.t("portfolio.addTransactionTitle")}</h3>
+            <h3>
+              {routeSection === "portfolioHandoff"
+                ? sectionCopy.title
+                : editing
+                  ? i18n.t("portfolio.editTransactionTitle")
+                  : i18n.t("portfolio.addTransactionTitle")}
+            </h3>
           </div>
           {editing ? (
             <button className="ghost-button" onClick={resetForm} type="button">
@@ -552,7 +680,7 @@ export function PortfolioView({
                 onChange={(event) => setForm((current) => ({ ...current, symbol: event.target.value }))}
               >
                 {groupedTransactionAssets.map((group) => (
-                  <optgroup key={group.category.key} label={group.category.label}>
+                  <optgroup key={group.category.key} label={localizedAssetCategoryLabel(group.category.key, i18n.language)}>
                     {group.options.map((item) => (
                       <option key={item.symbol} value={item.symbol}>
                         {assetOptionLabel(item)}
@@ -643,8 +771,10 @@ export function PortfolioView({
         ) : null}
         {!sidecarReady ? <InlineState label={i18n.t("portfolio.serviceLocked")} /> : null}
       </section>
+      ) : null}
 
-      <section className="card">
+      {legacyLayout || routeSection === "portfolioHoldings" ? (
+      <section className="card" data-primary-task={routeSection}>
         <div className="card-header">
           <div>
             <p className="eyebrow">{i18n.t("portfolio.holdingsEyebrow")}</p>
@@ -678,7 +808,7 @@ export function PortfolioView({
                   {holding.notes.map((note) => (
                     <span key={note}>{note}</span>
                   ))}
-                  {holding.data_quality ? <span>Quality: {holding.data_quality.overall}</span> : null}
+                  {holding.data_quality ? <span>{copy.quality}: {holding.data_quality.overall}</span> : null}
                   {holding.provenance.length ? (
                     <div className="compact-provenance-list">
                       {holding.provenance.map((item) => (
@@ -704,8 +834,10 @@ export function PortfolioView({
           )}
         </div>
       </section>
+      ) : null}
 
-      <section className="card">
+      {legacyLayout || (routeSection === "portfolioTransactions" && editing === null) ? (
+      <section className="card" data-primary-task={routeSection}>
         <div className="card-header">
           <div>
             <p className="eyebrow">{i18n.t("portfolio.historyEyebrow")}</p>
@@ -750,6 +882,92 @@ export function PortfolioView({
           )}
         </div>
       </section>
+      ) : null}
     </div>
   );
+}
+
+function localizedWindowLabel(key: PortfolioAnalyticsWindow["key"], language: "zh-CN" | "en-US"): string {
+  if (language === "zh-CN") {
+    return { today: "今日", mtd: "本月", ytd: "今年", one_year: "1 年", max: "全部" }[key];
+  }
+  return windowLabels[key];
+}
+
+function localizedAssetCategoryLabel(key: string, language: "zh-CN" | "en-US"): string {
+  if (language === "zh-CN") {
+    return { usMarket: "美股 / ETF", leveragedNasdaq: "三倍做多纳指", crypto: "加密货币" }[key] ?? key;
+  }
+  return { usMarket: "US stocks / ETFs", leveragedNasdaq: "3x Nasdaq long", crypto: "Crypto" }[key] ?? key;
+}
+
+function portfolioSectionCopy(routeSection: PortfolioRouteSection | undefined, language: "zh-CN" | "en-US") {
+  const zh = language === "zh-CN";
+  const sections: Record<PortfolioRouteSection, { title: string; description: string }> = {
+    portfolioOverview: {
+      title: zh ? "组合总览" : "Portfolio overview",
+      description: zh ? "集中复核组合价值、损益、数据质量和表现曲线。" : "Review portfolio value, P&L, data quality, and the performance curve.",
+    },
+    portfolioHoldings: {
+      title: zh ? "持仓" : "Holdings",
+      description: zh ? "逐项检查当前持仓、权重、估值状态和来源。" : "Inspect current positions, weights, valuation status, and provenance.",
+    },
+    portfolioAllocation: {
+      title: zh ? "配置与集中度" : "Allocation and concentration",
+      description: zh ? "按资产、类别、币种、市场和行业检查组合配置。" : "Review allocation by asset, class, currency, market, and sector.",
+    },
+    portfolioAnalytics: {
+      title: zh ? "收益与分析" : "Performance analytics",
+      description: zh ? "按时间窗口复核收益、回撤、波动率和基准相对表现。" : "Review returns, drawdown, volatility, and benchmark-relative performance by window.",
+    },
+    portfolioRisk: {
+      title: zh ? "风险" : "Risk",
+      description: zh ? "集中检查回撤、波动率、集中度、缺失资产和数据质量。" : "Review drawdown, volatility, concentration, missing assets, and data quality.",
+    },
+    portfolioTransactions: {
+      title: zh ? "交易记录" : "Transaction history",
+      description: zh ? "查看、修改或删除保存在本地的组合交易记录。" : "Review, edit, or delete locally stored portfolio transactions.",
+    },
+    portfolioTransactionNew: {
+      title: zh ? "新增交易" : "Add transaction",
+      description: zh ? "单独录入一笔本地组合交易。" : "Record one local portfolio transaction.",
+    },
+    portfolioHandoff: {
+      title: zh ? "持仓研究交接" : "Holding research handoff",
+      description: zh ? "复核研究交接内容，并将确认后的交易保存到本地组合。" : "Review the research handoff and save the confirmed transaction locally.",
+    },
+  };
+
+  return routeSection
+    ? sections[routeSection]
+    : {
+        title: zh ? "组合总览" : "Portfolio overview",
+        description: zh
+          ? "在一个工作区复核敞口、表现、来源、配置和本地交易历史。"
+          : "Review exposure, performance, provenance, allocation, and local transaction history in one workspace.",
+      };
+}
+
+function portfolioCopy(language: "zh-CN" | "en-US") {
+  const zh = language === "zh-CN";
+  return {
+    eyebrow: zh ? "投资组合 / 复核" : "Portfolio / Review",
+    description: zh ? "在一个工作区复核敞口、表现、来源、配置和本地交易历史。" : "Review exposure, performance, provenance, and local transaction history in one workspace.",
+    positions: zh ? "个持仓" : "positions",
+    quality: zh ? "质量" : "Quality",
+    unknown: zh ? "未知" : "unknown",
+    analytics: zh ? "分析" : "Analytics",
+    analyticsEmpty: zh ? "汇总可用后，这里会显示组合分析。" : "Portfolio analytics will appear after the summary is available.",
+    sharpeStyle: zh ? "Sharpe 风格" : "Sharpe-style",
+    benchmark: zh ? "基准" : "Benchmark",
+    top: zh ? "前" : "Top",
+    risk: zh ? "风险复核" : "Risk review",
+    concentration: zh ? "最高集中度" : "Top concentration",
+    missingAssets: zh ? "缺失估值资产" : "Missing valuations",
+    riskEmpty: zh ? "组合汇总可用后，这里会显示风险指标。" : "Risk metrics will appear after the portfolio summary is available.",
+    sampleTitle: zh ? "示例组合预览" : "Sample portfolio preview",
+    sampleCopy: zh ? "保存真实本地交易前，可用示例资产组合了解持仓、配置和风险。" : "Use the sample asset mix to understand holdings, allocation, and risk before saving real local transactions.",
+    sampleBoundary: zh ? "仅为示例；不会使用私人账户状态、提供商凭证或真实订单。" : "Sample only; no private account state, provider credentials, or live orders are used.",
+    status: { live: zh ? "实时" : "Live", cached: zh ? "缓存" : "Cached", degraded: zh ? "降级" : "Degraded", empty: zh ? "空" : "Empty", connecting: zh ? "连接中" : "Connecting" },
+  };
 }

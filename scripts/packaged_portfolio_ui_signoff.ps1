@@ -183,6 +183,7 @@ function Get-OfflineEnvironmentOverrides {
         HTTPS_PROXY = $offlineProxyUrl
         ALL_PROXY = $offlineProxyUrl
         NO_PROXY = "127.0.0.1,localhost"
+        PENGBO_MARKET_FIXTURES = $null
     }
 }
 
@@ -450,6 +451,22 @@ function Wait-ForElementByName {
     throw "UI element '$Name' did not appear within $TimeoutSeconds seconds."
 }
 
+function Invoke-PortfolioElement {
+    param([System.Windows.Automation.AutomationElement]$Element)
+
+    $invoke = $null
+    if ($Element.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern, [ref]$invoke)) {
+        $invoke.Invoke()
+        return
+    }
+    $selection = $null
+    if ($Element.TryGetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern, [ref]$selection)) {
+        $selection.Select()
+        return
+    }
+    throw "Element '$($Element.Current.Name)' does not expose an actionable automation pattern."
+}
+
 function Wait-ForAnyElementByName {
     param(
         [System.Windows.Automation.AutomationElement]$Root,
@@ -522,10 +539,6 @@ function Invoke-PortfolioUiSignoff {
     $holdingMarker = "portfolio-holding symbol=AAPL valuation=$ExpectedHoldingStatus"
     $transactionMarker = "portfolio-transaction-submit mode=add enabled=true"
 
-    Wait-ForElementByName -Root $window -Name $holdingMarker -TimeoutSeconds $UiTimeoutSeconds | Out-Null
-    $transactionButton = Wait-ForElementByName -Root $window -Name $transactionMarker -TimeoutSeconds $UiTimeoutSeconds
-    Assert-Condition ([bool]$transactionButton.Current.IsEnabled) "$ScenarioName scenario did not keep the transaction submit action enabled."
-
     $noteMarkers = @()
     foreach ($note in @($Snapshot.summary.notes)) {
         $noteMarkers += "portfolio-note text=$note"
@@ -534,6 +547,15 @@ function Invoke-PortfolioUiSignoff {
     foreach ($noteMarker in $noteMarkers) {
         Wait-ForElementByName -Root $window -Name $noteMarker -TimeoutSeconds $UiTimeoutSeconds | Out-Null
     }
+
+    $holdingsSubroute = Wait-ForElementByName -Root $window -Name "subroute:/portfolio/holdings" -TimeoutSeconds $UiTimeoutSeconds
+    Invoke-PortfolioElement -Element $holdingsSubroute
+    Wait-ForElementByName -Root $window -Name $holdingMarker -TimeoutSeconds $UiTimeoutSeconds | Out-Null
+
+    $transactionSubroute = Wait-ForElementByName -Root $window -Name "subroute:/portfolio/transactions/new" -TimeoutSeconds $UiTimeoutSeconds
+    Invoke-PortfolioElement -Element $transactionSubroute
+    $transactionButton = Wait-ForElementByName -Root $window -Name $transactionMarker -TimeoutSeconds $UiTimeoutSeconds
+    Assert-Condition ([bool]$transactionButton.Current.IsEnabled) "$ScenarioName scenario did not keep the transaction submit action enabled."
 
     $scenarioResult.ui_signoff = [ordered]@{
         heading_ok = $true

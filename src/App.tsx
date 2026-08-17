@@ -1,20 +1,25 @@
 import {
   ArrowRight,
+  Bot,
   Command,
   Lock,
+  Menu,
+  PanelRightOpen,
   RefreshCcw,
   Search,
   TriangleAlert,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { CommandPalette } from "./components/command-palette";
+import { Button } from "./components/button";
 import { AppShell } from "./components/app-shell";
 import { AppSidebar } from "./components/app-sidebar";
 import { AppToolbar } from "./components/app-toolbar";
 import { ContextRail } from "./components/context-rail";
-import { LocalUnlockGate } from "./components/local-unlock-gate";
-import { InlineState, StatusBadge, type BackendStatus } from "./components/shared";
+import { StatusBadge, type BackendStatus } from "./components/shared";
 import { useAsyncResource } from "./hooks/use-async-resource";
+import { usePengboNavigation } from "./hooks/use-pengbo-navigation";
 import { useI18n } from "./i18n";
 import {
   api,
@@ -35,20 +40,8 @@ import { FirstRunOnboarding } from "./components/first-run-onboarding";
 import { deriveDesktopConnectionStatus, getRuntimeConfig, type RuntimeConfig } from "./lib/runtime";
 import { getNavigationGroupForView, getNavigationItem, navigationGroups, type NavGroupKey } from "./navigation";
 import { useAppStore, type ViewKey } from "./store/app-store";
-import { AssetView } from "./views/asset-view";
-import { CommandCenterView } from "./views/command-center-view";
-import { ConnectionsView } from "./views/connections-view";
-import { DashboardView } from "./views/dashboard-view";
-import { DataSourcesView } from "./views/data-sources-view";
-import { FactorLabView } from "./views/factor-lab-view";
-import { ManualView } from "./views/manual-view";
-import { PortfolioView } from "./views/portfolio-view";
-import { ResearchView } from "./views/research-view";
-import { ScreenersView } from "./views/screeners-view";
-import { SettingsView } from "./views/settings-view";
-import { StrategyLabView } from "./views/strategy-lab-view";
-import { WatchlistView } from "./views/watchlist-view";
-import { WorkflowStudioView } from "./views/workflow-studio-view";
+import { AppRouteOutlet } from "./router";
+import { defaultRouteByView, getFrameRouteForPath, getRouteObjectType, getRouteParams, materializeRoutePath } from "./routes/route-registry";
 
 const sensitiveViews = new Set<ViewKey>([
   "research",
@@ -81,6 +74,8 @@ const onboardingStepKeys: OnboardingStepKey[] = [
 ];
 
 function App() {
+  const location = useLocation();
+  const { openAsset, openRoute, openView } = usePengboNavigation();
   const activeView = useAppStore((state) => state.activeView);
   const selectedAssetId = useAppStore((state) => state.selectedAssetId);
   const commandPaletteOpen = useAppStore((state) => state.commandPaletteOpen);
@@ -90,6 +85,8 @@ function App() {
     () => new Set([getNavigationGroupForView(activeView).key]),
   );
   const [contextRailCollapsed, setContextRailCollapsed] = useState(false);
+  const [contextDrawerOpen, setContextDrawerOpen] = useState(false);
+  const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
   const setCommandPaletteOpen = useAppStore((state) => state.setCommandPaletteOpen);
   const setSelectedAssetId = useAppStore((state) => state.setSelectedAssetId);
   const language = useAppStore((state) => state.language);
@@ -111,6 +108,22 @@ function App() {
   const [aiControlError, setAIControlError] = useState<string | null>(null);
   const [preferencesHydrated, setPreferencesHydrated] = useState(false);
   const previousBackendStatus = useRef<BackendStatus | null>(null);
+  const dashboardRefreshRequested = useRef(false);
+  const assetRefreshRequested = useRef(false);
+  const frameRoute = getFrameRouteForPath(location.pathname);
+  const frameRouteParams = frameRoute ? getRouteParams(frameRoute, location.pathname) : {};
+  const frameRouteObjectId = frameRouteParams.symbol ?? frameRouteParams.briefId ?? frameRouteParams.runId ?? frameRouteParams.backtestId ?? frameRouteParams.sessionId ?? frameRouteParams.provider ?? frameRouteParams.listId ?? frameRoute?.componentKey ?? selectedAssetId;
+  const aiRouteActive = frameRoute?.topLevelView === "aiAssistant";
+  const shellView: ViewKey = frameRoute?.topLevelView && frameRoute.topLevelView !== "aiAssistant"
+    ? frameRoute.topLevelView
+    : aiRouteActive
+      ? "workflowStudio"
+      : activeView;
+  const activeNav = getNavigationItem(shellView);
+  const activeNavigationGroup = getNavigationGroupForView(shellView);
+  const isRootRoute = location.pathname === "/";
+  const dashboardSurfaceActive = !isRootRoute && (shellView === "dashboard" || shellView === "watchlist" || shellView === "portfolio");
+  const assetSurfaceActive = !isRootRoute && shellView === "asset";
 
   const runtime = useAsyncResource<RuntimeConfig>(async () => getRuntimeConfig(), []);
   const health = useAsyncResource(async () => api.getHealth(), [], {
@@ -128,17 +141,25 @@ function App() {
     !actionBusy &&
     (runtime.data.sidecarStatus !== "online" || (!health.loading && health.error !== null));
   const sidecarReady = backendStatus === "online";
-  const dashboard = useAsyncResource<DashboardOverviewResponse>(async () => api.getDashboardOverview(), [], {
+  const localSecurity = useAsyncResource<LocalSecurityStatus>(async () => api.getLocalSecurityStatus(), [], {
     enabled: sidecarReady,
   });
+  const routeAccessReady = frameRoute?.accessPolicy !== "local_unlock" || (
+    localSecurity.data?.initialized === true && localSecurity.data.locked === false
+  );
+  const dashboard = useAsyncResource<DashboardOverviewResponse>(async () => {
+    const refresh = dashboardRefreshRequested.current;
+    dashboardRefreshRequested.current = false;
+    return api.getDashboardOverview({ refresh });
+  }, [], { enabled: sidecarReady && routeAccessReady && dashboardSurfaceActive });
   const assetUniverse = useAsyncResource<AssetSearchResult[]>(async () => api.searchAssets(""), [], {
-    enabled: sidecarReady,
+    enabled: sidecarReady && routeAccessReady,
   });
   const preferences = useAsyncResource<AppPreferences>(async () => api.getSettingsPreferences(), [], {
-    enabled: sidecarReady,
+    enabled: sidecarReady && routeAccessReady,
   });
   const aiControl = useAsyncResource<AIControlPreferences>(async () => api.getAIControlPreferences(), [], {
-    enabled: sidecarReady,
+    enabled: sidecarReady && routeAccessReady,
   });
   const onboarding = useAsyncResource<OnboardingState>(async () => api.getOnboardingState(), [], {
     enabled: sidecarReady,
@@ -146,17 +167,28 @@ function App() {
   const demoMode = useAsyncResource<DemoModeStatus>(async () => api.getDemoModeStatus(), [], {
     enabled: sidecarReady,
   });
-  const localSecurity = useAsyncResource<LocalSecurityStatus>(async () => api.getLocalSecurityStatus(), [], {
-    enabled: sidecarReady,
-  });
   const connectionsStatus = useAsyncResource(async () => api.getConnectionsStatus(), [], {
-    enabled: sidecarReady,
+    enabled: sidecarReady && routeAccessReady,
   });
   const asset = useAsyncResource<AssetWorkspaceResponse | null>(
-    async () => (selectedAssetId ? api.getAssetWorkspace(selectedAssetId) : null),
+    async () => {
+      const refresh = assetRefreshRequested.current;
+      assetRefreshRequested.current = false;
+      return selectedAssetId ? api.getAssetWorkspace(selectedAssetId, { refresh }) : null;
+    },
     [selectedAssetId],
-    { enabled: sidecarReady },
+    { enabled: sidecarReady && routeAccessReady && assetSurfaceActive },
   );
+
+  function refreshDashboardFromProviders() {
+    dashboardRefreshRequested.current = true;
+    dashboard.reload();
+  }
+
+  function refreshAssetFromProviders() {
+    assetRefreshRequested.current = true;
+    asset.reload();
+  }
 
   useEffect(() => {
     const watchlist = dashboard.data?.watchlist ?? [];
@@ -202,7 +234,7 @@ function App() {
     const shouldRecover =
       backendStatus === "online" &&
       previousBackendStatus.current !== null &&
-      previousBackendStatus.current !== "online";
+      previousBackendStatus.current === "offline";
     previousBackendStatus.current = backendStatus;
 
     if (!shouldRecover) {
@@ -236,10 +268,7 @@ function App() {
     dashboard.data?.focus_asset ??
     dashboard.data?.watchlist[0] ??
     null;
-  const activeNav = getNavigationItem(activeView);
-  const activeNavigationGroup = getNavigationGroupForView(activeView);
-  const isDashboardView = activeView === "dashboard";
-  const activeViewRequiresUnlock = sensitiveViews.has(activeView);
+  const activeViewRequiresUnlock = frameRoute ? frameRoute.accessPolicy === "local_unlock" : sensitiveViews.has(shellView);
   const localSecurityStatus = localSecurity.data;
   const activeViewLocked =
     sidecarReady &&
@@ -248,20 +277,31 @@ function App() {
     (!localSecurityStatus.initialized || localSecurityStatus.locked);
 
   useEffect(() => {
+    if (frameRoute && frameRoute.topLevelView !== "aiAssistant" && frameRoute.topLevelView !== activeView) {
+      setActiveView(frameRoute.topLevelView);
+    }
+  }, [activeView, frameRoute, setActiveView]);
+
+  useEffect(() => {
     setExpandedNavGroups((current) => {
       if (current.size === 1 && current.has(activeNavigationGroup.key)) return current;
       return new Set([activeNavigationGroup.key]);
     });
   }, [activeNavigationGroup.key]);
 
+  function navigateToView(view: ViewKey) {
+    setSidebarDrawerOpen(false);
+    openView(view, { params: { symbol: selectedAssetId || "AAPL" } });
+  }
+
   function handleNavigationGroup(groupKey: NavGroupKey) {
     const group = navigationGroups.find((candidate) => candidate.key === groupKey) ?? navigationGroups[0];
     if (group.items.length === 1) {
-      setActiveView(group.defaultView);
+      navigateToView(group.defaultView);
       return;
     }
     if (activeNavigationGroup.key !== group.key) {
-      setActiveView(group.defaultView);
+      navigateToView(group.defaultView);
       setExpandedNavGroups(new Set([group.key]));
       return;
     }
@@ -323,13 +363,18 @@ function App() {
     preferences.data && !preferences.data.diagnostics_export_enabled
       ? i18n.t("settings.diagnosticsDisabled")
       : null;
+  const rootPath = preferences.data
+    ? materializeRoutePath(defaultRouteByView[preferences.data.default_view] ?? "/dashboard/overview", {
+        symbol: selectedAssetId || "AAPL",
+      })
+    : null;
 
   async function reloadEverything() {
     runtime.reload();
     health.reload();
-    dashboard.reload();
+    refreshDashboardFromProviders();
     assetUniverse.reload();
-    asset.reload();
+    refreshAssetFromProviders();
     preferences.reload();
     aiControl.reload();
     onboarding.reload();
@@ -504,7 +549,7 @@ function App() {
         return;
       }
       lastTouch = now;
-      void api.touchLocalSecurity(securitySurfaceByView[activeView] ?? activeView).catch(() => undefined);
+      void api.touchLocalSecurity(securitySurfaceByView[shellView] ?? shellView).catch(() => undefined);
     };
 
     resetIdleTimer();
@@ -522,7 +567,110 @@ function App() {
       window.removeEventListener("mousemove", handleActivity);
       window.removeEventListener("scroll", handleActivity, true);
     };
-  }, [activeView, activeViewRequiresUnlock, localSecurity, localSecurity.data, sidecarReady]);
+  }, [activeViewRequiresUnlock, localSecurity, localSecurity.data, shellView, sidecarReady]);
+
+  const routeBusinessDependencies = {
+    globalNotice: shellActionError ? (
+      <section className="card panel-banner compact">
+        <div className="task-item"><TriangleAlert size={16} /><span>{shellActionError}</span></div>
+      </section>
+    ) : null,
+    dashboardPrelude: (
+      <>
+        {setupStatus.firstRun ? (
+          <FirstRunOnboarding
+            state={currentOnboarding}
+            demoMode={demoMode.data ?? null}
+            setupStatus={setupStatus}
+            localSecurity={localSecurity.data ?? null}
+            backendStatus={backendStatus}
+            language={language}
+            busy={onboardingBusy}
+            onToggleStep={handleToggleOnboardingStep}
+            onDismiss={handleDismissOnboarding}
+            onOpenView={openView}
+          />
+        ) : null}
+        {!setupStatus.firstRun && setupStatus.needsSetup ? (
+          <section className="card panel-banner compact">
+            <div className="panel-banner-head">
+              <div><p className="eyebrow">{i18n.t("setup.environment")}</p><h3>{setupStatus.sidecarOffline ? i18n.t("setup.sidecarOfflineTitle") : i18n.t("setup.providersNeedSetupTitle")}</h3></div>
+              <span className="mini-pill">{setupStatus.sidecarOffline ? "offline" : "pending"}</span>
+            </div>
+            <p className="body-copy">{setupLead}</p>
+            <div className="hero-actions">
+              <Button variant="ghost" onClick={() => openView("connections")}>{i18n.t("setup.openConnections")}</Button>
+              <Button variant="ghost" onClick={() => openView("settings")}>{i18n.t("setup.openSettings")}</Button>
+              {setupStatus.sidecarOffline ? <Button variant="ghost" disabled={actionBusy} onClick={handleRestartSidecar}><RefreshCcw size={16} />{actionBusy ? i18n.t("runtime.restarting") : i18n.t("setup.restartSidecar")}</Button> : null}
+              <Button disabled={diagnosticsBusy || runtime.data?.mode !== "tauri" || !diagnosticsEnabled} onClick={handleExportDiagnostics} variant="ghost">{diagnosticsBusy ? i18n.t("runtime.exporting") : i18n.t("setup.exportDiagnostics")}</Button>
+            </div>
+            {diagnosticsDisabledReason ? <p className="panel-note">{diagnosticsDisabledReason}</p> : null}
+            {diagnosticsExport ? <p className="panel-note">{i18n.t("setup.diagnosticsExported")} {diagnosticsExport.exportPath}</p> : null}
+          </section>
+        ) : null}
+        {noKeyDemoReady && demoMode.data ? (
+          <section aria-label={`demo-mode-banner mode=${demoMode.data.mode} missing=${demoMode.data.missing_credentials.length}`} className="card panel-banner compact demo-mode-banner">
+            <div className="panel-banner-head"><div><p className="eyebrow">NO-KEY DEMO</p><h3>{language === "zh-CN" ? "无 key 也可以先评估产品" : "Evaluate Pengbo without provider keys"}</h3></div><span className="mini-pill accent">sample</span></div>
+            <p className="body-copy">{language === "zh-CN" ? "当前启动路径使用本地 seed、sample 和缓存友好的状态展示产品主流程；需要凭证的能力仍会明确显示。" : "This startup path uses local seed, sample, and cache-friendly states for product evaluation; credential-gated capabilities remain visible."}</p>
+            <div className="demo-mode-grid"><div><strong>{language === "zh-CN" ? "可先查看" : "Available now"}</strong><span>{demoMode.data.sample_surfaces.slice(0, 5).join(", ")}</span></div><div><strong>{language === "zh-CN" ? "仍需凭证" : "Still gated"}</strong><span>{demoMode.data.credential_gated_surfaces.slice(0, 4).join(", ")}</span></div></div>
+            <div className="hero-actions"><Button variant="primary" onClick={() => openView("dataSources")}>{language === "zh-CN" ? "查看数据源边界" : "Review data-source boundaries"}<ArrowRight size={16} /></Button><Button variant="ghost" onClick={() => openView("portfolio")}>{language === "zh-CN" ? "查看组合 sample" : "View portfolio sample"}</Button></div>
+          </section>
+        ) : null}
+      </>
+    ),
+    dashboard: {
+      selectedAsset,
+      dashboard: dashboard.data,
+      loading: dashboard.loading,
+      error: dashboard.error,
+      onRetry: refreshDashboardFromProviders,
+      onOpenResearch: () => openView("research"),
+      onOpenAI: () => openRoute("/ai-assistant"),
+    },
+    commandCenter: { backendStatus, onGlobalRefresh: reloadEverything },
+    asset: {
+      asset: asset.data,
+      selectedAsset,
+      loading: asset.loading,
+      error: asset.error,
+      onRetry: refreshAssetFromProviders,
+      sensitiveContextReady: localSecurity.data?.initialized === true && !localSecurity.data.locked,
+    },
+    watchlist: {
+      watchlist: dashboard.data?.watchlist ?? [],
+      assetUniverse: assetUniverse.data ?? [],
+      loading: dashboard.loading || assetUniverse.loading,
+      error: dashboard.error ?? assetUniverse.error,
+      onRetry: () => { refreshDashboardFromProviders(); assetUniverse.reload(); },
+      onSelectAsset: (symbol: string) => { setSelectedAssetId(symbol); openAsset(symbol); },
+      onWatchlistChange: async (symbols: string[]) => { await api.updateDefaultWatchlist(symbols); refreshDashboardFromProviders(); refreshAssetFromProviders(); },
+    },
+    research: { onGlobalRefresh: reloadEverything, backendStatus },
+    factorLab: { backendStatus },
+    strategyLab: { backendStatus },
+    workflowStudio: { backendStatus },
+    dataSources: { backendStatus },
+    screeners: { onGlobalRefresh: reloadEverything },
+    manual: {},
+    portfolio: { assetOptions: dashboard.data?.watchlist ?? [], assetUniverse: assetUniverse.data ?? [], onGlobalRefresh: reloadEverything, backendStatus },
+    connections: { onRestart: handleRestartSidecar, onGlobalRefresh: reloadEverything, runtime: runtime.data },
+    settings: {
+      appRuntime: runtime.data,
+      activeView: shellView,
+      onDefaultViewSaved: setActiveView,
+      onGlobalRefresh: reloadEverything,
+      diagnosticsExport,
+      diagnosticsBusy,
+      onExportDiagnostics: handleExportDiagnostics,
+    },
+    aiAssistant: {
+      preferences: aiControl.data,
+      loading: aiControl.loading,
+      saving: aiControlSaving,
+      error: aiControl.error ?? aiControlError,
+      onSave: handleSaveAIControl,
+    },
+  };
 
   return (
     <>
@@ -532,20 +680,28 @@ function App() {
         theme={theme}
         sidebar={(
           <AppSidebar
+            mobileOpen={sidebarDrawerOpen}
+            backendStatus={backendStatus}
             activeGroup={activeNavigationGroup.key}
-            activeView={activeView}
-            brandEyebrow={i18n.t("app.brandEyebrow")}
-            brandName={i18n.t("app.brandName")}
+            activeView={aiRouteActive ? null : activeView}
             expandedGroups={expandedNavGroups}
             groupLabel={(key) => i18n.t(`nav.group.${key}`)}
             navigationLabel={i18n.t("nav.section")}
             onGroupClick={handleNavigationGroup}
-            onViewClick={setActiveView}
+            onViewClick={navigateToView}
             viewLabel={i18n.viewLabel}
           />
         )}
         toolbar={(
-          <AppToolbar eyebrow={i18n.viewEyebrow(activeNav.viewKey)} title={i18n.viewTitle(activeNav.viewKey)}>
+          <AppToolbar
+            brandEyebrow={i18n.t("app.brandEyebrow")}
+            brandName={i18n.t("app.brandName")}
+            eyebrow={aiRouteActive ? "AI" : i18n.viewEyebrow(activeNav.viewKey)}
+            frameLabel={frameRoute ? `${String(frameRoute.frameNo).padStart(2, "0")} / FRAME` : undefined}
+            title={aiRouteActive ? frameRoute.label : i18n.viewTitle(activeNav.viewKey)}
+          >
+            <Button aria-controls="pengbo-sidebar" aria-expanded={sidebarDrawerOpen} aria-label="打开导航" className="sidebar-drawer-trigger" onClick={() => setSidebarDrawerOpen((open) => !open)} variant="ghost"><Menu size={17} /></Button>
+            <Button aria-controls="pengbo-context-inspector" aria-expanded={contextDrawerOpen} aria-label="打开上下文检查器" className="context-drawer-trigger" onClick={() => setContextDrawerOpen((open) => !open)} variant="ghost"><PanelRightOpen size={17} /></Button>
             {latestCommandFeedback ? (
               <div className={`command-feedback-pill ${latestCommandFeedback.tone}`}>
                 <strong>{latestCommandFeedback.title}</strong>
@@ -572,7 +728,7 @@ function App() {
                       className="search-result"
                       onClick={() => {
                         setSelectedAssetId(assetItem.symbol);
-                        setActiveView("asset");
+                        openAsset(assetItem.symbol);
                         setSearchTerm("");
                       }}
                       type="button"
@@ -586,15 +742,15 @@ function App() {
               ) : null}
             </div>
 
-            <button
+            <Button
               aria-label="open-command-palette"
-              className={`ghost-button palette-launch ${commandPaletteOpen ? "active" : ""}`}
+              className={`palette-launch ${commandPaletteOpen ? "active" : ""}`}
               onClick={() => setCommandPaletteOpen(!commandPaletteOpen)}
-              type="button"
+              variant="ghost"
             >
               <Command size={16} />
               {i18n.t("topbar.commandPalette")}
-            </button>
+            </Button>
 
             <StatusBadge
               status={backendStatus}
@@ -615,17 +771,22 @@ function App() {
                 exporting: i18n.t("runtime.exporting"),
               }}
             />
+            {frameRoute?.aiPolicy.mode !== "none" ? (
+              <Button aria-label={language === "zh-CN" ? "打开 AI 助手" : "Open AI assistant"} className="toolbar-ai-launch" onClick={() => openRoute("/ai-assistant")} variant="ghost">
+                <Bot size={16} />
+                {language === "zh-CN" ? "打开 AI 助手" : "Open AI assistant"}
+              </Button>
+            ) : null}
             {localSecurity.data?.initialized && !localSecurity.data.locked ? (
-              <button
+              <Button
                 aria-label="local-security-lock"
-                className="ghost-button"
                 disabled={localSecurityBusy}
                 onClick={() => void handleLockLocalSecurity()}
-                type="button"
+                variant="ghost"
               >
                 <Lock size={16} />
                 {language === "zh-CN" ? "锁定" : "Lock"}
-              </button>
+              </Button>
             ) : null}
           </AppToolbar>
         )}
@@ -633,6 +794,15 @@ function App() {
           <ContextRail
             backendStatus={backendStatus}
             collapsed={contextRailCollapsed}
+            drawerOpen={contextDrawerOpen}
+            routeId={frameRoute?.svgRoute ?? `view/${activeView}`}
+            objectType={frameRoute ? getRouteObjectType(frameRoute) : "app-shell-context"}
+            objectId={frameRouteObjectId}
+            source={frameRoute?.availability.kind === "planned" ? "planned route contract" : backendStatus === "online" ? "local API / local cache" : backendStatus}
+            freshness={frameRoute?.availability.kind === "planned" ? "not available" : backendStatus === "online" ? "reported by business surface" : backendStatus}
+            evidenceScope={[frameRoute?.label ?? i18n.viewLabel(activeView), "当前路由上下文"]}
+            permissionState={frameRoute?.availability.kind === "planned" ? "blocked" : frameRoute?.actionPolicy === "explicit_confirmation" ? "confirmation_required" : frameRoute?.accessPolicy === "local_unlock" ? (activeViewLocked ? "locked" : "unlocked") : activeViewLocked ? "locked" : "read_only"}
+            aiState={frameRoute && frameRoute.aiPolicy.mode !== "none" ? (frameRoute.aiPolicy.availability.kind === "planned" ? "blocked" : "available") : aiControl.data?.enabled ? "available" : "disabled"}
             groupLabel={i18n.t(`nav.group.${activeNavigationGroup.key}`)}
             labels={{
               collapse: language === "zh-CN" ? "收起上下文栏" : "Collapse context rail",
@@ -644,227 +814,27 @@ function App() {
               noAsset: language === "zh-CN" ? "尚未选择" : "Not selected",
             }}
             locked={activeViewLocked}
-            onToggle={() => setContextRailCollapsed((current) => !current)}
+            onToggle={() => window.innerWidth <= 1180 ? setContextDrawerOpen(false) : setContextRailCollapsed((current) => !current)}
             selectedAsset={activeViewLocked ? undefined : selectedAssetId}
             title={language === "zh-CN" ? "上下文" : "Context"}
-            viewLabel={i18n.viewLabel(activeView)}
+            viewLabel={frameRoute?.label ?? i18n.viewLabel(activeView)}
           />
         )}
       >
-          {isDashboardView && setupStatus.firstRun ? (
-            <FirstRunOnboarding
-              state={currentOnboarding}
-              demoMode={demoMode.data ?? null}
-              setupStatus={setupStatus}
-              localSecurity={localSecurity.data ?? null}
-              backendStatus={backendStatus}
-              language={language}
-              busy={onboardingBusy}
-              onToggleStep={handleToggleOnboardingStep}
-              onDismiss={handleDismissOnboarding}
-              onOpenView={setActiveView}
-            />
-          ) : null}
-          {isDashboardView && !setupStatus.firstRun && setupStatus.needsSetup ? (
-            <section className="card panel-banner compact">
-              <div className="panel-banner-head">
-                <div>
-                  <p className="eyebrow">{i18n.t("setup.environment")}</p>
-                  <h3>{setupStatus.sidecarOffline ? i18n.t("setup.sidecarOfflineTitle") : i18n.t("setup.providersNeedSetupTitle")}</h3>
-                </div>
-                <span className="mini-pill">{setupStatus.sidecarOffline ? "offline" : "pending"}</span>
-              </div>
-              <p className="body-copy">{setupLead}</p>
-              <div className="hero-actions">
-                <button className="ghost-button" type="button" onClick={() => setActiveView("connections")}>
-                  {i18n.t("setup.openConnections")}
-                </button>
-                <button className="ghost-button" type="button" onClick={() => setActiveView("settings")}>
-                  {i18n.t("setup.openSettings")}
-                </button>
-                {setupStatus.sidecarOffline ? (
-                  <button className="ghost-button" disabled={actionBusy} onClick={handleRestartSidecar} type="button">
-                    <RefreshCcw size={16} />
-                    {actionBusy ? i18n.t("runtime.restarting") : i18n.t("setup.restartSidecar")}
-                  </button>
-                ) : null}
-                <button
-                  className="ghost-button"
-                  disabled={diagnosticsBusy || runtime.data?.mode !== "tauri" || !diagnosticsEnabled}
-                  onClick={handleExportDiagnostics}
-                  type="button"
-                >
-                  {diagnosticsBusy ? i18n.t("runtime.exporting") : i18n.t("setup.exportDiagnostics")}
-                </button>
-              </div>
-              {diagnosticsDisabledReason ? <p className="panel-note">{diagnosticsDisabledReason}</p> : null}
-              {diagnosticsExport ? <p className="panel-note">{i18n.t("setup.diagnosticsExported")} {diagnosticsExport.exportPath}</p> : null}
-            </section>
-          ) : null}
-
-          {shellActionError ? (
-            <section className="card panel-banner compact">
-              <div className="task-item">
-                <TriangleAlert size={16} />
-                <span>{shellActionError}</span>
-              </div>
-            </section>
-          ) : null}
-
-          {isDashboardView && noKeyDemoReady && demoMode.data ? (
-            <section
-              aria-label={`demo-mode-banner mode=${demoMode.data.mode} missing=${demoMode.data.missing_credentials.length}`}
-              className="card panel-banner compact demo-mode-banner"
-            >
-              <div className="panel-banner-head">
-                <div>
-                  <p className="eyebrow">NO-KEY DEMO</p>
-                  <h3>{language === "zh-CN" ? "无 key 也可以先评估产品" : "Evaluate Pengbo without provider keys"}</h3>
-                </div>
-                <span className="mini-pill accent">sample</span>
-              </div>
-              <p className="body-copy">
-                {language === "zh-CN"
-                  ? "当前启动路径使用本地 seed、sample 和缓存友好的状态展示产品主流程；需要凭证的能力仍会明确显示为 credential_required 或 missing_credentials。"
-                  : "This startup path uses local seed, sample, and cache-friendly states for product evaluation; credential-gated capabilities remain visible as credential_required or missing_credentials."}
-              </p>
-              <div className="demo-mode-grid">
-                <div>
-                  <strong>{language === "zh-CN" ? "可先查看" : "Available now"}</strong>
-                  <span>{demoMode.data.sample_surfaces.slice(0, 5).join(", ")}</span>
-                </div>
-                <div>
-                  <strong>{language === "zh-CN" ? "仍需凭证" : "Still gated"}</strong>
-                  <span>{demoMode.data.credential_gated_surfaces.slice(0, 4).join(", ")}</span>
-                </div>
-              </div>
-              <div className="hero-actions">
-                <button className="primary-button" type="button" onClick={() => setActiveView("dataSources")}>
-                  {language === "zh-CN" ? "查看数据源边界" : "Review data-source boundaries"}
-                  <ArrowRight size={16} />
-                </button>
-                <button className="ghost-button" type="button" onClick={() => setActiveView("portfolio")}>
-                  {language === "zh-CN" ? "查看组合 sample" : "View portfolio sample"}
-                </button>
-              </div>
-            </section>
-          ) : null}
-
-          {activeViewRequiresUnlock && localSecurity.loading && !localSecurity.data ? (
-            <section className="card panel-banner compact">
-              <InlineState label={language === "zh-CN" ? "正在检查本地解锁状态..." : "Checking local unlock state..."} />
-            </section>
-          ) : null}
-
-          {activeViewLocked && localSecurityStatus ? (
-            <LocalUnlockGate
-              status={localSecurityStatus}
-              language={language}
-              viewLabel={i18n.viewLabel(activeView)}
-              busy={localSecurityBusy}
-              onInitialize={handleInitializeLocalSecurity}
-              onUnlock={handleUnlockLocalSecurity}
-              onReset={handleResetLocalSecurity}
-            />
-          ) : null}
-
-          {!activeViewLocked && isDashboardView ? (
-            <section className="hero-panel">
-              <div>
-                <p className="eyebrow">{i18n.t("dashboard.workspaceEyebrow")}</p>
-                <h3>{i18n.t("dashboard.workspaceTitle")}</h3>
-                <p className="hero-copy">{i18n.t("dashboard.workspaceCopy")}</p>
-              </div>
-              <div className="hero-actions">
-                <button className="primary-button" type="button" onClick={() => setActiveView("research")}>
-                  {i18n.t("dashboard.openResearch")}
-                  <ArrowRight size={16} />
-                </button>
-                <button className="ghost-button" type="button" onClick={() => setActiveView("settings")}>
-                  {i18n.t("setup.openSettings")}
-                </button>
-              </div>
-            </section>
-          ) : null}
-
-          {!activeViewLocked && activeView === "dashboard" ? (
-            <DashboardView
-              selectedAsset={selectedAsset}
-              dashboard={dashboard.data}
-              loading={dashboard.loading}
-              error={dashboard.error}
-              onRetry={dashboard.reload}
-              aiControl={aiControl.data}
-              aiSaving={aiControlSaving}
-              aiError={aiControl.error ?? aiControlError}
-              onSaveAIControl={handleSaveAIControl}
-              onOpenResearch={() => setActiveView("research")}
-            />
-          ) : null}
-          {!activeViewLocked && activeView === "commandCenter" ? (
-            <CommandCenterView backendStatus={backendStatus} onGlobalRefresh={reloadEverything} />
-          ) : null}
-          {!activeViewLocked && activeView === "asset" ? (
-            <AssetView
-              asset={asset.data}
-              selectedAsset={selectedAsset}
-              loading={asset.loading}
-              error={asset.error}
-              onRetry={asset.reload}
-            />
-          ) : null}
-          {!activeViewLocked && activeView === "watchlist" ? (
-            <WatchlistView
-              watchlist={dashboard.data?.watchlist ?? []}
-              assetUniverse={assetUniverse.data ?? []}
-              loading={dashboard.loading || assetUniverse.loading}
-              error={dashboard.error ?? assetUniverse.error}
-              onRetry={() => {
-                dashboard.reload();
-                assetUniverse.reload();
-              }}
-              onSelectAsset={(symbol) => {
-                setSelectedAssetId(symbol);
-                setActiveView("asset");
-              }}
-              onWatchlistChange={async (symbols) => {
-                await api.updateDefaultWatchlist(symbols);
-                dashboard.reload();
-                asset.reload();
-              }}
-            />
-          ) : null}
-          {!activeViewLocked && activeView === "research" ? (
-            <ResearchView onGlobalRefresh={reloadEverything} backendStatus={backendStatus} />
-          ) : null}
-          {!activeViewLocked && activeView === "factorLab" ? <FactorLabView backendStatus={backendStatus} /> : null}
-          {!activeViewLocked && activeView === "strategyLab" ? <StrategyLabView backendStatus={backendStatus} /> : null}
-          {!activeViewLocked && activeView === "workflowStudio" ? <WorkflowStudioView backendStatus={backendStatus} /> : null}
-          {!activeViewLocked && activeView === "dataSources" ? <DataSourcesView backendStatus={backendStatus} /> : null}
-          {!activeViewLocked && activeView === "screeners" ? <ScreenersView onGlobalRefresh={reloadEverything} /> : null}
-          {!activeViewLocked && activeView === "manual" ? <ManualView /> : null}
-          {!activeViewLocked && activeView === "portfolio" ? (
-            <PortfolioView
-              assetOptions={dashboard.data?.watchlist ?? []}
-              assetUniverse={assetUniverse.data ?? []}
-              onGlobalRefresh={reloadEverything}
-              backendStatus={backendStatus}
-            />
-          ) : null}
-          {!activeViewLocked && activeView === "connections" ? (
-            <ConnectionsView onRestart={handleRestartSidecar} onGlobalRefresh={reloadEverything} runtime={runtime.data} />
-          ) : null}
-          {!activeViewLocked && activeView === "settings" ? (
-            <SettingsView
-              appRuntime={runtime.data}
-              activeView={activeView}
-              onDefaultViewSaved={setActiveView}
-              onGlobalRefresh={reloadEverything}
-              diagnosticsExport={diagnosticsExport}
-              diagnosticsBusy={diagnosticsBusy}
-              onExportDiagnostics={handleExportDiagnostics}
-            />
-          ) : null}
+        <AppRouteOutlet
+            rootPath={rootPath}
+            backendStatus={backendStatus}
+            localSecurity={localSecurity.data}
+            securityLoading={localSecurity.loading}
+            securityError={localSecurity.error}
+            language={language}
+            securityBusy={localSecurityBusy}
+            onInitialize={handleInitializeLocalSecurity}
+            onUnlock={handleUnlockLocalSecurity}
+            onReset={handleResetLocalSecurity}
+            onRetry={reloadEverything}
+            businessDependencies={routeBusinessDependencies}
+          />
       </AppShell>
       <CommandPalette onGlobalRefresh={reloadEverything} sidecarReady={sidecarReady} />
     </>

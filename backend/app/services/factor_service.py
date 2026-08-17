@@ -376,7 +376,10 @@ class FactorService:
 
     def _score_entry(self, entry: AssetCatalogEntry, family: FactorFamilyKey) -> FactorResult:
         try:
-            workspace = self.asset_service.get_asset_workspace(entry.symbol)
+            workspace = self.asset_service.get_asset_workspace(
+                entry.symbol,
+                cache_only=not bool(getattr(self.asset_service, "explicit_fixture_mode", False)),
+            )
             metrics = self._build_metrics(workspace)
             contributions = self._build_contributions(metrics)
             selected = contributions if family == "composite" else [item for item in contributions if item.family == family]

@@ -154,6 +154,7 @@ class SettingsService:
             [
                 "ai_control_enabled",
                 "ai_control_provider_mode",
+                "ai_control_local_base_url",
                 "ai_control_local_model",
                 "ai_control_cloud_provider",
                 "ai_control_cloud_base_url",
@@ -176,6 +177,7 @@ class SettingsService:
         key_map = {
             "ai_control_enabled": "enabled",
             "ai_control_provider_mode": "provider_mode",
+            "ai_control_local_base_url": "local_base_url",
             "ai_control_local_model": "local_model",
             "ai_control_cloud_provider": "cloud_provider",
             "ai_control_cloud_base_url": "cloud_base_url",
@@ -202,16 +204,17 @@ class SettingsService:
         cloud_base_url = payload.cloud_base_url or (provider.base_url if provider and provider.base_url else None)
         cloud_model = payload.cloud_model or (provider.default_model if provider and provider.default_model else None)
         provider_mode: AIProviderMode = payload.provider_mode if payload.provider_mode != "disabled" else "local"
-        self.sqlite_store.upsert_app_settings(
-            {
-                "ai_control_enabled": payload.enabled,
-                "ai_control_provider_mode": provider_mode,
-                "ai_control_local_model": payload.local_model,
-                "ai_control_cloud_provider": payload.cloud_provider,
-                "ai_control_cloud_base_url": cloud_base_url,
-                "ai_control_cloud_model": cloud_model,
-            }
-        )
+        values = {
+            "ai_control_enabled": payload.enabled,
+            "ai_control_provider_mode": provider_mode,
+            "ai_control_local_model": payload.local_model,
+            "ai_control_cloud_provider": payload.cloud_provider,
+            "ai_control_cloud_base_url": cloud_base_url,
+            "ai_control_cloud_model": cloud_model,
+        }
+        if payload.local_base_url is not None:
+            values["ai_control_local_base_url"] = payload.local_base_url
+        self.sqlite_store.upsert_app_settings(values)
         return self.get_ai_control()
 
     def get_onboarding(self) -> OnboardingState:

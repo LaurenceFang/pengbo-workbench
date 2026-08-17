@@ -1,7 +1,8 @@
 import { Download, ExternalLink, RefreshCcw, Save, ShieldCheck, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DataStatusStrip, InlineState } from "../components/shared";
 import { useAsyncResource } from "../hooks/use-async-resource";
+import { usePengboNavigation } from "../hooks/use-pengbo-navigation";
 import { useI18n } from "../i18n";
 import {
   api,
@@ -18,6 +19,7 @@ import {
 } from "../lib/api";
 import type { BackendStatus } from "../components/shared";
 import { isTauriRuntime } from "../lib/runtime";
+import { useRouteContext } from "../routes/route-context";
 
 const DEFAULT_PROVIDER = "worldbank";
 type MacroSelectOption = { value: string; label: string };
@@ -110,8 +112,23 @@ type AsyncResource<T> = {
   reload: () => void;
 };
 
-export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatus }) {
+export type DataSourcesRouteSection =
+  | "dataSourcesCatalog"
+  | "dataSourceDetail"
+  | "dataSourcePreview"
+  | "dataSourceQuality"
+  | "dataSourcesReport";
+
+export function DataSourcesView({ backendStatus, routeSection }: { backendStatus: BackendStatus; routeSection: DataSourcesRouteSection }) {
   const i18n = useI18n();
+  const { params } = useRouteContext();
+  const { openRoute } = usePengboNavigation();
+  const catalogEnabled = routeSection === "dataSourcesCatalog";
+  const detailEnabled = routeSection === "dataSourceDetail";
+  const previewEnabled = routeSection === "dataSourcePreview";
+  const qualityEnabled = routeSection === "dataSourceQuality";
+  const reportEnabled = routeSection === "dataSourcesReport";
+  const sourceStatusEnabled = catalogEnabled || detailEnabled || previewEnabled || qualityEnabled || reportEnabled;
   const [selectedProvider, setSelectedProvider] = useState(DEFAULT_PROVIDER);
   const [macroProvider, setMacroProvider] = useState("worldbank");
   const [macroSeriesId, setMacroSeriesId] = useState("NY.GDP.MKTP.CD");
@@ -126,21 +143,35 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
   const [credentialBusy, setCredentialBusy] = useState<string | null>(null);
   const [credentialMessage, setCredentialMessage] = useState<string | null>(null);
   const [credentialError, setCredentialError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!params.provider) return;
+    setSelectedProvider(params.provider);
+    if (MACRO_SOURCE_CONFIG[params.provider]) selectMacroProvider(params.provider);
+  }, [params.provider]);
+  const previewKind = MACRO_SOURCE_CONFIG[selectedProvider]
+    ? "macro"
+    : selectedProvider === "tushare"
+      ? "equity"
+      : selectedProvider === "coingecko"
+        ? "crypto"
+        : selectedProvider === "rss_events"
+          ? "news"
+          : "unsupported";
   const macroConfig = MACRO_SOURCE_CONFIG[macroProvider] ?? MACRO_SOURCE_CONFIG.worldbank;
   const macroApiSeriesId = macroConfig.buildSeriesId(macroSeriesId, macroCountry);
   const sourceStatus = useAsyncResource<DataSourceStatusResponse>(async () => api.getDataSourceStatus(), [], {
-    enabled: backendStatus === "online",
+    enabled: backendStatus === "online" && sourceStatusEnabled,
   });
   const catalog = useAsyncResource<ConnectionsCatalogResponse>(async () => api.getConnectionsCatalog(), [], {
-    enabled: backendStatus === "online",
+    enabled: backendStatus === "online" && (catalogEnabled || detailEnabled || reportEnabled),
   });
   const manifests = useAsyncResource<ConnectorManifestResponse>(async () => api.getDataSourceManifests(), [], {
-    enabled: backendStatus === "online",
+    enabled: backendStatus === "online" && detailEnabled,
   });
   const macro = useAsyncResource<MacroSeriesResponse>(
     async () => api.getMacroSeries({ provider: macroProvider, seriesId: macroApiSeriesId, country: macroCountry, limit: 8 }),
     [macroProvider, macroApiSeriesId, macroCountry],
-    { enabled: backendStatus === "online" },
+    { enabled: backendStatus === "online" && previewEnabled && previewKind === "macro" },
   );
   const providerItems = sourceStatus.data?.providers ?? [];
   const coingeckoStatus = providerItems.find((item) => item.provider === "coingecko") ?? null;
@@ -150,17 +181,17 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
   const equityQuote = useAsyncResource<EquityQuoteResponse>(
     async () => api.getEquityQuote({ provider: "tushare", symbol: equitySymbol }),
     [equitySymbol, tushareConfigured],
-    { enabled: backendStatus === "online" && tushareConfigured },
+    { enabled: backendStatus === "online" && previewEnabled && previewKind === "equity" && tushareConfigured },
   );
   const crypto = useAsyncResource<CryptoMarketsResponse>(
     async () => api.getCryptoMarkets({ ids: "bitcoin,ethereum,solana", limit: 3 }),
     [coingeckoConfigured],
-    { enabled: backendStatus === "online" && coingeckoConfigured },
+    { enabled: backendStatus === "online" && previewEnabled && previewKind === "crypto" && coingeckoConfigured },
   );
   const news = useAsyncResource<NewsEventsResponse>(
     async () => api.getNewsEvents({ query: newsQuery, limit: 8 }),
     [newsQuery],
-    { enabled: backendStatus === "online" },
+    { enabled: backendStatus === "online" && previewEnabled && previewKind === "news" },
   );
 
   const selectedStatus = providerItems.find((item) => item.provider === selectedProvider) ?? providerItems[0] ?? null;
@@ -181,12 +212,14 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
 
   async function refreshAll() {
     sourceStatus.reload();
-    catalog.reload();
-    manifests.reload();
-    macro.reload();
-    equityQuote.reload();
-    crypto.reload();
-    news.reload();
+    if (catalogEnabled || detailEnabled || reportEnabled) catalog.reload();
+    if (detailEnabled) manifests.reload();
+    if (previewEnabled) {
+      if (previewKind === "macro") macro.reload();
+      if (previewKind === "equity") equityQuote.reload();
+      if (previewKind === "crypto") crypto.reload();
+      if (previewKind === "news") news.reload();
+    }
   }
 
   async function saveDataSourceCredential(provider: string) {
@@ -269,28 +302,27 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
   }
 
   return (
-    <div className="data-sources-page" aria-label={`data-sources-view providers=${providerItems.length} selected=${selectedProvider}`}>
-      <section className="card data-source-overview">
-        <div className="card-header">
+    <div className="p1-page p1-data-sources-page data-sources-page" aria-label={`data-sources-view providers=${providerItems.length} selected=${selectedProvider} section=${routeSection}`} data-route-id="/markets/data-sources/catalog" data-route-section={routeSection} data-context-inspector="data-source">
+      <header className="p1-page-header data-source-overview">
+        <div>
+          <p className="eyebrow">{i18n.t("dataSources.eyebrow")}</p>
+          <h2>{i18n.t("dataSources.title")}</h2>
+          <p className="p1-page-lede">{i18n.language === "zh-CN" ? "在创建研究前，检查数据覆盖、新鲜度、缓存状态和只读边界。" : "Review provider coverage, freshness, cache state, and read-only boundaries before creating research."}</p>
+        </div>
+        <div className="p1-page-actions">
+          <span className={`p1-status-dot ${backendStatus === "online" ? "is-live" : "is-offline"}`}>{backendStatus}</span>
+          <button className="ghost-button" type="button" onClick={refreshAll}>
+            <RefreshCcw size={16} />
+            {i18n.t("dataSources.refresh")}
+          </button>
+        </div>
+      </header>
+
+      {routeSection === "dataSourcesCatalog" ? <section className="card p1-panel data-source-overview p1-source-overview" data-primary-task={routeSection}>
+        <div className="p1-section-heading">
           <div>
-            <p className="eyebrow">{i18n.t("dataSources.eyebrow")}</p>
-            <h3>{i18n.t("dataSources.title")}</h3>
-          </div>
-          <div className="button-row">
-            <button className="ghost-button" type="button" onClick={refreshAll}>
-              <RefreshCcw size={16} />
-              {i18n.t("dataSources.refresh")}
-            </button>
-            <button
-              aria-label={`data-source-report-export busy=${exportBusy}`}
-              className="ghost-button"
-              type="button"
-              disabled={exportBusy}
-              onClick={() => void exportReport()}
-            >
-              <Download size={16} />
-              {exportBusy ? i18n.t("dataSources.exporting") : i18n.t("dataSources.exportReport")}
-            </button>
+            <p className="eyebrow">{i18n.language === "zh-CN" ? "来源目录" : "Source catalog"}</p>
+            <h3>{i18n.language === "zh-CN" ? "选择一个来源，检查它的数据契约" : "Select a provider to inspect its contract"}</h3>
           </div>
         </div>
         {sourceStatus.error ? <InlineState label={sourceStatus.error} actionLabel="Retry" onAction={sourceStatus.reload} /> : null}
@@ -307,7 +339,10 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
               className={`source-list-item ${selectedProvider === provider.provider ? "active" : ""}`}
               key={provider.provider}
               type="button"
-              onClick={() => setSelectedProvider(provider.provider)}
+              onClick={() => {
+                setSelectedProvider(provider.provider);
+                openRoute(`/markets/data-sources/${encodeURIComponent(provider.provider)}`);
+              }}
             >
               <span>
                 <strong>{provider.label}</strong>
@@ -328,11 +363,10 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
             <Metric label="Credential-gated" value={String(credentialGatedProviderCount)} />
           </div>
         ) : null}
-      </section>
+      </section> : null}
 
-      <div className="data-source-main">
-        <section className="card data-source-detail">
-          <div className="card-header">
+      {routeSection === "dataSourceDetail" ? <section className="card p1-panel data-source-detail p1-source-overview" data-primary-task={routeSection}>
+          <div className="p1-section-heading">
             <div>
               <p className="eyebrow">{i18n.t("dataSources.sourceContract")}</p>
               <h3>{selectedStatus?.label ?? i18n.t("dataSources.selectSource")}</h3>
@@ -392,6 +426,8 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
                     <span>{credentialPrimaryLabel(selectedStatus.provider)}</span>
                     <input
                       aria-label={`data-source-secret provider=${selectedStatus.provider} field=api-key`}
+                      autoComplete="off"
+                      type="password"
                       value={providerApiKey}
                       onChange={(event) => setProviderApiKey(event.target.value)}
                     />
@@ -401,6 +437,8 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
                       <span>CoinGecko pro key (optional)</span>
                       <input
                         aria-label="data-source-secret provider=coingecko field=pro-key"
+                        autoComplete="off"
+                        type="password"
                         value={providerProKey}
                         onChange={(event) => setProviderProKey(event.target.value)}
                       />
@@ -434,16 +472,16 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
               </div>
             ) : null}
           </div>
-        </section>
+      </section> : null}
 
-        <section className="card data-source-preview">
-          <div className="card-header">
+      {routeSection === "dataSourcePreview" ? <section className="card p1-panel data-source-preview p1-source-overview" data-primary-task={routeSection}>
+          <div className="p1-section-heading">
             <div>
               <p className="eyebrow">{i18n.t("dataSources.previewEyebrow")}</p>
               <h3>{i18n.t("dataSources.previewTitle")}</h3>
             </div>
           </div>
-          <div className="form-grid three-up">
+          {previewKind === "macro" ? <><div className="form-grid three-up">
             <label className="field">
               <span>{i18n.t("dataSources.macroProvider")}</span>
               <select value={macroProvider} onChange={(event) => selectMacroProvider(event.target.value)}>
@@ -475,8 +513,8 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
               </select>
             </label>
           </div>
-          <MacroPreview macro={macro} i18n={i18n} />
-          <label className="field">
+          <MacroPreview macro={macro} i18n={i18n} /></> : null}
+          {previewKind === "equity" ? <><label className="field">
             <span>A-share symbol</span>
             <select value={equitySymbol} onChange={(event) => setEquitySymbol(event.target.value)}>
               <option value="600519.SH">600519.SH / Kweichow Moutai</option>
@@ -484,15 +522,66 @@ export function DataSourcesView({ backendStatus }: { backendStatus: BackendStatu
               <option value="300750.SZ">300750.SZ / CATL</option>
             </select>
           </label>
-          <EquityPreview equityQuote={equityQuote} tushareStatus={tushareStatus} i18n={i18n} />
-          <CryptoPreview crypto={crypto} coingeckoStatus={coingeckoStatus} i18n={i18n} />
-          <label className="field">
+          <EquityPreview equityQuote={equityQuote} tushareStatus={tushareStatus} i18n={i18n} /></> : null}
+          {previewKind === "crypto" ? <CryptoPreview crypto={crypto} coingeckoStatus={coingeckoStatus} i18n={i18n} /> : null}
+          {previewKind === "news" ? <><label className="field">
             <span>{i18n.t("dataSources.eventQuery")}</span>
             <input value={newsQuery} onChange={(event) => setNewsQuery(event.target.value)} />
           </label>
-          <NewsPreview news={news} i18n={i18n} />
-        </section>
-      </div>
+          <NewsPreview news={news} i18n={i18n} /></> : null}
+          {previewKind === "unsupported" ? (
+            <InlineState label={`${selectedProvider} does not expose an interactive preview in M1. Review its detail and quality pages instead.`} />
+          ) : null}
+      </section> : null}
+
+      {routeSection === "dataSourceQuality" ? <section className="card p1-panel data-source-quality p1-source-overview" data-primary-task={routeSection}>
+        <div className="p1-section-heading">
+          <div>
+            <p className="eyebrow">{i18n.t("dataSources.freshness")}</p>
+            <h3>{i18n.language === "zh-CN" ? "来源质量与缓存状态" : "Source quality and cache state"}</h3>
+          </div>
+        </div>
+        {sourceStatus.loading && !sourceStatus.data ? <InlineState label={i18n.t("dataSources.waiting")} /> : null}
+        {sourceStatus.error ? <InlineState label={sourceStatus.error} actionLabel="Retry" onAction={sourceStatus.reload} /> : null}
+        <div className="stack-layout">
+          {providerItems.map((provider) => (
+            <article className="data-preview-block" key={provider.provider} aria-label={`data-source-quality provider=${provider.provider} health=${provider.health} freshness=${provider.freshness_state}`}>
+              <div className="p1-section-heading">
+                <div><strong>{provider.label}</strong><p className="source-copy">{provider.provider}</p></div>
+                <span className={`mini-pill ${statusTone(provider.health, provider.stale)}`}>{provider.health}</span>
+              </div>
+              <ProviderStatusPanel status={provider} catalog={catalogMap.get(provider.provider)} i18n={i18n} />
+            </article>
+          ))}
+        </div>
+      </section> : null}
+
+      {routeSection === "dataSourcesReport" ? <section className="card p1-panel data-sources-report p1-source-overview" data-primary-task={routeSection}>
+        <div className="p1-section-heading">
+          <div>
+            <p className="eyebrow">{i18n.t("dataSources.exportReport")}</p>
+            <h3>{i18n.language === "zh-CN" ? "覆盖与新鲜度报告" : "Coverage and freshness report"}</h3>
+          </div>
+          <button
+            aria-label={`data-source-report-export busy=${exportBusy}`}
+            className="primary-button"
+            type="button"
+            disabled={exportBusy}
+            onClick={() => void exportReport()}
+          >
+            <Download size={16} />
+            {exportBusy ? i18n.t("dataSources.exporting") : i18n.t("dataSources.exportReport")}
+          </button>
+        </div>
+        <div className="source-contract-grid" aria-label={`data-source-report-summary providers=${catalogProviders.length} read_only=${readOnlyProviderCount} live_trading=${liveTradingProviderCount} credential_gated=${credentialGatedProviderCount}`}>
+          <Metric label="Catalog providers" value={String(catalogProviders.length)} />
+          <Metric label="Read-only contracts" value={`${readOnlyProviderCount}/${catalogProviders.length}`} />
+          <Metric label="Live trading paths" value={String(liveTradingProviderCount)} />
+          <Metric label="Credential-gated" value={String(credentialGatedProviderCount)} />
+        </div>
+        {exportPath ? <p aria-label="data-source-report-export-path" className="panel-note">{i18n.t("dataSources.exported")}: {exportPath}</p> : null}
+        {exportError ? <InlineState label={`${i18n.t("dataSources.exportFailed")}: ${exportError}`} /> : null}
+      </section> : null}
     </div>
   );
 }
@@ -728,7 +817,13 @@ function CryptoPreview({
     );
   }
   if (crypto.loading) return <InlineState label={i18n.t("dataSources.loadingCrypto")} />;
-  if (crypto.error) return <InlineState label={crypto.error} actionLabel={i18n.t("dataSources.retryCrypto")} onAction={crypto.reload} />;
+  if (crypto.error) {
+    return (
+      <div className="data-preview-block" aria-label="data-source-preview kind=crypto state=error provider=coingecko">
+        <InlineState label={crypto.error} actionLabel={i18n.t("dataSources.retryCrypto")} onAction={crypto.reload} />
+      </div>
+    );
+  }
   if (!crypto.data) return null;
   return (
     <div className="data-preview-block" aria-label={`data-source-preview kind=crypto state=${crypto.data.provenance.freshness_state} provider=${crypto.data.provider}`}>

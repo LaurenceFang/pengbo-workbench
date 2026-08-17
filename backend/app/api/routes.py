@@ -307,15 +307,15 @@ def register_routes(app: FastAPI) -> None:
         return workspace.filings
 
     @app.get("/api/v1/dashboard/overview", response_model=DashboardOverviewResponse)
-    def get_dashboard_overview(request: Request) -> DashboardOverviewResponse:
-        return _container(request).dashboard_service.get_overview()
+    def get_dashboard_overview(request: Request, refresh: bool = Query(False)) -> DashboardOverviewResponse:
+        return _container(request).dashboard_service.get_overview(refresh=refresh)
 
     @app.get("/api/v1/assets/{symbol:path}/workspace")
-    def get_asset_workspace(request: Request, symbol: str):
+    def get_asset_workspace(request: Request, symbol: str, refresh: bool = Query(False)):
         entry = get_asset(symbol)
         if entry is None:
             raise HTTPException(status_code=404, detail="asset not found")
-        return _container(request).asset_service.get_asset_workspace(symbol)
+        return _container(request).asset_service.get_asset_workspace(symbol, refresh=refresh)
 
     @app.get("/api/v1/watchlist/default")
     def get_default_watchlist(request: Request):

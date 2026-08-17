@@ -15,9 +15,9 @@ export function AppShell({ density, theme, contextRailCollapsed, sidebar, toolba
     <div className={`app-shell density-${density} ${contextRailCollapsed ? "context-collapsed" : ""}`} data-theme={theme}>
       <div className="backdrop-orb orb-left" />
       <div className="backdrop-orb orb-right" />
+      {toolbar}
       {sidebar}
       <main className="workspace app-shell-main">
-        {toolbar}
         <div className="workspace-scroll app-shell-workspace">{children}</div>
       </main>
       {contextRail}

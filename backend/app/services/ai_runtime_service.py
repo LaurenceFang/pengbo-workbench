@@ -3,12 +3,15 @@ from __future__ import annotations
 import json
 import time
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
 
 from ..models import AILocalModelInfo, AIRuntimeStatusResponse
 from ..runtime import RuntimeSettings
+
+if TYPE_CHECKING:
+    from .settings_service import SettingsService
 
 
 def _utc_now_iso() -> str:
@@ -16,19 +19,23 @@ def _utc_now_iso() -> str:
 
 
 class AIRuntimeService:
-    def __init__(self, settings: RuntimeSettings) -> None:
+    def __init__(self, settings: RuntimeSettings, settings_service: "SettingsService | None" = None) -> None:
         self.settings = settings
+        self.settings_service = settings_service
         self.session = requests.Session()
 
     def get_status(self, *, write_evidence: bool = False) -> AIRuntimeStatusResponse:
         checked_at = _utc_now_iso()
-        if not self.settings.ai_assistant_enabled:
+        enabled = self._enabled()
+        local_base_url = self._local_base_url()
+        local_model = self._local_model()
+        if not enabled:
             response = AIRuntimeStatusResponse(
                 enabled=False,
                 mode="disabled",
                 local_provider=self.settings.ai_local_provider,
-                local_base_url=self.settings.ai_local_base_url,
-                selected_model=self.settings.ai_local_model,
+                local_base_url=local_base_url,
+                selected_model=local_model,
                 health="disabled",
                 checked_at=checked_at,
                 message="AI assistant features are disabled by default. Enable them explicitly before generation.",
@@ -40,8 +47,8 @@ class AIRuntimeService:
                 enabled=True,
                 mode="local",
                 local_provider=self.settings.ai_local_provider,
-                local_base_url=self.settings.ai_local_base_url,
-                selected_model=self.settings.ai_local_model,
+                local_base_url=local_base_url,
+                selected_model=local_model,
                 health="unavailable",
                 checked_at=checked_at,
                 message=f"Unsupported local AI provider: {self.settings.ai_local_provider}.",
@@ -56,21 +63,24 @@ class AIRuntimeService:
     def _probe_ollama(self, *, write_evidence: bool) -> AIRuntimeStatusResponse:
         checked_at = _utc_now_iso()
         started = time.perf_counter()
+        enabled = self._enabled()
+        local_base_url = self._local_base_url()
+        local_model = self._local_model()
         try:
             response = self.session.get(
-                self.settings.ai_local_base_url.rstrip("/") + "/api/tags",
+                local_base_url + "/api/tags",
                 timeout=max(0.25, self.settings.ai_probe_timeout_seconds),
             )
             response.raise_for_status()
             latency_ms = int((time.perf_counter() - started) * 1000)
             payload = response.json()
             models = self._parse_ollama_models(payload)
-            selected = self.settings.ai_local_model or (models[0].name if models else None)
+            selected = local_model or (models[0].name if models else None)
             result = AIRuntimeStatusResponse(
-                enabled=self.settings.ai_assistant_enabled,
-                mode="local" if self.settings.ai_assistant_enabled else "disabled",
+                enabled=enabled,
+                mode="local" if enabled else "disabled",
                 local_provider="ollama",
-                local_base_url=self.settings.ai_local_base_url,
+                local_base_url=local_base_url,
                 selected_model=selected,
                 health="available" if models else "unavailable",
                 model_count=len(models),
@@ -85,11 +95,11 @@ class AIRuntimeService:
             )
         except requests.Timeout:
             result = AIRuntimeStatusResponse(
-                enabled=self.settings.ai_assistant_enabled,
-                mode="local" if self.settings.ai_assistant_enabled else "disabled",
+                enabled=enabled,
+                mode="local" if enabled else "disabled",
                 local_provider="ollama",
-                local_base_url=self.settings.ai_local_base_url,
-                selected_model=self.settings.ai_local_model,
+                local_base_url=local_base_url,
+                selected_model=local_model,
                 health="timeout",
                 latency_ms=int((time.perf_counter() - started) * 1000),
                 checked_at=checked_at,
@@ -97,17 +107,40 @@ class AIRuntimeService:
             )
         except Exception as error:
             result = AIRuntimeStatusResponse(
-                enabled=self.settings.ai_assistant_enabled,
-                mode="local" if self.settings.ai_assistant_enabled else "disabled",
+                enabled=enabled,
+                mode="local" if enabled else "disabled",
                 local_provider="ollama",
-                local_base_url=self.settings.ai_local_base_url,
-                selected_model=self.settings.ai_local_model,
+                local_base_url=local_base_url,
+                selected_model=local_model,
                 health="error",
                 latency_ms=int((time.perf_counter() - started) * 1000),
                 checked_at=checked_at,
                 message=self._safe_error(error),
             )
         return self._with_evidence(result) if write_evidence else result
+
+    def _ai_control(self):
+        if self.settings_service is None:
+            return None
+        return self.settings_service.get_ai_control()
+
+    def _enabled(self) -> bool:
+        control = self._ai_control()
+        return self.settings.ai_assistant_enabled or bool(
+            control and control.enabled and control.provider_mode == "local"
+        )
+
+    def _local_base_url(self) -> str:
+        control = self._ai_control()
+        if control and control.local_base_url:
+            return control.local_base_url.rstrip("/")
+        return self.settings.ai_local_base_url.rstrip("/")
+
+    def _local_model(self) -> str | None:
+        control = self._ai_control()
+        if control and control.local_model:
+            return control.local_model
+        return self.settings.ai_local_model
 
     def _parse_ollama_models(self, payload: dict[str, Any]) -> list[AILocalModelInfo]:
         models = payload.get("models")

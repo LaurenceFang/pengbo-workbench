@@ -20,6 +20,8 @@ ALLOWED_ORIGINS = {
     "http://localhost:4173",
     "http://127.0.0.1:4175",
     "http://localhost:4175",
+    "http://127.0.0.1:4190",
+    "http://localhost:4190",
     "tauri://localhost",
     "http://tauri.localhost",
     "https://tauri.localhost",

@@ -123,7 +123,8 @@ class FakeAssetService:
             "NVDA": make_workspace("NVDA", price=900.0, step=0.05, pe="65.0x", stale=True),
         }
 
-    def get_asset_workspace(self, symbol: str):
+    def get_asset_workspace(self, symbol: str, *, cache_only: bool = False):
+        del cache_only
         return self.workspaces[symbol]
 
 

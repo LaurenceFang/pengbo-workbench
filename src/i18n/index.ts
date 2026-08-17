@@ -52,6 +52,35 @@ export type TranslationKey =
   | "dashboard.localBackend"
   | "dashboard.providerStatus"
   | "dashboard.researchReady"
+  | "dashboard.signalCount"
+  | "dashboard.researchContext"
+  | "dashboard.nextDecisionTitle"
+  | "dashboard.orient"
+  | "dashboard.orientCopy"
+  | "dashboard.inspect"
+  | "dashboard.inspectCopy"
+  | "dashboard.evidence"
+  | "dashboard.evidenceCopy"
+  | "dashboard.current"
+  | "dashboard.next"
+  | "dashboard.local"
+  | "dashboard.aiControl"
+  | "dashboard.aiAssistant"
+  | "dashboard.aiEnabled"
+  | "dashboard.aiOff"
+  | "dashboard.aiLocal"
+  | "dashboard.aiCloud"
+  | "dashboard.aiEndpoint"
+  | "dashboard.aiModel"
+  | "dashboard.aiLocalNote"
+  | "dashboard.aiProvider"
+  | "dashboard.aiBaseUrl"
+  | "dashboard.aiApiKey"
+  | "dashboard.aiConfigured"
+  | "dashboard.aiMissing"
+  | "dashboard.aiCloudNote"
+  | "dashboard.savingAiSettings"
+  | "dashboard.saveAiSettings"
   | "dashboard.loadingTitle"
   | "dashboard.loadingCopy"
   | "dashboard.errorTitle"
@@ -102,6 +131,9 @@ export type TranslationKey =
   | "dataSources.exported"
   | "dataSources.exportFailed"
   | "dataSources.notFetched"
+  | "dataSources.pageCopy"
+  | "dataSources.sourceCatalog"
+  | "dataSources.sourceCatalogTitle"
   | "asset.loadingTitle"
   | "asset.loadingCopy"
   | "asset.errorTitle"
@@ -126,6 +158,14 @@ export type TranslationKey =
   | "asset.coverageUnsupported"
   | "asset.noFundamentals"
   | "asset.noFilings"
+  | "asset.pageCopy"
+  | "asset.cached"
+  | "asset.observed"
+  | "asset.openResearchBrief"
+  | "asset.createResearchBrief"
+  | "asset.researchLoop"
+  | "asset.startBrief"
+  | "asset.reviewEvidence"
   | "portfolio.asset"
   | "portfolio.assetClass"
   | "portfolio.currency"
@@ -261,7 +301,29 @@ export type TranslationKey =
   | "command.currentScreener"
   | "command.empty"
   | "command.running"
-  | "command.unavailable";
+  | "command.unavailable"
+  | "command.assetEntry"
+  | "command.assetEntryTitle"
+  | "command.recentBriefs"
+  | "command.continueBriefs"
+  | "command.providers"
+  | "command.providerBoundaries"
+  | "command.reportExport"
+  | "command.localMarkdownPacks"
+  | "command.audit"
+  | "command.redactedLocalEvents"
+  | "command.safeChecks"
+  | "command.noSecretReadiness"
+  | "research.pageEyebrow"
+  | "research.buildBrief"
+  | "research.pageCopy"
+  | "research.cached"
+  | "research.local"
+  | "research.ready"
+  | "research.refresh"
+  | "research.loop"
+  | "research.loopTitle"
+  | "research.localOnlyOutput";
 
 type Dictionary = Record<LanguagePreference, Record<TranslationKey, string>>;
 
@@ -527,6 +589,68 @@ const dictionary: Dictionary = {
     "command.empty": "没有命令匹配当前查询。",
     "command.running": "运行中",
     "command.unavailable": "不可用",
+    "dashboard.signalCount": "个信号",
+    "dashboard.researchContext": "研究上下文",
+    "dashboard.nextDecisionTitle": "让下一步决策保持可见",
+    "dashboard.orient": "定位",
+    "dashboard.orientCopy": "市场脉搏和选中资产均已呈现。",
+    "dashboard.inspect": "检查",
+    "dashboard.inspectCopy": "打开资产或命令中心，选择研究目标。",
+    "dashboard.evidence": "证据",
+    "dashboard.evidenceCopy": "研究会保留新鲜度、来源和限制说明。",
+    "dashboard.current": "当前",
+    "dashboard.next": "下一步",
+    "dashboard.local": "本地",
+    "dashboard.aiControl": "AI 控制",
+    "dashboard.aiAssistant": "本地 AI 研究助手",
+    "dashboard.aiEnabled": "已启用",
+    "dashboard.aiOff": "关闭",
+    "dashboard.aiLocal": "本地",
+    "dashboard.aiCloud": "云端",
+    "dashboard.aiEndpoint": "接口",
+    "dashboard.aiModel": "模型",
+    "dashboard.aiLocalNote": "本地模式走 Ollama，不会把研究上下文发到云端。",
+    "dashboard.aiProvider": "供应商",
+    "dashboard.aiBaseUrl": "Base URL",
+    "dashboard.aiApiKey": "API key",
+    "dashboard.aiConfigured": "已配置",
+    "dashboard.aiMissing": "缺失",
+    "dashboard.aiCloudNote": "云端模式只会在研究页逐次确认后发送已脱敏的证据上下文。",
+    "dashboard.savingAiSettings": "保存中...",
+    "dashboard.saveAiSettings": "保存 AI 设置",
+    "dataSources.pageCopy": "在创建研究前，先检查数据源覆盖范围、新鲜度、缓存状态和只读边界。",
+    "dataSources.sourceCatalog": "来源目录",
+    "dataSources.sourceCatalogTitle": "选择数据源以检查其契约",
+    "asset.pageCopy": "在交接到研究前，将行情、覆盖范围和来源上下文集中展示。",
+    "asset.cached": "缓存",
+    "asset.observed": "已观测",
+    "asset.openResearchBrief": "打开研究简报",
+    "asset.createResearchBrief": "创建研究简报",
+    "asset.researchLoop": "研究流程",
+    "asset.startBrief": "从该资产开始简报",
+    "asset.reviewEvidence": "查看证据",
+    "command.assetEntry": "资产入口",
+    "command.assetEntryTitle": "搜索标的并进入研究流",
+    "command.recentBriefs": "最近研究",
+    "command.continueBriefs": "继续已有简报",
+    "command.providers": "数据源",
+    "command.providerBoundaries": "刷新与凭证边界",
+    "command.reportExport": "报告导出",
+    "command.localMarkdownPacks": "本地 Markdown 证据包",
+    "command.audit": "审计",
+    "command.redactedLocalEvents": "脱敏本地事件",
+    "command.safeChecks": "安全检查",
+    "command.noSecretReadiness": "无密钥本地就绪检查",
+    "research.pageEyebrow": "研究",
+    "research.buildBrief": "构建本地证据简报",
+    "research.pageCopy": "搜索、复核、批注并导出有来源意识的研究产品，同时不越过本地安全边界。",
+    "research.cached": "缓存",
+    "research.local": "本地",
+    "research.ready": "就绪",
+    "research.refresh": "刷新",
+    "research.loop": "研究流程",
+    "research.loopTitle": "目标、证据与下一步行动",
+    "research.localOnlyOutput": "仅本地输出",
   },
   "en-US": {
     "app.brandEyebrow": "Pengbo",
@@ -579,6 +703,35 @@ const dictionary: Dictionary = {
     "dashboard.localBackend": "Local API, asset, research, and portfolio surfaces use the real runtime.",
     "dashboard.providerStatus": "Connections exposes EDGAR, Binance, and capability matrix health.",
     "dashboard.researchReady": "Research, factor, strategy, and evidence reports form a traceable chain.",
+    "dashboard.signalCount": "signals",
+    "dashboard.researchContext": "Research context",
+    "dashboard.nextDecisionTitle": "Keep the next decision visible",
+    "dashboard.orient": "Orient",
+    "dashboard.orientCopy": "Market pulse and the selected asset stay visible.",
+    "dashboard.inspect": "Inspect",
+    "dashboard.inspectCopy": "Open Asset or Command Center to choose a research target.",
+    "dashboard.evidence": "Evidence",
+    "dashboard.evidenceCopy": "Research keeps freshness, sources, and limitations visible.",
+    "dashboard.current": "Current",
+    "dashboard.next": "Next",
+    "dashboard.local": "Local",
+    "dashboard.aiControl": "AI control",
+    "dashboard.aiAssistant": "Local AI research assistant",
+    "dashboard.aiEnabled": "Enabled",
+    "dashboard.aiOff": "Off",
+    "dashboard.aiLocal": "Local",
+    "dashboard.aiCloud": "Cloud",
+    "dashboard.aiEndpoint": "Endpoint",
+    "dashboard.aiModel": "Model",
+    "dashboard.aiLocalNote": "Local mode uses Ollama and does not send research context to the cloud.",
+    "dashboard.aiProvider": "Provider",
+    "dashboard.aiBaseUrl": "Base URL",
+    "dashboard.aiApiKey": "API key",
+    "dashboard.aiConfigured": "Configured",
+    "dashboard.aiMissing": "Missing",
+    "dashboard.aiCloudNote": "Cloud mode sends redacted evidence context only after per-research confirmation.",
+    "dashboard.savingAiSettings": "Saving...",
+    "dashboard.saveAiSettings": "Save AI settings",
     "dashboard.loadingTitle": "Loading dashboard",
     "dashboard.loadingCopy": "Fetching market pulse, watchlist, and runtime state from the local service.",
     "dashboard.errorTitle": "Dashboard failed to load",
@@ -629,6 +782,9 @@ const dictionary: Dictionary = {
     "dataSources.exported": "Exported to",
     "dataSources.exportFailed": "Failed to export data source report",
     "dataSources.notFetched": "not fetched",
+    "dataSources.pageCopy": "Check coverage, freshness, cache state, and read-only boundaries before starting research.",
+    "dataSources.sourceCatalog": "Source catalog",
+    "dataSources.sourceCatalogTitle": "Select a source to inspect its contract",
     "asset.loadingTitle": "Loading asset workspace",
     "asset.loadingCopy": "Fetching quotes, history, fundamentals, and filings.",
     "asset.errorTitle": "Asset workspace failed to load",
@@ -653,6 +809,14 @@ const dictionary: Dictionary = {
     "asset.coverageUnsupported": "This coverage is unsupported for the current asset",
     "asset.noFundamentals": "No fundamentals are currently available.",
     "asset.noFilings": "No filings are currently available.",
+    "asset.pageCopy": "Bring quote coverage and source context together before handing off to research.",
+    "asset.cached": "Cached",
+    "asset.observed": "Observed",
+    "asset.openResearchBrief": "Open research brief",
+    "asset.createResearchBrief": "Create research brief",
+    "asset.researchLoop": "Research loop",
+    "asset.startBrief": "Start a brief from this asset",
+    "asset.reviewEvidence": "Review evidence",
     "portfolio.asset": "Asset",
     "portfolio.assetClass": "Class",
     "portfolio.currency": "Currency",
@@ -789,6 +953,28 @@ const dictionary: Dictionary = {
     "command.empty": "No command matches the current query.",
     "command.running": "Running",
     "command.unavailable": "Unavailable",
+    "command.assetEntry": "Asset entry",
+    "command.assetEntryTitle": "Search a symbol and enter the research loop",
+    "command.recentBriefs": "Recent research",
+    "command.continueBriefs": "Continue existing briefs",
+    "command.providers": "Data sources",
+    "command.providerBoundaries": "Refresh and credential boundaries",
+    "command.reportExport": "Report export",
+    "command.localMarkdownPacks": "Local Markdown evidence packs",
+    "command.audit": "Audit",
+    "command.redactedLocalEvents": "Redacted local events",
+    "command.safeChecks": "Safety checks",
+    "command.noSecretReadiness": "No-key local readiness check",
+    "research.pageEyebrow": "Research",
+    "research.buildBrief": "Build a local evidence brief",
+    "research.pageCopy": "Search, review, annotate, and export a source-aware research product without crossing the local security boundary.",
+    "research.cached": "Cached",
+    "research.local": "Local",
+    "research.ready": "Ready",
+    "research.refresh": "Refresh",
+    "research.loop": "Research loop",
+    "research.loopTitle": "Target, evidence, and next action",
+    "research.localOnlyOutput": "Local-only output",
   },
 };
 

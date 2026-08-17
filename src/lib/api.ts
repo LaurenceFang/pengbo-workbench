@@ -1499,6 +1499,21 @@ export type AICloudProviderDefinition = {
   notes: string[];
 };
 
+export type AIRuntimeStatusResponse = {
+  enabled: boolean;
+  mode: "disabled" | "local" | "cloud";
+  local_provider: string;
+  local_base_url: string;
+  selected_model: string | null;
+  health: "disabled" | "available" | "unavailable" | "timeout" | "error";
+  model_count: number;
+  models: Array<{ name: string; size_bytes: number | null; modified_at: string | null }>;
+  latency_ms: number | null;
+  checked_at: string;
+  message: string;
+  evidence_path: string | null;
+};
+
 export type AIControlPreferences = {
   enabled: boolean;
   provider_mode: "local" | "cloud";
@@ -1516,6 +1531,7 @@ export type AIControlPreferences = {
 export type UpdateAIControlPreferencesRequest = {
   enabled: boolean;
   provider_mode: "local" | "cloud";
+  local_base_url?: string | null;
   local_model?: string | null;
   cloud_provider: AICloudProviderKey;
   cloud_base_url?: string | null;
@@ -1573,6 +1589,7 @@ export type RoutePermissionClassification = {
 };
 
 let localAuthSession: LocalAuthSession | null = null;
+let localAuthSessionPromise: Promise<LocalAuthSession> | null = null;
 
 async function getApiBaseUrl(): Promise<string> {
   const runtime = await getRuntimeConfig();
@@ -1623,6 +1640,7 @@ function needsLocalAuthSession(path: string): boolean {
   return !(
     path === "/health" ||
     path === "/security/session" ||
+    path.startsWith("/security/local/") ||
     path.startsWith("/security/route-classification")
   );
 }
@@ -1632,20 +1650,32 @@ async function ensureLocalAuthSession(runtime: RuntimeConfig): Promise<LocalAuth
     return localAuthSession;
   }
 
-  const response = await performApiRequest(
-    "/security/session",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-    },
-    runtime,
-  );
-  if (!response.ok) {
-    throw new Error(`Local auth session failed: ${response.status}`);
+  if (localAuthSessionPromise) {
+    return localAuthSessionPromise;
   }
-  localAuthSession = (await response.json()) as LocalAuthSession;
-  return localAuthSession;
+
+  localAuthSessionPromise = (async () => {
+    const response = await performApiRequest(
+      "/security/session",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      },
+      runtime,
+    );
+    if (!response.ok) {
+      throw new Error(`Local auth session failed: ${response.status}`);
+    }
+    localAuthSession = (await response.json()) as LocalAuthSession;
+    return localAuthSession;
+  })();
+
+  try {
+    return await localAuthSessionPromise;
+  } finally {
+    localAuthSessionPromise = null;
+  }
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -1739,9 +1769,10 @@ export const api = {
   getRoutePermissionClassification: () =>
     apiFetch<RoutePermissionClassification[]>("/security/route-classification"),
   searchAssets: (query: string) => apiFetch<AssetSearchResult[]>(`/search/assets?q=${encodeURIComponent(query)}`),
-  getDashboardOverview: () => apiFetch<DashboardOverviewResponse>("/dashboard/overview"),
-  getAssetWorkspace: (symbol: string) =>
-    apiFetch<AssetWorkspaceResponse>(`/assets/${encodeURIComponent(symbol)}/workspace`),
+  getDashboardOverview: (options: { refresh?: boolean } = {}) =>
+    apiFetch<DashboardOverviewResponse>(`/dashboard/overview${options.refresh ? "?refresh=true" : ""}`),
+  getAssetWorkspace: (symbol: string, options: { refresh?: boolean } = {}) =>
+    apiFetch<AssetWorkspaceResponse>(`/assets/${encodeURIComponent(symbol)}/workspace${options.refresh ? "?refresh=true" : ""}`),
   getPriceHistory: (symbol: string, interval: PriceHistoryInterval = "30m", range = "1y") =>
     apiFetch<PricePoint[]>(
       `/prices/history?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}&range=${encodeURIComponent(range)}`,
@@ -1752,6 +1783,8 @@ export const api = {
   getAIControlPreferences: () => apiFetch<AIControlPreferences>("/settings/ai-control"),
   updateAIControlPreferences: (payload: UpdateAIControlPreferencesRequest) =>
     jsonRequest<AIControlPreferences>("/settings/ai-control", "PUT", payload),
+  getAIRuntimeStatus: () => apiFetch<AIRuntimeStatusResponse>("/ai/runtime/status"),
+  probeAIRuntime: () => jsonRequest<AIRuntimeStatusResponse>("/ai/runtime/probe", "POST"),
   getDefaultWatchlist: () => apiFetch<{ symbols: string[] }>("/watchlist/default"),
   updateDefaultWatchlist: (symbols: string[]) =>
     jsonRequest<{ symbols: string[] }>("/watchlist/default", "PUT", { symbols }),

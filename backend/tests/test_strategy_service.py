@@ -54,7 +54,8 @@ class FakeAssetService:
             "SPY": make_workspace("SPY", price=510.0, step=0.11, pe="24.0x"),
         }
 
-    def get_asset_workspace(self, symbol: str):
+    def get_asset_workspace(self, symbol: str, *, cache_only: bool = False):
+        del cache_only
         return self.workspaces[symbol]
 
 

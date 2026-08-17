@@ -12,6 +12,7 @@ import {
   type DataStatusItem,
 } from "../components/shared";
 import { useAsyncResource } from "../hooks/use-async-resource";
+import { usePengboNavigation } from "../hooks/use-pengbo-navigation";
 import {
   api,
   type AssetSearchResult,
@@ -27,42 +28,66 @@ import {
   type PortfolioProvenanceItem,
 } from "../lib/api";
 import { useAppStore } from "../store/app-store";
+import { useI18n } from "../i18n";
 
-type BriefPanelKey = "summary" | "fundamentals" | "filings";
+export type ResearchRouteSection =
+  | "researchInbox"
+  | "researchDecision"
+  | "researchAssetData"
+  | "researchAnalysis"
+  | "researchEvidence"
+  | "researchAssistant"
+  | "researchNotes"
+  | "researchExport";
+
+function localizeResearchError(error: string, language: "zh-CN" | "en-US"): string {
+  if (language === "zh-CN" && /403|auth session|forbidden/i.test(error)) {
+    return "本地会话未解锁或服务拒绝（403），请重试。";
+  }
+  return error;
+}
 
 export function ResearchView({
   onGlobalRefresh,
   backendStatus,
+  routeSection,
 }: {
   onGlobalRefresh: () => Promise<void>;
   backendStatus: BackendStatus;
+  routeSection?: ResearchRouteSection;
 }) {
   const sidecarReady = backendStatus === "online";
+  const i18n = useI18n();
   const activeView = useAppStore((state) => state.activeView);
   const selectedAssetId = useAppStore((state) => state.selectedAssetId);
   const selectedResearchBriefId = useAppStore((state) => state.selectedResearchBriefId);
   const pendingResearchSource = useAppStore((state) => state.pendingResearchSource);
-  const setActiveView = useAppStore((state) => state.setActiveView);
+  const { openView: setActiveView } = usePengboNavigation();
   const setSelectedAssetId = useAppStore((state) => state.setSelectedAssetId);
   const setSelectedResearchBriefId = useAppStore((state) => state.setSelectedResearchBriefId);
   const setPendingResearchSource = useAppStore((state) => state.setPendingResearchSource);
   const setPortfolioHandoffDraft = useAppStore((state) => state.setPortfolioHandoffDraft);
 
-  const recents = useAsyncResource<ResearchBriefListItem[]>(async () => api.getRecentResearchBriefs(30), [], {
-    enabled: sidecarReady,
+  const recents = useAsyncResource<ResearchBriefListItem[]>(async () => api.getRecentResearchBriefs(30), [routeSection], {
+    enabled: sidecarReady && (routeSection === undefined || routeSection === "researchInbox"),
   });
   const assistantTemplates = useAsyncResource<AIPromptTemplateDefinition[]>(
     async () => api.getResearchAssistantTemplates(),
     [],
-    { enabled: sidecarReady },
+    { enabled: sidecarReady && (routeSection === undefined || routeSection === "researchAssistant") },
   );
-  const aiCloudStatus = useAsyncResource<AICloudStatusResponse>(async () => api.getAICloudStatus(), [], {
-    enabled: sidecarReady,
+  const aiCloudStatus = useAsyncResource<AICloudStatusResponse>(async () => api.getAICloudStatus(), [routeSection], {
+    enabled: sidecarReady && (routeSection === undefined || routeSection === "researchAssistant"),
   });
   const brief = useAsyncResource<ResearchBrief | null>(
     async () => (selectedResearchBriefId ? api.getResearchBrief(selectedResearchBriefId) : null),
     [selectedResearchBriefId],
-    { enabled: sidecarReady && selectedResearchBriefId !== null },
+    {
+      enabled:
+        sidecarReady &&
+        selectedResearchBriefId !== null &&
+        (routeSection === undefined || routeSection !== "researchInbox"),
+    },
   );
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -78,11 +103,11 @@ export function ResearchView({
   const [assistantPreview, setAssistantPreview] = useState<AIContextPreviewResponse | null>(null);
   const [assistantOutput, setAssistantOutput] = useState<AIAssistantGenerateResponse | null>(null);
   const [assistantTemplateKey, setAssistantTemplateKey] = useState<AIPromptTemplateKey>("research_summary");
+  const researchSearchRef = useRef<HTMLInputElement>(null);
   const [assistantProviderMode, setAssistantProviderMode] = useState<"local" | "cloud">("local");
   const [cloudOptInConfirmed, setCloudOptInConfirmed] = useState(false);
   const [assistantBusy, setAssistantBusy] = useState<"preview" | "generate" | "notes" | null>(null);
   const [assistantError, setAssistantError] = useState<string | null>(null);
-  const [briefPanel, setBriefPanel] = useState<BriefPanelKey>("summary");
   const autoOpeningRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -102,6 +127,10 @@ export function ResearchView({
   }
 
   async function refreshActiveBrief() {
+    if (routeSection === "researchInbox") {
+      await reloadResearch();
+      return;
+    }
     if (!brief.data) {
       await reloadResearch();
       return;
@@ -110,10 +139,10 @@ export function ResearchView({
     setActionMessage(null);
     try {
       await api.refreshResearchBrief(brief.data.brief_id);
-      setActionMessage("Research brief refreshed from current provider state.");
+      setActionMessage(i18n.language === "zh-CN" ? "研究简报已根据当前数据源状态刷新。" : "Research brief refreshed from current provider state.");
       await reloadResearch();
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Failed to refresh research brief");
+      setActionError(error instanceof Error ? error.message : i18n.language === "zh-CN" ? "刷新研究简报失败" : "Failed to refresh research brief");
     }
   }
 
@@ -159,7 +188,13 @@ export function ResearchView({
   }
 
   useEffect(() => {
-    if (!sidecarReady || activeView !== "research" || !selectedAssetId || recents.loading) {
+    if (
+      !sidecarReady ||
+      activeView !== "research" ||
+      (routeSection !== undefined && routeSection !== "researchInbox") ||
+      !selectedAssetId ||
+      recents.loading
+    ) {
       return;
     }
     if (autoOpeningRef.current === selectedAssetId) {
@@ -181,6 +216,7 @@ export function ResearchView({
     pendingResearchSource,
     recents.data,
     recents.loading,
+    routeSection,
     selectedAssetId,
     setPendingResearchSource,
     sidecarReady,
@@ -198,7 +234,7 @@ export function ResearchView({
       const results = await api.searchAssets(searchTerm.trim());
       setSearchResults(results.slice(0, 8));
     } catch (error) {
-      setSearchError(error instanceof Error ? error.message : "Search failed");
+      setSearchError(error instanceof Error ? error.message : i18n.language === "zh-CN" ? "搜索失败" : "Search failed");
     } finally {
       setSearchBusy(false);
     }
@@ -212,10 +248,10 @@ export function ResearchView({
     setActionError(null);
     try {
       await api.updateResearchBriefNotes(brief.data.brief_id, notesDraft);
-      setActionMessage("Research notes saved.");
+      setActionMessage(i18n.language === "zh-CN" ? "研究笔记已保存。" : "Research notes saved.");
       await reloadResearch();
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Failed to save notes");
+      setActionError(error instanceof Error ? error.message : i18n.language === "zh-CN" ? "保存笔记失败" : "Failed to save notes");
     } finally {
       setNotesBusy(false);
     }
@@ -231,10 +267,10 @@ export function ResearchView({
       const current = await api.getDefaultWatchlist();
       const symbols = Array.from(new Set([...current.symbols, brief.data.symbol]));
       await api.updateDefaultWatchlist(symbols);
-      setActionMessage(`${brief.data.symbol} added to the default watchlist.`);
+      setActionMessage(i18n.language === "zh-CN" ? `${brief.data.symbol} 已加入默认自选列表。` : `${brief.data.symbol} added to the default watchlist.`);
       await onGlobalRefresh();
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Failed to update watchlist");
+      setActionError(error instanceof Error ? error.message : i18n.language === "zh-CN" ? "更新自选列表失败" : "Failed to update watchlist");
     } finally {
       setWatchlistBusy(false);
     }
@@ -256,10 +292,10 @@ export function ResearchView({
     setActionError(null);
     try {
       const result = await api.exportResearchBrief(brief.data.brief_id);
-      setActionMessage(`Exported to ${result.export_path}`);
+      setActionMessage(i18n.language === "zh-CN" ? `已导出至 ${result.export_path}` : `Exported to ${result.export_path}`);
       await reloadResearch();
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Failed to export research brief");
+      setActionError(error instanceof Error ? error.message : i18n.language === "zh-CN" ? "导出研究简报失败" : "Failed to export research brief");
     } finally {
       setExportBusy(false);
     }
@@ -275,7 +311,7 @@ export function ResearchView({
       const preview = await api.getResearchAssistantContextPreview(brief.data.brief_id);
       setAssistantPreview(preview);
     } catch (error) {
-      setAssistantError(error instanceof Error ? error.message : "Failed to preview assistant context");
+      setAssistantError(error instanceof Error ? error.message : i18n.language === "zh-CN" ? "预览助手上下文失败" : "Failed to preview assistant context");
     } finally {
       setAssistantBusy(null);
     }
@@ -303,7 +339,7 @@ export function ResearchView({
       });
       setAssistantOutput(result);
     } catch (error) {
-      setAssistantError(error instanceof Error ? error.message : "Failed to generate assistant draft");
+      setAssistantError(error instanceof Error ? error.message : i18n.language === "zh-CN" ? "生成助手草稿失败" : "Failed to generate assistant draft");
     } finally {
       setAssistantBusy(null);
     }
@@ -319,57 +355,85 @@ export function ResearchView({
       const nextNotes = [notesDraft.trim(), assistantOutput.output_markdown.trim()].filter(Boolean).join("\n\n");
       await api.updateResearchBriefNotes(brief.data.brief_id, nextNotes);
       setNotesDraft(nextNotes);
-      setActionMessage("Assistant draft saved to research notes.");
+      setActionMessage(i18n.language === "zh-CN" ? "助手草稿已保存到研究笔记。" : "Assistant draft saved to research notes.");
       await reloadResearch();
     } catch (error) {
-      setAssistantError(error instanceof Error ? error.message : "Failed to save assistant draft");
+      setAssistantError(error instanceof Error ? error.message : i18n.language === "zh-CN" ? "保存助手草稿失败" : "Failed to save assistant draft");
     } finally {
       setAssistantBusy(null);
     }
   }
 
-  const activeBrief = brief.data;
+  const activeBrief = routeSection === "researchInbox" ? null : brief.data;
   const matchedSummaries = useMemo(
     () => activeBrief?.screener_context.summaries.filter((item) => item.matched) ?? [],
     [activeBrief?.screener_context.summaries],
   );
+  const showInbox = routeSection === undefined || routeSection === "researchInbox";
+  const showDecision = routeSection === undefined || routeSection === "researchDecision";
+  const showAssetData = routeSection === undefined || routeSection === "researchAssetData";
+  const showAnalysis = routeSection === undefined || routeSection === "researchAnalysis";
+  const showEvidence = routeSection === undefined || routeSection === "researchEvidence";
+  const showAssistant = routeSection === undefined || routeSection === "researchAssistant";
+  const showNotes = routeSection === undefined || routeSection === "researchNotes";
+  const showExport = routeSection === undefined || routeSection === "researchExport";
 
   if (!sidecarReady) {
     return (
       <PanelState
-        title="Research workspace is waiting for the local sidecar"
-        copy="Once the desktop runtime is healthy again, recent briefs, notes, and exports will become available."
+        title={i18n.language === "zh-CN" ? "研究工作区正在等待本地服务" : "Research workspace is waiting for the local sidecar"}
+        copy={i18n.language === "zh-CN" ? "桌面运行时恢复后，最近简报、笔记和导出功能将重新可用。" : "Once the desktop runtime is healthy again, recent briefs, notes, and exports will become available."}
       />
     );
   }
 
   return (
-    <div className="stack-layout">
-      <section className="card">
-        <div className="card-header">
-          <div>
-            <p className="eyebrow">Research</p>
-            <h3>Single-symbol workspace with saved notes, screener context, and export</h3>
-          </div>
+    <div className="p1-page p1-research-page stack-layout" data-route-id={activeBrief ? "/research/briefs/:briefId/decision" : "/research/inbox"} data-context-inspector="research">
+      <header className="p1-page-header p1-research-header">
+        <div>
+          <p className="eyebrow">{i18n.language === "zh-CN" ? "研究" : "Research"}</p>
+          <h2>{activeBrief ? `${activeBrief.symbol} ${i18n.language === "zh-CN" ? "研究简报" : "research brief"}` : (i18n.language === "zh-CN" ? "构建本地证据简报" : "Build a local evidence brief")}</h2>
+          <p className="p1-page-lede">{i18n.language === "zh-CN" ? "搜索、审阅、批注并导出带来源的研究成果，不越过本地安全边界。" : "Search, review, annotate, and export a source-aware research product without crossing the local security boundary."}</p>
+        </div>
+        <div className="p1-page-actions">
+          <span className={`p1-status-dot ${activeBrief?.stale ? "is-cached" : "is-live"}`}>{activeBrief ? (activeBrief.stale ? "cached" : "local") : "ready"}</span>
           <button aria-label="research-refresh" className="ghost-button" onClick={() => void refreshActiveBrief()} type="button">
             <RefreshCcw size={16} />
-            Refresh
+            {i18n.language === "zh-CN" ? "刷新" : "Refresh"}
           </button>
         </div>
+      </header>
 
-        <div className="research-workspace">
-          <div className="research-column">
-            <div className="research-panel">
+      <section
+        className={`card p1-panel p1-research-shell ${activeBrief ? "has-brief" : "is-empty"}`}
+        data-research-section={routeSection ?? "legacy"}
+      >
+        <div className="p1-section-heading">
+          <div>
+            <p className="eyebrow">{i18n.language === "zh-CN" ? "研究闭环" : "Research loop"}</p>
+            <h3>{i18n.language === "zh-CN" ? "目标、证据与下一步行动" : "Target, evidence, and next action"}</h3>
+          </div>
+          <span className="mini-pill">{i18n.language === "zh-CN" ? "仅本地输出" : "Local-only output"}</span>
+        </div>
+
+        <div
+          className="research-workspace p1-research-layout"
+          style={routeSection ? { gridTemplateColumns: "minmax(0, 1fr)", height: "auto", minHeight: 0 } : undefined}
+        >
+          {showInbox ? (
+          <section className="research-column p1-research-nav-column" data-primary-task="researchInbox">
+            <div className="research-panel p1-panel p1-research-nav">
               <div className="screeners-column-head">
                 <div>
-                  <p className="eyebrow">Search</p>
-                  <strong>Open or create a brief</strong>
+                  <p className="eyebrow">{i18n.language === "zh-CN" ? "搜索" : "Search"}</p>
+                  <strong>{i18n.language === "zh-CN" ? "打开或创建简报" : "Open or create a brief"}</strong>
                 </div>
               </div>
               <div className="search-box research-search-box">
                 <FileSearch size={16} />
                 <input
                   aria-label="research-search"
+                  ref={researchSearchRef}
                   placeholder="Search AAPL / BTC/USDT / NVDA"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
@@ -380,11 +444,11 @@ export function ResearchView({
                   }}
                 />
                 <button className="ghost-button" onClick={() => void runSearch()} type="button">
-                  Search
+                  {i18n.language === "zh-CN" ? "搜索" : "Search"}
                 </button>
               </div>
               {searchBusy ? <InlineState label="Searching assets..." /> : null}
-              {searchError ? <InlineState label={searchError} /> : null}
+              {searchError ? <InlineState label={localizeResearchError(searchError, i18n.language)} /> : null}
               <div className="research-list">
                 {searchResults.map((item) => (
                   <button
@@ -404,16 +468,16 @@ export function ResearchView({
               </div>
             </div>
 
-            <div className="research-panel">
+            <div className="research-panel p1-panel p1-research-nav">
               <div className="screeners-column-head">
                 <div>
-                  <p className="eyebrow">Recent</p>
-                  <strong>Saved briefs</strong>
+                  <p className="eyebrow">{i18n.language === "zh-CN" ? "最近" : "Recent"}</p>
+                  <strong>{i18n.language === "zh-CN" ? "已保存简报" : "Saved briefs"}</strong>
                 </div>
                 <span className="mini-pill">{recents.data?.length ?? 0}</span>
               </div>
-              {recents.loading && !recents.data ? <InlineState label="Loading recent briefs..." /> : null}
-              {recents.error ? <InlineState label={recents.error} actionLabel="Retry" onAction={recents.reload} /> : null}
+              {recents.loading && !recents.data ? <InlineState label={i18n.language === "zh-CN" ? "正在加载最近简报…" : "Loading recent briefs..."} /> : null}
+              {recents.error ? <InlineState label={localizeResearchError(recents.error, i18n.language)} actionLabel={i18n.language === "zh-CN" ? "重试" : "Retry"} onAction={recents.reload} /> : null}
               <div className="research-list">
                 {(recents.data ?? []).map((item) => (
                   <button
@@ -436,18 +500,23 @@ export function ResearchView({
                 ))}
               </div>
             </div>
-          </div>
+          </section>
+          ) : null}
 
+          {(routeSection === undefined || showDecision || showAssetData || showAnalysis || showEvidence) ? (
           <div className="research-column">
             {activeBrief ? (
               <>
+                {(showDecision || showAssetData) ? (
                 <section
-                  className="research-panel"
+                  className="research-panel p1-panel p1-research-brief"
                   aria-label={`research-brief id=${activeBrief.brief_id} symbol=${activeBrief.symbol} fundamentals=${activeBrief.asset_snapshot.capabilities.fundamentals_status} filings=${activeBrief.asset_snapshot.capabilities.filings_status}`}
                 >
+                  {showAssetData ? (
+                  <section data-primary-task="researchAssetData">
                   <div className="card-header">
                     <div>
-                      <p className="eyebrow">Brief</p>
+                      <p className="eyebrow">{i18n.language === "zh-CN" ? "简报" : "Brief"}</p>
                       <h3>
                         {activeBrief.asset_snapshot.asset.name}
                         <span className="inline-symbol">{activeBrief.symbol}</span>
@@ -460,6 +529,10 @@ export function ResearchView({
                     items={researchStatusItems(activeBrief)}
                     note="Research evidence stays local; credential-gated fields remain visibly marked and live execution stays behind explicit Binance gates."
                   />
+                  </section>
+                  ) : null}
+                  {showDecision ? (
+                  <section data-primary-task="researchDecision">
                   <DecisionReviewPanel brief={activeBrief} />
                   <div className="metric-grid">
                     <MetricCard
@@ -481,33 +554,17 @@ export function ResearchView({
                       value={activeBrief.portfolio_context.in_portfolio ? "Held" : "Not held"}
                     />
                   </div>
-                  <div className="segmented-control research-brief-tabs" aria-label="research-brief-subwindows">
-                    {[
-                      { key: "summary" as const, label: "Summary" },
-                      { key: "fundamentals" as const, label: "Fundamentals" },
-                      { key: "filings" as const, label: "Filings" },
-                    ].map((item) => (
-                      <button
-                        className={briefPanel === item.key ? "active" : ""}
-                        key={item.key}
-                        onClick={() => setBriefPanel(item.key)}
-                        type="button"
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
+                  </section>
+                  ) : null}
+                  {showAssetData ? (
                   <div className="research-brief-subwindow">
-                    {briefPanel === "summary" ? (
-                      activeBrief.asset_snapshot.overview ? (
+                    {activeBrief.asset_snapshot.overview ? (
                         <div className="research-copy research-scroll-copy">
                           <p>{activeBrief.asset_snapshot.overview.summary}</p>
                         </div>
                       ) : activeBrief.asset_snapshot.capabilities.fundamentals_message ? (
                         <InlineState label={activeBrief.asset_snapshot.capabilities.fundamentals_message} />
-                      ) : null
-                    ) : null}
-                    {briefPanel === "fundamentals" ? (
+                      ) : null}
                       <>
                         <p
                           aria-label={`research-capability brief=${activeBrief.brief_id} symbol=${activeBrief.symbol} capability=fundamentals status=${activeBrief.asset_snapshot.capabilities.fundamentals_status}`}
@@ -529,8 +586,6 @@ export function ResearchView({
                           ))}
                         </div>
                       </>
-                    ) : null}
-                    {briefPanel === "filings" ? (
                       <>
                         <p
                           aria-label={`research-capability brief=${activeBrief.brief_id} symbol=${activeBrief.symbol} capability=filings status=${activeBrief.asset_snapshot.capabilities.filings_status}`}
@@ -556,35 +611,43 @@ export function ResearchView({
                           <InlineState label={activeBrief.asset_snapshot.capabilities.filings_message ?? "No filings available."} />
                         )}
                       </>
-                    ) : null}
                   </div>
+                  ) : null}
                 </section>
+                ) : null}
 
-                <section className="research-panel">
+                {showAnalysis ? (
+                <section className="research-panel p1-panel" data-primary-task="researchAnalysis">
                   <div className="card-header">
                     <div>
-                      <p className="eyebrow">Analysis</p>
-                      <h3>Structured research modules</h3>
+                      <p className="eyebrow">{i18n.language === "zh-CN" ? "分析" : "Analysis"}</p>
+                      <h3>{i18n.language === "zh-CN" ? "结构化研究模块" : "Structured research modules"}</h3>
                     </div>
                   </div>
                   <AnalysisModuleList modules={activeBrief.analysis_modules} />
                 </section>
+                ) : null}
 
-                {activeBrief.evidence_context ? (
-                  <EvidenceChainPanel evidence={activeBrief.evidence_context} briefId={activeBrief.brief_id} />
+                {showEvidence ? (
+                  <section data-primary-task="researchEvidence">
+                    {activeBrief.evidence_context ? (
+                      <EvidenceChainPanel evidence={activeBrief.evidence_context} briefId={activeBrief.brief_id} />
+                    ) : (
+                      <PanelState title="Evidence chain is not available" copy="Link a research artifact to this brief to build the evidence chain." />
+                    )}
+                  </section>
                 ) : null}
               </>
-            ) : (
-              <PanelState
-                title="No research brief is open yet"
-                copy="Search for a symbol or open one of the recent briefs to start the workspace."
-              />
-            )}
+            ) : null}
           </div>
+          ) : null}
 
+          {(routeSection === undefined || showAssistant || showNotes || showExport) ? (
           <div className="research-column">
             {activeBrief ? (
               <>
+                {showAssistant ? (
+                <section data-primary-task="researchAssistant">
                 <AssistantPanel
                   brief={activeBrief}
                   busy={assistantBusy}
@@ -610,16 +673,21 @@ export function ResearchView({
                     setAssistantOutput(null);
                   }}
                 />
-                <section className="research-panel">
+                </section>
+                ) : null}
+                {(showNotes || showExport) ? (
+                <section className="research-panel p1-panel">
                   <div className="card-header">
                     <div>
-                      <p className="eyebrow">Actions</p>
-                      <h3>Notes, watchlist, portfolio handoff, export</h3>
+                      <p className="eyebrow">{i18n.language === "zh-CN" ? "操作" : "Actions"}</p>
+                      <h3>{showNotes ? (i18n.language === "zh-CN" ? "笔记、自选与组合交接" : "Notes, watchlist, and portfolio handoff") : (i18n.language === "zh-CN" ? "导出报告" : "Export report")}</h3>
                     </div>
                   </div>
+                  {showNotes ? (
+                  <section data-primary-task="researchNotes">
                   <div className="form-grid">
                     <label className="field">
-                      <span>Notes</span>
+                      <span>{i18n.language === "zh-CN" ? "笔记" : "Notes"}</span>
                       <textarea
                         aria-label={`research-notes brief=${activeBrief.brief_id}`}
                         rows={12}
@@ -636,7 +704,7 @@ export function ResearchView({
                       onClick={() => void handleSaveNotes()}
                       type="button"
                     >
-                      {notesBusy ? "Saving..." : "Save notes"}
+                      {notesBusy ? (i18n.language === "zh-CN" ? "保存中…" : "Saving...") : (i18n.language === "zh-CN" ? "保存笔记" : "Save notes")}
                     </button>
                     <button
                       aria-label={`research-watchlist symbol=${activeBrief.symbol}`}
@@ -656,9 +724,14 @@ export function ResearchView({
                     >
                       Open portfolio handoff
                     </button>
+                  </div>
+                  </section>
+                  ) : null}
+                  {showExport ? (
+                  <section data-primary-task="researchExport">
                     <button
                       aria-label={`research-export brief=${activeBrief.brief_id} symbol=${activeBrief.symbol} fundamentals=${activeBrief.asset_snapshot.capabilities.fundamentals_status} filings=${activeBrief.asset_snapshot.capabilities.filings_status}`}
-                      className="ghost-button"
+                      className="primary-button"
                       disabled={exportBusy}
                       onClick={() => void handleExport()}
                       type="button"
@@ -666,18 +739,29 @@ export function ResearchView({
                       <Download size={16} />
                       {exportBusy ? "Exporting..." : "Export Markdown"}
                     </button>
-                  </div>
                   {activeBrief.export_info.last_export_path ? (
                     <p aria-label={`research-export-path brief=${activeBrief.brief_id}`} className="panel-note">
                       Last export: {activeBrief.export_info.last_export_path}
                     </p>
                   ) : null}
+                  </section>
+                  ) : null}
                   {actionMessage ? <InlineState label={actionMessage} /> : null}
                   {actionError ? <InlineState label={actionError} /> : null}
                 </section>
+                ) : null}
               </>
             ) : null}
           </div>
+          ) : null}
+          {routeSection !== undefined && routeSection !== "researchInbox" && !activeBrief ? (
+            <div className="research-column" data-primary-task={routeSection}>
+              <PanelState
+                title={i18n.language === "zh-CN" ? "尚未打开研究简报" : "No research brief is open yet"}
+                copy={i18n.language === "zh-CN" ? "请先从研究收件箱打开或创建简报，再继续当前子页面。" : "Open or create a brief from the research inbox before continuing on this subpage."}
+              />
+            </div>
+          ) : null}
         </div>
       </section>
     </div>
@@ -719,6 +803,7 @@ function AssistantPanel({
   onCloudOptInChange: (confirmed: boolean) => void;
   onTemplateChange: (templateKey: AIPromptTemplateKey) => void;
 }) {
+  const i18n = useI18n();
   const selectedTemplate = templates.find((item) => item.template_key === selectedTemplateKey);
 
   return (
@@ -728,8 +813,8 @@ function AssistantPanel({
     >
       <div className="card-header">
         <div>
-          <p className="eyebrow">Assistant</p>
-          <h3>Evidence-grounded local research draft</h3>
+          <p className="eyebrow">{i18n.language === "zh-CN" ? "研究助手" : "Assistant"}</p>
+          <h3>{i18n.language === "zh-CN" ? "基于证据的本地研究草稿" : "Evidence-grounded local research draft"}</h3>
         </div>
         <span className={`mini-pill ${output?.status === "completed" ? "accent" : ""}`}>
           {output?.provider ?? "local"}
@@ -772,7 +857,7 @@ function AssistantPanel({
               onChange={(event) => onCloudOptInChange(event.target.checked)}
               type="checkbox"
             />
-            <span>Send only the visible redacted preview to the configured cloud model for this request.</span>
+            <span>{i18n.language === "zh-CN" ? "本次请求只会向已配置的云端模型发送当前可见的脱敏预览。" : "Send only the visible redacted preview to the configured cloud model for this request."}</span>
           </label>
           {cloudStatus?.message ? <InlineState label={cloudStatus.message} /> : null}
         </div>
@@ -780,7 +865,7 @@ function AssistantPanel({
       {templates.length ? (
         <div className="assistant-template-control">
           <label className="field">
-            <span>Prompt template</span>
+            <span>{i18n.language === "zh-CN" ? "提示词模板" : "Prompt template"}</span>
             <select
               aria-label={`research-assistant-template brief=${brief.brief_id}`}
               disabled={busy !== null}
@@ -882,7 +967,7 @@ function AssistantPanel({
                 onClick={onSaveToNotes}
                 type="button"
               >
-                {busy === "notes" ? "Saving..." : "Save draft to notes"}
+                {busy === "notes" ? (i18n.language === "zh-CN" ? "保存中…" : "Saving...") : (i18n.language === "zh-CN" ? "保存草稿到笔记" : "Save draft to notes")}
               </button>
             </>
           ) : null}
@@ -899,6 +984,7 @@ function EvidenceChainPanel({
   evidence: ResearchEvidenceContext;
   briefId: string;
 }) {
+  const i18n = useI18n();
   const matched = evidence.screener?.summaries.filter((item) => item.matched).length ?? 0;
   return (
     <section
@@ -907,8 +993,8 @@ function EvidenceChainPanel({
     >
       <div className="card-header">
         <div>
-          <p className="eyebrow">Evidence Chain</p>
-          <h3>Factor, screening, simulation, paper, and execution audit</h3>
+          <p className="eyebrow">{i18n.language === "zh-CN" ? "证据链" : "Evidence Chain"}</p>
+          <h3>{i18n.language === "zh-CN" ? "因子、筛选、模拟、纸面交易与执行审计" : "Factor, screening, simulation, paper, and execution audit"}</h3>
         </div>
         <span className="mini-pill">{evidence.data_quality_notes.length} notes</span>
       </div>
@@ -1000,6 +1086,7 @@ function EvidenceChainPanel({
 }
 
 function DecisionReviewPanel({ brief }: { brief: ResearchBrief }) {
+  const i18n = useI18n();
   const review = brief.decision_review;
 
   return (
@@ -1009,10 +1096,10 @@ function DecisionReviewPanel({ brief }: { brief: ResearchBrief }) {
     >
       <div className="decision-review-head">
         <div>
-          <p className="eyebrow">Decision review</p>
+          <p className="eyebrow">{i18n.language === "zh-CN" ? "决策复核" : "Decision review"}</p>
           <strong>{review.template_key} template</strong>
         </div>
-        <span className="mini-pill accent">audited shape</span>
+        <span className="mini-pill accent">{i18n.language === "zh-CN" ? "已审计结构" : "audited shape"}</span>
       </div>
       <p className="research-copy">{review.thesis}</p>
       <DecisionList title="Assumptions" items={review.assumptions} />

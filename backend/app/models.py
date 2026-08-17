@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from ipaddress import ip_address
 from typing import Any, Literal
+from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 ViewKey = Literal[
@@ -229,10 +231,38 @@ class AIControlPreferences(BaseModel):
 class UpdateAIControlPreferencesRequest(BaseModel):
     enabled: bool = False
     provider_mode: AIProviderMode = "local"
+    local_base_url: str | None = Field(default=None, min_length=1, max_length=2_048)
     local_model: str | None = None
     cloud_provider: AICloudProviderKey = "deepseek"
     cloud_base_url: str | None = None
     cloud_model: str | None = None
+
+    @field_validator("local_base_url")
+    @classmethod
+    def validate_local_base_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().rstrip("/")
+        try:
+            parsed = urlsplit(normalized)
+            port = parsed.port
+        except ValueError as error:
+            raise ValueError("Local AI endpoint must be a valid loopback HTTP(S) URL.") from error
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            raise ValueError("Local AI endpoint must be a valid loopback HTTP(S) URL.")
+        if parsed.username or parsed.password or parsed.path or parsed.query or parsed.fragment:
+            raise ValueError("Local AI endpoint must contain only a loopback host and optional port.")
+        hostname = parsed.hostname.lower()
+        if hostname != "localhost":
+            try:
+                is_loopback = ip_address(hostname).is_loopback
+            except ValueError:
+                is_loopback = False
+            if not is_loopback:
+                raise ValueError("Local AI endpoint must use localhost or a loopback IP address.")
+        if port is not None and not 1 <= port <= 65_535:
+            raise ValueError("Local AI endpoint port must be between 1 and 65535.")
+        return normalized
 
 
 class AIPermissionBoundaryResponse(BaseModel):

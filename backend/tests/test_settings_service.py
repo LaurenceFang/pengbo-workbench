@@ -89,6 +89,7 @@ class SettingsPreferencesTests(unittest.TestCase):
                 payload = defaults.json()
                 self.assertFalse(payload["enabled"])
                 self.assertEqual(payload["provider_mode"], "local")
+                self.assertEqual(payload["local_base_url"], "http://127.0.0.1:11434")
                 self.assertEqual(payload["cloud_api_key_env"], "PENGBO_AI_CLOUD_API_KEY")
                 self.assertFalse(payload["cloud_key_configured"])
                 providers = {item["provider"]: item for item in payload["available_cloud_providers"]}
@@ -120,6 +121,108 @@ class SettingsPreferencesTests(unittest.TestCase):
                 self.assertEqual(updated.json()["cloud_provider"], "qwen")
                 self.assertEqual(updated.json()["cloud_base_url"], "https://dashscope.aliyuncs.com/compatible-mode/v1")
                 self.assertEqual(updated.json()["cloud_model"], "qwen-plus")
+
+    def test_ai_control_persists_loopback_local_base_url_across_restart(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
+            runtime_root = Path(temp_dir)
+            app = create_app(make_settings(runtime_root))
+            with TestClient(app) as client:
+                session = client.post("/api/v1/security/session", json={}).json()
+                headers = {"X-Pengbo-Session": session["session_id"]}
+                unlock = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock.status_code, 200)
+                updated = client.put(
+                    "/api/v1/settings/ai-control",
+                    headers=headers,
+                    json={
+                        "enabled": True,
+                        "provider_mode": "local",
+                        "local_base_url": "http://localhost:22434/",
+                        "local_model": "qwen3:8b",
+                        "cloud_provider": "deepseek",
+                        "cloud_base_url": None,
+                        "cloud_model": None,
+                    },
+                )
+                self.assertEqual(updated.status_code, 200)
+                self.assertEqual(updated.json()["local_base_url"], "http://localhost:22434")
+
+            restored_app = create_app(make_settings(runtime_root))
+            with TestClient(restored_app) as client:
+                session = client.post("/api/v1/security/session", json={}).json()
+                headers = {"X-Pengbo-Session": session["session_id"]}
+                restored = client.get("/api/v1/settings/ai-control", headers=headers)
+                self.assertEqual(restored.status_code, 200)
+                self.assertEqual(restored.json()["local_base_url"], "http://localhost:22434")
+
+    def test_ai_control_rejects_non_loopback_local_base_urls(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
+            app = create_app(make_settings(Path(temp_dir)))
+            with TestClient(app) as client:
+                session = client.post("/api/v1/security/session", json={}).json()
+                headers = {"X-Pengbo-Session": session["session_id"]}
+                unlock = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock.status_code, 200)
+                for local_base_url in (
+                    "https://api.example.com/v1",
+                    "http://192.168.1.10:11434",
+                    "http://0.0.0.0:11434",
+                    "http://localhost.evil.example:11434",
+                ):
+                    with self.subTest(local_base_url=local_base_url):
+                        response = client.put(
+                            "/api/v1/settings/ai-control",
+                            headers=headers,
+                            json={
+                                "enabled": True,
+                                "provider_mode": "local",
+                                "local_base_url": local_base_url,
+                                "local_model": "qwen3:8b",
+                                "cloud_provider": "deepseek",
+                                "cloud_base_url": None,
+                                "cloud_model": None,
+                            },
+                        )
+                        self.assertEqual(response.status_code, 422)
+
+    def test_ai_control_update_without_local_url_preserves_saved_ipv6_loopback(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:
+            app = create_app(make_settings(Path(temp_dir)))
+            with TestClient(app) as client:
+                session = client.post("/api/v1/security/session", json={}).json()
+                headers = {"X-Pengbo-Session": session["session_id"]}
+                unlock = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
+                self.assertEqual(unlock.status_code, 200)
+                first = client.put(
+                    "/api/v1/settings/ai-control",
+                    headers=headers,
+                    json={
+                        "enabled": True,
+                        "provider_mode": "local",
+                        "local_base_url": "http://[::1]:32434",
+                        "local_model": "qwen3:8b",
+                        "cloud_provider": "deepseek",
+                        "cloud_base_url": None,
+                        "cloud_model": None,
+                    },
+                )
+                self.assertEqual(first.status_code, 200)
+                self.assertEqual(first.json()["local_base_url"], "http://[::1]:32434")
+
+                compatible_update = client.put(
+                    "/api/v1/settings/ai-control",
+                    headers=headers,
+                    json={
+                        "enabled": False,
+                        "provider_mode": "local",
+                        "local_model": None,
+                        "cloud_provider": "deepseek",
+                        "cloud_base_url": None,
+                        "cloud_model": None,
+                    },
+                )
+                self.assertEqual(compatible_update.status_code, 200)
+                self.assertEqual(compatible_update.json()["local_base_url"], "http://[::1]:32434")
 
     def test_demo_mode_status_is_no_key_safe_and_keeps_boundaries_visible(self) -> None:
         with TemporaryDirectory(dir=Path.cwd(), prefix="runtime_") as temp_dir:

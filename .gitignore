@@ -32,7 +32,10 @@ src-tauri/**/.cargo-lock
 
 # Local runtime data and desktop automation state
 .pengbo-runtime/
+.pengbo-m1-acceptance/
 .playwright-mcp/
+.playwright-cli/
+.codex/
 .claude/
 logs/
 diagnostics/
@@ -41,6 +44,14 @@ claude-probe-debug.log
 latest
 *-browser-check.png
 *-screenshot.png
+
+# Local design explorations and unreferenced visual-review captures
+pengbo-apple-ui/
+penpot-04-command-watchlist.png
+penpot-complete-boards.png
+route-content-dashboard.png
+security-gate-repaired-current.png
+t102-penpot-route-workspace-baseline.png
 
 # Secrets and machine-local credential stores
 .env

@@ -55,6 +55,9 @@ class GatewayHardeningTests(unittest.TestCase):
                 vite_dev_allowed = client.get("/api/v1/health", headers={"Origin": "http://127.0.0.1:5173"})
                 self.assertEqual(vite_dev_allowed.status_code, 200)
 
+                active_web_dev_allowed = client.get("/api/v1/health", headers={"Origin": "http://127.0.0.1:4190"})
+                self.assertEqual(active_web_dev_allowed.status_code, 200)
+
                 init_response = client.post("/api/v1/security/local/initialize", json={"unlock_secret": "2468"})
                 self.assertEqual(init_response.status_code, 200)
                 session = client.post("/api/v1/security/session", json={}).json()

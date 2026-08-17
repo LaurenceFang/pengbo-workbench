@@ -12,13 +12,17 @@ import {
 import { useMemo, useState } from "react";
 import { InlineState, type BackendStatus } from "../components/shared";
 import { useAsyncResource } from "../hooks/use-async-resource";
+import { usePengboNavigation } from "../hooks/use-pengbo-navigation";
 import { api, type AssetSearchResult, type SecurityAuditEvent } from "../lib/api";
 import { useAppStore } from "../store/app-store";
 
 type CommandCenterViewProps = {
   backendStatus: BackendStatus;
   onGlobalRefresh: () => Promise<void>;
+  routeSection?: CommandCenterRouteSection;
 };
+
+export type CommandCenterRouteSection = "commandActions";
 
 type ActionState = {
   tone: "success" | "error";
@@ -28,12 +32,12 @@ type ActionState = {
 
 const providerActions = ["edgar", "binance", "fred", "coingecko"];
 
-export function CommandCenterView({ backendStatus, onGlobalRefresh }: CommandCenterViewProps) {
+export function CommandCenterView({ backendStatus, onGlobalRefresh, routeSection = "commandActions" }: CommandCenterViewProps) {
   const sidecarReady = backendStatus === "online";
   const language = useAppStore((state) => state.language);
   const selectedAssetId = useAppStore((state) => state.selectedAssetId);
   const selectedResearchBriefId = useAppStore((state) => state.selectedResearchBriefId);
-  const setActiveView = useAppStore((state) => state.setActiveView);
+  const { openView: setActiveView } = usePengboNavigation();
   const setSelectedAssetId = useAppStore((state) => state.setSelectedAssetId);
   const setSelectedResearchBriefId = useAppStore((state) => state.setSelectedResearchBriefId);
   const setLatestCommandFeedback = useAppStore((state) => state.setLatestCommandFeedback);
@@ -43,13 +47,14 @@ export function CommandCenterView({ backendStatus, onGlobalRefresh }: CommandCen
   const [assetResults, setAssetResults] = useState<AssetSearchResult[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
 
-  const recentBriefs = useAsyncResource(async () => api.getRecentResearchBriefs(6), [], {
+  const localSecurity = useAsyncResource(async () => api.getLocalSecurityStatus(), [], {
     enabled: sidecarReady,
+  });
+  const sensitiveDataReady = sidecarReady && localSecurity.data?.initialized === true && !localSecurity.data.locked;
+  const recentBriefs = useAsyncResource(async () => api.getRecentResearchBriefs(6), [], {
+    enabled: sensitiveDataReady,
   });
   const dataSourceStatus = useAsyncResource(async () => api.getDataSourceStatus(), [], {
-    enabled: sidecarReady,
-  });
-  const localSecurity = useAsyncResource(async () => api.getLocalSecurityStatus(), [], {
     enabled: sidecarReady,
   });
   const securityAudit = useAsyncResource<SecurityAuditEvent[]>(async () => api.getSecurityAudit(8), [], {
@@ -165,15 +170,20 @@ export function CommandCenterView({ backendStatus, onGlobalRefresh }: CommandCen
   }
 
   return (
-    <div aria-label="command-center" className="command-center-workspace">
-      <section className="hero-panel command-center-hero">
+    <div
+      aria-label="command-center"
+      className="p1-page p1-command-page command-center-workspace"
+      data-command-section={routeSection}
+      data-primary-task={routeSection}
+    >
+      <header className="p1-page-header command-center-hero">
         <div>
           <p className="eyebrow">{copy.eyebrow}</p>
-          <h3>{copy.title}</h3>
-          <p className="hero-copy">{copy.subtitle}</p>
+          <h2>{copy.title}</h2>
+          <p className="p1-page-lede">{copy.subtitle}</p>
         </div>
         <div className="command-center-hero-status">
-          <span className={`mini-pill ${sidecarReady ? "accent" : ""}`}>{backendStatus}</span>
+          <span className={`p1-status-dot ${sidecarReady ? "is-live" : "is-offline"}`}>{backendStatus}</span>
           <span className="mini-pill">
             {localSecurity.data?.initialized
               ? localSecurity.data.locked
@@ -182,7 +192,7 @@ export function CommandCenterView({ backendStatus, onGlobalRefresh }: CommandCen
               : language === "zh-CN" ? "未初始化" : "not initialized"}
           </span>
         </div>
-      </section>
+      </header>
 
       {!sidecarReady ? (
         <section className="card">
@@ -190,9 +200,9 @@ export function CommandCenterView({ backendStatus, onGlobalRefresh }: CommandCen
         </section>
       ) : null}
 
-      <section className="command-center-grid">
-        <div className="card command-center-panel command-center-main">
-          <div className="panel-heading">
+      <section className="command-center-grid p1-command-grid">
+        <div className="card p1-panel command-center-panel command-center-main">
+          <div className="p1-section-heading">
             <div>
               <p className="eyebrow">{language === "zh-CN" ? "资产入口" : "Asset Entry"}</p>
               <h3>{language === "zh-CN" ? "搜索标的并进入研究流" : "Search a symbol and enter the research flow"}</h3>
@@ -244,8 +254,8 @@ export function CommandCenterView({ backendStatus, onGlobalRefresh }: CommandCen
           </div>
         </div>
 
-        <div className="card command-center-panel">
-          <div className="panel-heading">
+        <div className="card p1-panel command-center-panel">
+          <div className="p1-section-heading">
             <div>
               <p className="eyebrow">{language === "zh-CN" ? "最近研究" : "Recent Briefs"}</p>
               <h3>{language === "zh-CN" ? "继续已有简报" : "Continue existing briefs"}</h3>
@@ -275,8 +285,8 @@ export function CommandCenterView({ backendStatus, onGlobalRefresh }: CommandCen
           </div>
         </div>
 
-        <div className="card command-center-panel">
-          <div className="panel-heading">
+        <div className="card p1-panel command-center-panel">
+          <div className="p1-section-heading">
             <div>
               <p className="eyebrow">{language === "zh-CN" ? "数据源" : "Providers"}</p>
               <h3>{language === "zh-CN" ? "刷新与凭证边界" : "Refresh and credential boundaries"}</h3>
@@ -314,8 +324,8 @@ export function CommandCenterView({ backendStatus, onGlobalRefresh }: CommandCen
           </div>
         </div>
 
-        <div className="card command-center-panel">
-          <div className="panel-heading">
+        <div className="card p1-panel command-center-panel">
+          <div className="p1-section-heading">
             <div>
               <p className="eyebrow">{language === "zh-CN" ? "报告导出" : "Report Export"}</p>
               <h3>{language === "zh-CN" ? "本地 Markdown 证据包" : "Local Markdown evidence packs"}</h3>
@@ -374,11 +384,11 @@ export function CommandCenterView({ backendStatus, onGlobalRefresh }: CommandCen
           </div>
         </div>
 
-        <div aria-label="command-center-audit" className="card command-center-panel">
-          <div className="panel-heading">
+        <div aria-label="command-center-audit" className="card p1-panel command-center-panel">
+          <div className="p1-section-heading">
             <div>
               <p className="eyebrow">{language === "zh-CN" ? "审计" : "Audit"}</p>
-              <h3>{language === "zh-CN" ? "红acted 本地事件" : "Redacted local events"}</h3>
+              <h3>{language === "zh-CN" ? "脱敏本地事件" : "Redacted local events"}</h3>
             </div>
             <ShieldCheck size={18} />
           </div>
@@ -431,8 +441,8 @@ export function CommandCenterView({ backendStatus, onGlobalRefresh }: CommandCen
           </div>
         </div>
 
-        <div aria-label="command-center-safe-checks" className="card command-center-panel">
-          <div className="panel-heading">
+        <div aria-label="command-center-safe-checks" className="card p1-panel command-center-panel">
+          <div className="p1-section-heading">
             <div>
               <p className="eyebrow">{language === "zh-CN" ? "安全检查" : "Safe Checks"}</p>
               <h3>{language === "zh-CN" ? "无密钥本地健康检查" : "No-secret local readiness"}</h3>

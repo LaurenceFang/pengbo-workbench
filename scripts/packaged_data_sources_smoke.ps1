@@ -32,6 +32,7 @@ $result = [ordered]@{
     report_export_exists = $false
     report_source_count = 0
     ui_markers = [ordered]@{}
+    preview_routes = New-Object System.Collections.Generic.List[string]
     source_safe_checks = [ordered]@{
         export_path_inside_repo = $false
         export_path_contains_secret_marker = $false
@@ -328,9 +329,10 @@ try {
     $result.health_ready = $true
 
     Ensure-DataSourcesDefaultView
+    Stop-DesktopScenario
+    Start-Desktop | Out-Null
+    Wait-ForHealth -Url $baseUrl -TimeoutSeconds $HealthTimeoutSeconds
     $window = Wait-ForMainWindow -TimeoutSeconds $UiTimeoutSeconds
-    $nav = Wait-ForElementByName -Root $window -Name "nav-dataSources" -TimeoutSeconds $UiTimeoutSeconds
-    Invoke-UiElement -Element $nav
 
     $viewMarker = Wait-ForElementNameStartsWith -Root $window -Prefix "data-sources-view providers=$($expectedDataSourceProviders.Count)" -TimeoutSeconds $UiTimeoutSeconds
     $result.ui_markers.view = $viewMarker.name
@@ -345,11 +347,31 @@ try {
         Invoke-UiElement -Element $marker.element
         $credentialPanel = Wait-ForElementNameStartsWith -Root $window -Prefix "data-source-credential-panel provider=$provider" -TimeoutSeconds $UiTimeoutSeconds
         $result.ui_markers["$provider`_credential_panel"] = $credentialPanel.name
+        if ($provider -ne "tushare") {
+            $catalogSubroute = Wait-ForElementByName -Root $window -Name "subroute:/markets/data-sources/catalog" -TimeoutSeconds $UiTimeoutSeconds
+            Invoke-UiElement -Element $catalogSubroute
+        }
     }
-    $selected = Wait-ForElementNameStartsWith -Root $window -Prefix "data-source-selected provider=" -TimeoutSeconds $UiTimeoutSeconds
+    $catalogSubroute = Wait-ForElementByName -Root $window -Name "subroute:/markets/data-sources/catalog" -TimeoutSeconds $UiTimeoutSeconds
+    Invoke-UiElement -Element $catalogSubroute
+    $worldbankProvider = Wait-ForElementNameStartsWith -Root $window -Prefix "data-source-provider provider=worldbank health=" -TimeoutSeconds $UiTimeoutSeconds
+    Invoke-UiElement -Element $worldbankProvider.element
+    $previewSubroute = Wait-ForElementByName -Root $window -Name "subroute:/markets/data-sources/:provider/preview" -TimeoutSeconds $UiTimeoutSeconds
+    Invoke-UiElement -Element $previewSubroute
     $macro = Wait-ForElementNameStartsWith -Root $window -Prefix "data-source-preview kind=macro" -TimeoutSeconds $UiTimeoutSeconds
+    $result.preview_routes.Add("/markets/data-sources/worldbank/preview")
+
+    $catalogSubroute = Wait-ForElementByName -Root $window -Name "subroute:/markets/data-sources/catalog" -TimeoutSeconds $UiTimeoutSeconds
+    Invoke-UiElement -Element $catalogSubroute
+    $coingeckoProvider = Wait-ForElementNameStartsWith -Root $window -Prefix "data-source-provider provider=coingecko health=" -TimeoutSeconds $UiTimeoutSeconds
+    Invoke-UiElement -Element $coingeckoProvider.element
+    $previewSubroute = Wait-ForElementByName -Root $window -Name "subroute:/markets/data-sources/:provider/preview" -TimeoutSeconds $UiTimeoutSeconds
+    Invoke-UiElement -Element $previewSubroute
     $crypto = Wait-ForElementNameStartsWith -Root $window -Prefix "data-source-preview kind=crypto" -TimeoutSeconds $UiTimeoutSeconds
-    $result.ui_markers.selected = $selected.name
+    $result.preview_routes.Add("/markets/data-sources/coingecko/preview")
+
+    $selectedPreview = Wait-ForElementNameStartsWith -Root $window -Prefix "data-sources-view providers=$($expectedDataSourceProviders.Count) selected=coingecko section=dataSourcePreview" -TimeoutSeconds $UiTimeoutSeconds
+    $result.ui_markers.selected_preview = $selectedPreview.name
     $result.ui_markers.macro_preview = $macro.name
     $result.ui_markers.crypto_preview = $crypto.name
 

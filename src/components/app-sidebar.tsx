@@ -12,12 +12,12 @@ import {
   LayoutDashboard,
   LineChart,
   Search,
-  Sparkles,
   Star,
   Workflow,
 } from "lucide-react";
 import { navigationGroups, type NavGroupKey } from "../navigation";
 import type { ViewKey } from "../store/app-store";
+import { Button } from "./button";
 
 const groupIcons: Record<NavGroupKey, typeof LayoutDashboard> = {
   home: LayoutDashboard,
@@ -47,10 +47,10 @@ const viewIcons: Record<ViewKey, typeof LayoutDashboard> = {
 };
 
 type AppSidebarProps = {
-  brandEyebrow: string;
-  brandName: string;
+  mobileOpen?: boolean;
   navigationLabel: string;
-  activeView: ViewKey;
+  backendStatus: "online" | "offline" | "connecting";
+  activeView: ViewKey | null;
   activeGroup: NavGroupKey;
   expandedGroups: ReadonlySet<NavGroupKey>;
   groupLabel: (key: NavGroupKey) => string;
@@ -60,12 +60,10 @@ type AppSidebarProps = {
 };
 
 export function AppSidebar(props: AppSidebarProps) {
+  const runtimeLabel = props.backendStatus === "online" ? "LOCAL API READY" : props.backendStatus === "connecting" ? "LOCAL API CONNECTING" : "LOCAL API OFFLINE";
+  const runtimeTime = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date());
   return (
-    <aside className="sidebar app-shell-sidebar">
-      <div className="brand-panel">
-        <div className="brand-mark"><Sparkles size={18} /></div>
-        <div><p className="eyebrow">{props.brandEyebrow}</p><h1>{props.brandName}</h1></div>
-      </div>
+    <aside className={`sidebar app-shell-sidebar ${props.mobileOpen ? "mobile-open" : ""}`} id="pengbo-sidebar">
       <div className="sidebar-section">
         <span className="section-caption">{props.navigationLabel}</span>
         <nav className="nav-stack" aria-label={props.navigationLabel}>
@@ -77,32 +75,32 @@ export function AppSidebar(props: AppSidebarProps) {
             const childListId = `nav-group-${group.key}-items`;
             return (
               <div className={`nav-group ${active ? "active" : ""}`} key={group.key}>
-                <button
+                <Button
                   aria-controls={hasChildren ? childListId : undefined}
                   aria-expanded={hasChildren ? expanded : undefined}
                   aria-label={hasChildren ? `nav-group-${group.key}` : `nav-${group.defaultView}`}
                   className={`nav-group-trigger ${active ? "active" : ""}`}
                   onClick={() => props.onGroupClick(group.key)}
-                  type="button"
+                  variant="ghost"
                 >
                   <span className="nav-icon"><GroupIcon size={18} /></span>
                   <span className="nav-group-label">{props.groupLabel(group.key)}</span>
                   {hasChildren ? <ChevronDown className={`nav-chevron ${expanded ? "expanded" : ""}`} size={15} /> : null}
-                </button>
+                </Button>
                 {hasChildren && expanded ? (
                   <div className="nav-group-children" id={childListId}>
                     {group.items.map((item) => {
                       const ItemIcon = viewIcons[item.viewKey];
                       return (
-                        <button
+                        <Button
                           aria-label={`nav-${item.viewKey}`}
                           className={`nav-child-item ${props.activeView === item.viewKey ? "active" : ""}`}
                           key={item.viewKey}
                           onClick={() => props.onViewClick(item.viewKey)}
-                          type="button"
+                          variant="text"
                         >
                           <ItemIcon size={14} /><span>{props.viewLabel(item.viewKey)}</span>
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -112,7 +110,10 @@ export function AppSidebar(props: AppSidebarProps) {
           })}
         </nav>
       </div>
+      <footer className={`sidebar-runtime sidebar-runtime-${props.backendStatus}`}>
+        <strong>{runtimeLabel}</strong>
+        <span><i aria-hidden="true" />{runtimeTime} CST</span>
+      </footer>
     </aside>
   );
 }
-

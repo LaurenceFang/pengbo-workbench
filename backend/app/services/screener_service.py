@@ -863,7 +863,10 @@ class ScreenerService:
 
         for entry in source.assets_for(asset_type):
             try:
-                workspace = self.asset_service.get_asset_workspace(entry.symbol)
+                workspace = self.asset_service.get_asset_workspace(
+                    entry.symbol,
+                    cache_only=not bool(getattr(self.asset_service, "explicit_fixture_mode", False)),
+                )
                 score, matched, explanations, missing, metrics = self._score_workspace(preset["key"], workspace, tuning)
                 notes = list(_coerce_attr(_coerce_attr(workspace, "capabilities"), "notes", []))
                 if _coerce_attr(workspace, "stale", False):

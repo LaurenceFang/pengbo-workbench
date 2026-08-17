@@ -35,6 +35,8 @@ $result = [ordered]@{
     data_source_run_status = $null
     data_source_research_artifact_count = 0
     recent_restored_after_restart = $false
+    navigation_fallback_used = $false
+    diagnostic_ui_names = New-Object System.Collections.Generic.List[string]
     ui_markers = [ordered]@{}
     failures = New-Object System.Collections.Generic.List[string]
 }
@@ -46,6 +48,7 @@ $script:dataDirPath = $null
 $script:backupDirPath = $null
 $script:dataDirBackedUp = $false
 $script:originalPreferences = $null
+$script:activeWindow = $null
 
 function Add-Failure {
     param([string]$Message)
@@ -213,10 +216,16 @@ function Wait-ForMainWindow {
             $windowHandle = [System.IntPtr]$windowProcess.MainWindowHandle
             $windowElement = [System.Windows.Automation.AutomationElement]::FromHandle($windowHandle)
             if ($null -ne $windowElement) {
-                return [ordered]@{
-                    process = $windowProcess
-                    window = $windowElement
-                    seconds = [Math]::Round($stopwatch.Elapsed.TotalSeconds, 2)
+                $firstDescendant = $windowElement.FindFirst(
+                    [System.Windows.Automation.TreeScope]::Descendants,
+                    [System.Windows.Automation.Condition]::TrueCondition
+                )
+                if ($null -ne $firstDescendant) {
+                    return [ordered]@{
+                        process = $windowProcess
+                        window = $windowElement
+                        seconds = [Math]::Round($stopwatch.Elapsed.TotalSeconds, 2)
+                    }
                 }
             }
         }
@@ -278,6 +287,52 @@ function Wait-ForElementNameStartsWith {
     throw "UI element starting with '$Prefix' did not appear within $TimeoutSeconds seconds."
 }
 
+function Wait-ForElementNameStartsWithOrNull {
+    param([System.Windows.Automation.AutomationElement]$Root, [string]$Prefix, [int]$TimeoutSeconds)
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    while ($stopwatch.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        $match = Get-ElementNameStartsWith -Root $Root -Prefix $Prefix
+        if ($null -ne $match) {
+            return $match
+        }
+        Start-Sleep -Milliseconds 300
+    }
+    return $null
+}
+
+function Open-WorkflowStudioThroughNavigation {
+    param([System.Windows.Automation.AutomationElement]$Root)
+    $workflowNav = Get-ElementByName -Root $Root -Name "nav-workflowStudio"
+    if ($null -eq $workflowNav) {
+        $automationGroup = Wait-ForElementByName -Root $Root -Name "nav-group-automation" -TimeoutSeconds 15
+        Invoke-UiElement -Element $automationGroup
+        $workflowNav = Wait-ForElementByName -Root $Root -Name "nav-workflowStudio" -TimeoutSeconds 15
+    }
+    Invoke-UiElement -Element $workflowNav
+}
+
+function Get-RelevantUiNames {
+    param([System.Windows.Automation.AutomationElement]$Root)
+    $elements = $Root.FindAll(
+        [System.Windows.Automation.TreeScope]::Descendants,
+        [System.Windows.Automation.Condition]::TrueCondition
+    )
+    $names = New-Object System.Collections.Generic.List[string]
+    for ($index = 0; $index -lt $elements.Count -and $names.Count -lt 40; $index++) {
+        $name = $elements[$index].Current.Name
+        if (-not [string]::IsNullOrWhiteSpace($name) -and (
+                $name.StartsWith("workflow-") -or
+                $name.StartsWith("route-") -or
+                $name.StartsWith("nav-") -or
+                $name.StartsWith("state=") -or
+                $name.StartsWith("access-")
+            )) {
+            $names.Add($name)
+        }
+    }
+    return $names
+}
+
 function Invoke-UiElement {
     param([System.Windows.Automation.AutomationElement]$Element)
     $invoke = $Element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
@@ -322,11 +377,10 @@ try {
     $dataSourceRun = Invoke-ApiJson -Method Post -Path "/workflows/runs" -Body @{
         templateKey = "data_sources_to_research"
         input = @{
-            dataSourceKind = "macro"
-            dataSourceProvider = "worldbank"
-            seriesId = "NY.GDP.MKTP.CD"
-            country = "CN"
-            symbol = "AAPL"
+            dataSourceKind = "equity"
+            dataSourceProvider = "tushare"
+            equitySymbol = "600519.SH"
+            symbol = "600519.SH"
             limit = 3
         }
     }
@@ -341,9 +395,15 @@ try {
     Start-DesktopPhase -ResolvedExePath $script:resolvedExePath | Out-Null
     $windowState = Wait-ForMainWindow -ResolvedExePath $script:resolvedExePath -TimeoutSeconds $UiTimeoutSeconds
     $window = $windowState.window
+    $script:activeWindow = $window
     $result.window_title = $window.Current.Name
 
-    $initialMarker = Wait-ForElementNameStartsWith -Root $window -Prefix "workflow-studio-view template=screener_to_research" -TimeoutSeconds $UiTimeoutSeconds
+    $initialMarker = Wait-ForElementNameStartsWithOrNull -Root $window -Prefix "workflow-studio-view template=screener_to_research" -TimeoutSeconds 15
+    if ($null -eq $initialMarker) {
+        Open-WorkflowStudioThroughNavigation -Root $window
+        $result.navigation_fallback_used = $true
+        $initialMarker = Wait-ForElementNameStartsWith -Root $window -Prefix "workflow-studio-view template=screener_to_research" -TimeoutSeconds $UiTimeoutSeconds
+    }
     $result.ui_markers.initial_view = $initialMarker.name
 
     $templateButton = Wait-ForElementByName -Root $window -Name "workflow-template key=paper_to_binance_intent selected=false" -TimeoutSeconds $UiTimeoutSeconds
@@ -351,6 +411,8 @@ try {
     $selectedMarker = Wait-ForElementNameStartsWith -Root $window -Prefix "workflow-studio-view template=paper_to_binance_intent" -TimeoutSeconds $UiTimeoutSeconds
     $result.ui_markers.selected_template = $selectedMarker.name
 
+    $configureSubroute = Wait-ForElementByName -Root $window -Name "subroute:/automation/workflows/:templateId/configure" -TimeoutSeconds $UiTimeoutSeconds
+    Invoke-UiElement -Element $configureSubroute
     $submitButton = Wait-ForElementByName -Root $window -Name "workflow-run-submit template=paper_to_binance_intent" -TimeoutSeconds $UiTimeoutSeconds
     $result.ui_markers.submit_enabled = [bool]$submitButton.Current.IsEnabled
     if (-not $submitButton.Current.IsEnabled) {
@@ -368,9 +430,14 @@ try {
     }
     $result.run_id = $Matches[1]
 
+    $runSubroute = Wait-ForElementByName -Root $window -Name "subroute:/automation/workflows/runs/:runId" -TimeoutSeconds $UiTimeoutSeconds
+    Invoke-UiElement -Element $runSubroute
     $manualStep = Wait-ForElementNameStartsWith -Root $window -Prefix "workflow-step key=await_user_confirmation status=manual_required" -TimeoutSeconds $UiTimeoutSeconds
-    $artifact = Wait-ForElementNameStartsWith -Root $window -Prefix "workflow-artifact type=binance_intent id=intent-" -TimeoutSeconds $UiTimeoutSeconds
     $manualBoundary = Wait-ForElementNameStartsWith -Root $window -Prefix "workflow-manual-boundary run=$($result.run_id) policy=user_confirmed_binance_submit" -TimeoutSeconds $UiTimeoutSeconds
+
+    $artifactsSubroute = Wait-ForElementByName -Root $window -Name "subroute:/automation/workflows/runs/:runId/artifacts" -TimeoutSeconds $UiTimeoutSeconds
+    Invoke-UiElement -Element $artifactsSubroute
+    $artifact = Wait-ForElementNameStartsWith -Root $window -Prefix "workflow-artifact type=binance_intent id=intent-" -TimeoutSeconds $UiTimeoutSeconds
     $result.ui_markers.manual_step = $manualStep.name
     $result.ui_markers.binance_intent_artifact = $artifact.name
     $result.ui_markers.manual_boundary = $manualBoundary.name
@@ -415,8 +482,16 @@ try {
     Start-DesktopPhase -ResolvedExePath $script:resolvedExePath | Out-Null
     $windowState = Wait-ForMainWindow -ResolvedExePath $script:resolvedExePath -TimeoutSeconds $UiTimeoutSeconds
     $window = $windowState.window
-    Wait-ForElementNameStartsWith -Root $window -Prefix "workflow-studio-view template=screener_to_research" -TimeoutSeconds $UiTimeoutSeconds | Out-Null
+    $script:activeWindow = $window
+    $restartMarker = Wait-ForElementNameStartsWithOrNull -Root $window -Prefix "workflow-studio-view template=screener_to_research" -TimeoutSeconds 15
+    if ($null -eq $restartMarker) {
+        Open-WorkflowStudioThroughNavigation -Root $window
+        $result.navigation_fallback_used = $true
+        Wait-ForElementNameStartsWith -Root $window -Prefix "workflow-studio-view template=screener_to_research" -TimeoutSeconds $UiTimeoutSeconds | Out-Null
+    }
     $restoredRecent = Wait-ForRecentWorkflowRun -RunId $result.run_id -TimeoutSeconds $UiTimeoutSeconds
+    $runsSubroute = Wait-ForElementByName -Root $window -Name "subroute:/automation/workflows/runs" -TimeoutSeconds $UiTimeoutSeconds
+    Invoke-UiElement -Element $runsSubroute
     $recentMarker = Wait-ForElementByName -Root $window -Name "workflow-recent-run id=$($result.run_id) status=blocked" -TimeoutSeconds $UiTimeoutSeconds
     $result.recent_restored_after_restart = ($restoredRecent.run_id -eq $result.run_id -and $null -ne $recentMarker)
     $result.ui_markers.recent_after_restart = $recentMarker.Current.Name
@@ -425,6 +500,11 @@ try {
     }
 }
 catch {
+    if ($null -ne $script:activeWindow) {
+        foreach ($name in @(Get-RelevantUiNames -Root $script:activeWindow)) {
+            $result.diagnostic_ui_names.Add($name)
+        }
+    }
     Add-Failure $_.Exception.Message
 }
 finally {

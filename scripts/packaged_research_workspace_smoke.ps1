@@ -34,6 +34,7 @@ $script:resolvedOutputPath = $null
 $script:dataDirPath = $null
 $script:backupDirPath = $null
 $script:dataDirBackedUp = $false
+$script:sessionHeaders = @{}
 
 function Add-Failure {
     param([string]$Message)
@@ -124,6 +125,9 @@ function Invoke-ApiJson {
         Method = $Method
         Uri = "$baseUrl$Path"
         TimeoutSec = $TimeoutSeconds
+    }
+    if ($script:sessionHeaders.Count -gt 0) {
+        $params.Headers = $script:sessionHeaders
     }
     if ($null -ne $Body) {
         $params.Body = ($Body | ConvertTo-Json -Depth 8)
@@ -243,6 +247,8 @@ try {
         throw "Research notes were not restored after restart."
     }
 
+    $session = Invoke-ApiJson -Method Post -Path "/security/session" -Body @{}
+    $script:sessionHeaders = @{ "X-Pengbo-Session" = [string]$session.session_id }
     $export = Invoke-ApiJson -Method Post -Path "/research/briefs/$($brief.brief_id)/export"
     $result.export_path = $export.export_path
     $result.export_exists = Test-Path -LiteralPath $export.export_path

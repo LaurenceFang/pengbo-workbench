@@ -23,7 +23,9 @@ $result = [ordered]@{
     startup_phase_tail = @()
     startup_target_seconds = 5.0
     connections_status_ok = $false
+    connections_locked_ok = $false
     settings_runtime_ok = $false
+    settings_runtime_locked_ok = $false
     single_instance_ok = $false
     adopt_existing_ok = $false
     shutdown_console_hidden_ok = $false
@@ -123,6 +125,33 @@ function Invoke-ApiCheck {
 
     $response = Invoke-RestMethod -Uri $Url -TimeoutSec $TimeoutSeconds
     return $response
+}
+
+function Invoke-ApiCheckAllowLocked {
+    param(
+        [string]$Url,
+        [int]$TimeoutSeconds = 15
+    )
+
+    try {
+        return [ordered]@{
+            locked = $false
+            payload = (Invoke-ApiCheck -Url $Url -TimeoutSeconds $TimeoutSeconds)
+        }
+    }
+    catch {
+        $statusCode = $null
+        if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+            $statusCode = [int]$_.Exception.Response.StatusCode
+        }
+        if ($statusCode -eq 423) {
+            return [ordered]@{
+                locked = $true
+                payload = $null
+            }
+        }
+        throw
+    }
 }
 
 function Get-LogTail {
@@ -245,23 +274,28 @@ try {
     if ($healthResult.seconds -gt $result.startup_target_seconds) {
         Add-Failure "Packaged startup health_ready_seconds=$($healthResult.seconds) exceeded target $($result.startup_target_seconds)s."
     }
-    $settingsRuntime = Invoke-ApiCheck -Url "$baseUrl/settings/runtime"
-    $connectionsStatus = Invoke-ApiCheck -Url "$baseUrl/connections/status" -TimeoutSeconds 20
+    $settingsRuntimeResult = Invoke-ApiCheckAllowLocked -Url "$baseUrl/settings/runtime"
+    $connectionsStatusResult = Invoke-ApiCheckAllowLocked -Url "$baseUrl/connections/status" -TimeoutSeconds 20
+    $settingsRuntime = $settingsRuntimeResult.payload
+    $connectionsStatus = $connectionsStatusResult.payload
     $bootstrapLogPath = $appBootstrapLogPath
     $bootstrapTail = Wait-ForLogPattern -Path $bootstrapLogPath -StartLine 0 -Pattern "runtime status -> online"
 
-    $result.settings_runtime_ok = $null -ne $settingsRuntime.base_url
-    $result.connections_status_ok = $null -ne $connectionsStatus.providers
+    $result.settings_runtime_locked_ok = $settingsRuntimeResult.locked
+    $result.connections_locked_ok = $connectionsStatusResult.locked
+    $result.settings_runtime_ok = (-not $settingsRuntimeResult.locked) -and ($null -ne $settingsRuntime.base_url)
+    $result.connections_status_ok = (-not $connectionsStatusResult.locked) -and ($null -ne $connectionsStatus.providers)
     $result.bootstrap_log_path = $bootstrapLogPath
     $result.startup_phase_tail = @($bootstrapTail | Where-Object { $_ -match "startup phase|runtime status" } | Select-Object -Last 20)
     $result.scenarios.cold_launch = [ordered]@{
         workbench_pid = $coldLaunchProcess.Id
         window_or_process_started_seconds = $result.window_or_process_started_seconds
         health_message = $healthResult.payload.message
-        runtime_mode = $settingsRuntime.runtime_mode
-        base_url = $settingsRuntime.base_url
-        log_dir = $settingsRuntime.log_dir
-        providers_count = @($connectionsStatus.providers).Count
+        security_state = $(if ($settingsRuntimeResult.locked -or $connectionsStatusResult.locked) { "locked" } else { "ready" })
+        runtime_mode = $(if ($settingsRuntimeResult.locked) { $null } else { $settingsRuntime.runtime_mode })
+        base_url = $(if ($settingsRuntimeResult.locked) { $null } else { $settingsRuntime.base_url })
+        log_dir = $(if ($settingsRuntimeResult.locked) { $null } else { $settingsRuntime.log_dir })
+        providers_count = $(if ($connectionsStatusResult.locked) { $null } else { @($connectionsStatus.providers).Count })
         bootstrap_tail = $bootstrapTail
     }
 
@@ -296,19 +330,22 @@ try {
     $standaloneHealth = Wait-ForHealth -Url $baseUrl -TimeoutSeconds $HealthTimeoutSeconds
     $adoptLogStart = Get-LogLineCount -Path $appBootstrapLogPath
     $adoptDesktopProcess = Start-Desktop -ResolvedExePath $resolvedExePath
-    $adoptedRuntime = Invoke-ApiCheck -Url "$baseUrl/settings/runtime"
+    $adoptedRuntimeResult = Invoke-ApiCheckAllowLocked -Url "$baseUrl/settings/runtime"
+    $adoptedRuntime = $adoptedRuntimeResult.payload
     $adoptBootstrapPath = $appBootstrapLogPath
     $adoptBootstrapTail = Wait-ForLogPattern -Path $adoptBootstrapPath -StartLine 0 -Pattern "adopted_existing=true"
 
-    $adoptConnections = Invoke-ApiCheck -Url "$baseUrl/connections/status" -TimeoutSeconds 20
+    $adoptConnectionsResult = Invoke-ApiCheckAllowLocked -Url "$baseUrl/connections/status" -TimeoutSeconds 20
+    $adoptConnections = $adoptConnectionsResult.payload
     $result.adopt_existing_ok = $true
     $result.scenarios.adopt_existing = [ordered]@{
         standalone_sidecar_pid = $standaloneSidecar.Id
         workbench_pid = $adoptDesktopProcess.Id
         standalone_health_ready_seconds = $standaloneHealth.seconds
-        base_url = $adoptedRuntime.base_url
+        security_state = $(if ($adoptedRuntimeResult.locked -or $adoptConnectionsResult.locked) { "locked" } else { "ready" })
+        base_url = $(if ($adoptedRuntimeResult.locked) { $null } else { $adoptedRuntime.base_url })
         bootstrap_tail = $adoptBootstrapTail
-        providers_count = @($adoptConnections.providers).Count
+        providers_count = $(if ($adoptConnectionsResult.locked) { $null } else { @($adoptConnections.providers).Count })
         standalone_log_dir = $adoptLogDir
     }
 }

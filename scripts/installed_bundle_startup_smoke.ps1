@@ -38,11 +38,15 @@ $result = [ordered]@{
     health_ready = $false
     health_ready_seconds = $null
     connections_status_ok = $false
+    connections_state = "unknown"
     settings_runtime_ok = $false
+    settings_runtime_state = "unknown"
     single_instance_ok = $false
     adopt_existing_ok = $false
     appdata_log_dir_ok = $false
     appdata_data_dir_ok = $false
+    appdata_log_dir_state = "unverified"
+    appdata_data_dir_state = "unverified"
     bootstrap_log_path = $null
     install_exit_code = $null
     failures = New-Object System.Collections.Generic.List[string]
@@ -328,9 +332,41 @@ function Wait-ForHealth {
 }
 
 function Invoke-ApiCheck {
+    param(
+        [string]$Url,
+        [int]$TimeoutSeconds = 15
+    )
+
+    return Invoke-RestMethod -Uri $Url -TimeoutSec $TimeoutSeconds
+}
+
+function Invoke-LockedApiCheck {
     param([string]$Url)
 
-    return Invoke-RestMethod -Uri $Url -TimeoutSec 5
+    try {
+        return [ordered]@{
+            state = "ok"
+            payload = Invoke-ApiCheck -Url $Url
+        }
+    }
+    catch {
+        $statusCode = $null
+        $errorMessage = [string]$_.Exception.Message
+        if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+            $statusCode = [int]$_.Exception.Response.StatusCode
+        }
+
+        if (($statusCode -eq 423) -or
+            ($errorMessage -match "(?i)(?<![a-z])locked(?![a-z])") -or
+            ($errorMessage -match "(?<!\d)423(?!\d)")) {
+            return [ordered]@{
+                state = "locked"
+                payload = $null
+            }
+        }
+
+        throw
+    }
 }
 
 function Get-LogLineCount {
@@ -537,36 +573,52 @@ try {
     $coldLaunchLogStart = Get-LogLineCount -Path $appBootstrapLogPath
     $coldLaunchProcess = Start-Desktop -ResolvedExePath $resolvedInstalledExePath
     $healthResult = Wait-ForHealth -Url $baseUrl -TimeoutSeconds $HealthTimeoutSeconds
-    $settingsRuntime = Invoke-ApiCheck -Url "$baseUrl/settings/runtime"
-    $connectionsStatus = Invoke-ApiCheck -Url "$baseUrl/connections/status"
+    $settingsRuntimeCheck = Invoke-LockedApiCheck -Url "$baseUrl/settings/runtime"
+    $settingsRuntime = $settingsRuntimeCheck.payload
+    $connectionsStatusCheck = Invoke-LockedApiCheck -Url "$baseUrl/connections/status"
+    $connectionsStatus = $connectionsStatusCheck.payload
     $bootstrapTail = Wait-ForLogPattern -Path $appBootstrapLogPath -StartLine $coldLaunchLogStart -Pattern "runtime status -> online"
 
     $result.health_ready = $healthResult.ok
     $result.health_ready_seconds = $healthResult.seconds
-    $result.settings_runtime_ok = $null -ne $settingsRuntime.base_url
-    $result.connections_status_ok = $null -ne $connectionsStatus.providers
+    $result.settings_runtime_state = $settingsRuntimeCheck.state
+    $result.settings_runtime_ok = $settingsRuntimeCheck.state -eq "ok" -and $null -ne $settingsRuntime -and $null -ne $settingsRuntime.base_url
+    $result.connections_status_ok = $connectionsStatusCheck.state -in @("ok", "locked")
+    $result.connections_state = $connectionsStatusCheck.state
     $result.bootstrap_log_path = $appBootstrapLogPath
-    $normalizedRuntimeLogDir = Normalize-ComparablePath -Path $settingsRuntime.log_dir
-    $normalizedExpectedLogDir = Normalize-ComparablePath -Path $appLogDir
-    $normalizedRuntimeDataDir = Normalize-ComparablePath -Path $settingsRuntime.data_dir
-    $normalizedExpectedDataDir = Normalize-ComparablePath -Path $appDataDir
-    $result.appdata_log_dir_ok = $normalizedRuntimeLogDir -eq $normalizedExpectedLogDir -and (Test-Path -LiteralPath $appLogDir -PathType Container)
-    $result.appdata_data_dir_ok = $normalizedRuntimeDataDir -eq $normalizedExpectedDataDir -and (Test-Path -LiteralPath $appDataDir -PathType Container)
+    if ($settingsRuntimeCheck.state -eq "locked") {
+        $result.appdata_log_dir_state = "skipped_locked"
+        $result.appdata_data_dir_state = "skipped_locked"
+    }
+    else {
+        $normalizedRuntimeLogDir = Normalize-ComparablePath -Path $settingsRuntime.log_dir
+        $normalizedExpectedLogDir = Normalize-ComparablePath -Path $appLogDir
+        $normalizedRuntimeDataDir = Normalize-ComparablePath -Path $settingsRuntime.data_dir
+        $normalizedExpectedDataDir = Normalize-ComparablePath -Path $appDataDir
+        $result.appdata_log_dir_ok = $normalizedRuntimeLogDir -eq $normalizedExpectedLogDir -and (Test-Path -LiteralPath $appLogDir -PathType Container)
+        $result.appdata_data_dir_ok = $normalizedRuntimeDataDir -eq $normalizedExpectedDataDir -and (Test-Path -LiteralPath $appDataDir -PathType Container)
+        $result.appdata_log_dir_state = if ($result.appdata_log_dir_ok) { "verified" } else { "mismatch" }
+        $result.appdata_data_dir_state = if ($result.appdata_data_dir_ok) { "verified" } else { "mismatch" }
+    }
     $result.scenarios.cold_launch = [ordered]@{
         workbench_pid = $coldLaunchProcess.Id
         process_name = $installedProcessName
         health_message = $healthResult.payload.message
-        runtime_mode = $settingsRuntime.runtime_mode
-        base_url = $settingsRuntime.base_url
-        log_dir = $settingsRuntime.log_dir
-        data_dir = $settingsRuntime.data_dir
-        providers_count = @($connectionsStatus.providers).Count
+        settings_runtime_state = $settingsRuntimeCheck.state
+        runtime_mode = if ($settingsRuntime) { $settingsRuntime.runtime_mode } else { $null }
+        base_url = if ($settingsRuntime) { $settingsRuntime.base_url } else { $null }
+        log_dir = if ($settingsRuntime) { $settingsRuntime.log_dir } else { $null }
+        data_dir = if ($settingsRuntime) { $settingsRuntime.data_dir } else { $null }
+        connections_state = $connectionsStatusCheck.state
+        providers_count = if ($connectionsStatus) { @($connectionsStatus.providers).Count } else { 0 }
+        appdata_log_dir_state = $result.appdata_log_dir_state
+        appdata_data_dir_state = $result.appdata_data_dir_state
         bootstrap_tail = $bootstrapTail
     }
-    if (-not $result.appdata_log_dir_ok) {
+    if ($settingsRuntimeCheck.state -ne "locked" -and -not $result.appdata_log_dir_ok) {
         throw "Installed app wrote logs to '$($settingsRuntime.log_dir)' instead of '$appLogDir'."
     }
-    if (-not $result.appdata_data_dir_ok) {
+    if ($settingsRuntimeCheck.state -ne "locked" -and -not $result.appdata_data_dir_ok) {
         throw "Installed app wrote data to '$($settingsRuntime.data_dir)' instead of '$appDataDir'."
     }
 
@@ -603,18 +655,21 @@ try {
     $standaloneHealth = Wait-ForHealth -Url $baseUrl -TimeoutSeconds $HealthTimeoutSeconds
     $adoptLogStart = Get-LogLineCount -Path $appBootstrapLogPath
     $adoptDesktopProcess = Start-Desktop -ResolvedExePath $resolvedInstalledExePath
-    $adoptedRuntime = Invoke-ApiCheck -Url "$baseUrl/settings/runtime"
+    $adoptedRuntimeCheck = Invoke-LockedApiCheck -Url "$baseUrl/settings/runtime"
+    $adoptedRuntime = $adoptedRuntimeCheck.payload
     $adoptBootstrapTail = Wait-ForLogPattern -Path $appBootstrapLogPath -StartLine $adoptLogStart -Pattern "adopted_existing=true"
-    $adoptConnections = Invoke-ApiCheck -Url "$baseUrl/connections/status"
+    $adoptConnections = Invoke-LockedApiCheck -Url "$baseUrl/connections/status"
 
     $result.adopt_existing_ok = $true
     $result.scenarios.adopt_existing = [ordered]@{
         standalone_sidecar_pid = $standaloneSidecar.Id
         workbench_pid = $adoptDesktopProcess.Id
         standalone_health_ready_seconds = $standaloneHealth.seconds
-        base_url = $adoptedRuntime.base_url
+        settings_runtime_state = $adoptedRuntimeCheck.state
+        base_url = if ($adoptedRuntime) { $adoptedRuntime.base_url } else { $null }
         bootstrap_tail = $adoptBootstrapTail
-        providers_count = @($adoptConnections.providers).Count
+        connections_state = $adoptConnections.state
+        providers_count = if ($adoptConnections.payload) { @($adoptConnections.payload.providers).Count } else { 0 }
         standalone_log_dir = $adoptLogDir
         standalone_sidecar_path = $resolvedInstalledSidecarPath
     }

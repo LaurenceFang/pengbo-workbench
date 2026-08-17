@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import math
+from threading import Lock
+from time import monotonic
 from typing import Any
 
 from ..data_seed import AssetCatalogEntry
@@ -19,10 +21,24 @@ RATIO_FIELDS: tuple[tuple[str, str], ...] = (
 )
 
 
+INFO_CACHE_TTL_SECONDS = 5 * 60
+_INFO_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+_INFO_CACHE_LOCK = Lock()
+
+
 def _get_ticker_info(symbol: str) -> dict[str, Any]:
+    now = monotonic()
+    with _INFO_CACHE_LOCK:
+        cached = _INFO_CACHE.get(symbol)
+        if cached is not None and now - cached[0] <= INFO_CACHE_TTL_SECONDS:
+            return dict(cached[1])
+
     from yfinance import Ticker
 
-    return dict(Ticker(symbol).info)
+    info = dict(Ticker(symbol).info)
+    with _INFO_CACHE_LOCK:
+        _INFO_CACHE[symbol] = (monotonic(), info)
+    return dict(info)
 
 
 def _coerce_numeric(value: Any) -> float | None:
@@ -71,7 +87,18 @@ def _format_ratio(label: str, value: float) -> str:
 
 
 class FundamentalProvider:
+    def __init__(self, *, market_fixture_mode: bool = False) -> None:
+        self.market_fixture_mode = market_fixture_mode
+
     def get_overview(self, entry: AssetCatalogEntry) -> dict[str, str | None]:
+        if self.market_fixture_mode:
+            return {
+                "symbol": entry.symbol,
+                "company": entry.name,
+                "sector": entry.sector,
+                "market_cap": "$100.00B",
+                "summary": entry.summary,
+            }
         info = _get_ticker_info(entry.symbol)
         return {
             "symbol": entry.symbol,
@@ -84,6 +111,13 @@ class FundamentalProvider:
     def get_ratios(self, entry: AssetCatalogEntry) -> list[dict[str, str]]:
         if not entry.is_us_equity:
             return []
+
+        if self.market_fixture_mode:
+            return [
+                {"label": "Gross Margin", "value": "40.0%", "note": "Explicit isolated test fixture"},
+                {"label": "Return on Equity", "value": "18.0%", "note": "Explicit isolated test fixture"},
+                {"label": "Trailing P/E", "value": "20.00x", "note": "Explicit isolated test fixture"},
+            ]
 
         info = _get_ticker_info(entry.symbol)
         items: list[dict[str, str]] = []

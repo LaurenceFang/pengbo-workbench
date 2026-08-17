@@ -1,0 +1,25 @@
+import { chromium } from "playwright";
+import { writeFile } from "node:fs/promises";
+
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+await page.goto("http://127.0.0.1:4190", { waitUntil: "networkidle" });
+const focusBefore = await page.evaluate(() => document.activeElement?.tagName ?? null);
+await page.getByLabel("open-command-palette").click();
+await page.waitForTimeout(300);
+const palette = page.locator('[aria-label="command-palette"]:visible');
+const paletteOpen = await palette.count() === 1;
+await page.keyboard.press("Escape");
+await page.waitForTimeout(150);
+const paletteClosed = await palette.count() === 0;
+const marketsGroup = page.getByLabel("nav-group-markets");
+const marketsExpandedBefore = await marketsGroup.getAttribute("aria-expanded");
+if (marketsExpandedBefore !== "true") await marketsGroup.click();
+const marketsExpandedAfter = await marketsGroup.getAttribute("aria-expanded");
+await page.getByLabel("nav-asset").focus();
+const focusedAnchor = await page.evaluate(() => document.activeElement?.getAttribute("aria-label"));
+const result = { focusBefore, paletteOpen, paletteClosed, marketsExpandedBefore, marketsExpandedAfter, focusedAnchor, passed: paletteOpen && paletteClosed && marketsExpandedAfter === "true" && focusedAnchor === "nav-asset" };
+await writeFile("logs/interaction-smoke-latest.json", JSON.stringify(result, null, 2), "utf8");
+console.log(JSON.stringify(result, null, 2));
+await browser.close();
+if (!result.passed) process.exitCode = 1;
